@@ -2,27 +2,11 @@
 import { useState } from "react";
 import Link from "next/link";
 
-const countries = [
-  "Afghanistan","Albania","Algeria","Argentina","Australia","Austria","Bangladesh","Belgium","Brazil","Canada",
-  "Chile","China","Colombia","Croatia","Czech Republic","Denmark","Egypt","Ethiopia","Finland","France",
-  "Germany","Ghana","Greece","Hungary","India","Indonesia","Iran","Iraq","Ireland","Israel",
-  "Italy","Japan","Jordan","Kenya","Malaysia","Mexico","Morocco","Netherlands","New Zealand","Nigeria",
-  "Norway","Pakistan","Peru","Philippines","Poland","Portugal","Romania","Russia","Saudi Arabia","Singapore",
-  "South Africa","South Korea","Spain","Sri Lanka","Sudan","Sweden","Switzerland","Tanzania","Thailand",
-  "Turkey","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Vietnam","Zimbabwe",
-];
-
-const steps = ["Personal Info", "Contact", "Security", "Review"];
-
 export default function RegisterPage() {
-  const [step, setStep] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    firstName: "", lastName: "", dateOfBirth: "", country: "",
-    email: "", phone: "", address: "",
-    password: "", confirmPassword: "",
-  });
+  const [form, setForm] = useState({ fullName: "", email: "", password: "", confirmPassword: "" });
   const [showPass, setShowPass] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const update = (field: string, value: string) => {
@@ -30,274 +14,185 @@ export default function RegisterPage() {
     setErrors((e) => ({ ...e, [field]: "" }));
   };
 
-  const validateStep = () => {
-    const e: Record<string, string> = {};
-    if (step === 0) {
-      if (!form.firstName) e.firstName = "First name is required";
-      if (!form.lastName) e.lastName = "Last name is required";
-      if (!form.dateOfBirth) e.dateOfBirth = "Date of birth is required";
-      if (!form.country) e.country = "Please select your country";
-    }
-    if (step === 1) {
-      if (!form.email || !/\S+@\S+\.\S+/.test(form.email)) e.email = "Valid email is required";
-      if (!form.phone) e.phone = "Phone number is required";
-      if (!form.address) e.address = "Address is required";
-    }
-    if (step === 2) {
-      if (!form.password || form.password.length < 8) e.password = "Password must be at least 8 characters";
-      if (form.password !== form.confirmPassword) e.confirmPassword = "Passwords do not match";
-    }
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
-
-  const next = () => { if (validateStep()) setStep((s) => s + 1); };
-  const back = () => setStep((s) => s - 1);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const errs: Record<string, string> = {};
+    if (!form.fullName) errs.fullName = "Full name is required";
+    if (!form.email || !/\S+@\S+\.\S+/.test(form.email)) errs.email = "Valid email is required";
+    if (!form.password || form.password.length < 8) errs.password = "Password must be at least 8 characters";
+    if (form.password !== form.confirmPassword) errs.confirmPassword = "Passwords do not match";
+    if (Object.keys(errs).length) { setErrors(errs); return; }
     setLoading(true);
     setTimeout(() => setLoading(false), 1500);
   };
 
   const inputStyle = (field: string): React.CSSProperties => ({
-    width: "100%", padding: "13px 16px", borderRadius: 10,
+    width: "100%", padding: "12px 42px 12px 14px", borderRadius: 10,
     border: `1.5px solid ${errors[field] ? "#EF4444" : "#E5E7EB"}`,
-    fontSize: 15, color: "#111827", background: "#fff",
-    outline: "none", transition: "border-color 0.2s", boxSizing: "border-box",
+    fontSize: 14, color: "#111827", background: "#F9FAFB",
+    outline: "none", boxSizing: "border-box", transition: "border-color 0.2s",
   });
 
-  const labelStyle: React.CSSProperties = { fontSize: 14, fontWeight: 600, color: "#374151", display: "block", marginBottom: 8 };
-  const errorStyle: React.CSSProperties = { fontSize: 12, color: "#EF4444", marginTop: 4 };
-  const fieldWrap: React.CSSProperties = { marginBottom: 18 };
-
   return (
-    <div style={{ minHeight: "100vh", display: "flex", background: "#F8FAFC" }}>
+    <div style={{
+      minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+      background: "linear-gradient(160deg, #C8DCFF 0%, #D6E8FF 40%, #EEF4FF 70%, #D0E4FF 100%)",
+      padding: "24px", position: "relative", overflow: "hidden",
+    }}>
+      {/* Decorative blobs */}
+      <div style={{ position: "absolute", top: "5%", right: "8%", width: 180, height: 180, background: "rgba(26,115,232,0.12)", borderRadius: "50%", filter: "blur(40px)" }} />
+      <div style={{ position: "absolute", bottom: "10%", left: "5%", width: 220, height: 220, background: "rgba(26,115,232,0.1)", borderRadius: "50%", filter: "blur(50px)" }} />
 
-      {/* Left Panel */}
+      {/* Floating decorative elements */}
+      <div style={{ position: "absolute", top: "10%", left: "22%", fontSize: 34, filter: "drop-shadow(0 8px 16px rgba(26,115,232,0.3))", transform: "rotate(-15deg)" }}>💰</div>
+      <div style={{ position: "absolute", top: "8%", left: "8%", fontSize: 26, filter: "drop-shadow(0 6px 12px rgba(26,115,232,0.25))", transform: "rotate(10deg)" }}>💰</div>
+      <div style={{ position: "absolute", bottom: "18%", left: "6%", fontSize: 32, filter: "drop-shadow(0 8px 16px rgba(26,115,232,0.3))", transform: "rotate(-8deg)" }}>📱</div>
+      <div style={{ position: "absolute", bottom: "8%", left: "18%", fontSize: 30, filter: "drop-shadow(0 6px 12px rgba(26,115,232,0.25))", transform: "rotate(15deg)" }}>💳</div>
+      <div style={{ position: "absolute", top: "15%", right: "6%", fontSize: 28, filter: "drop-shadow(0 6px 12px rgba(26,115,232,0.2))", transform: "rotate(-5deg)" }}>🛡️</div>
+
+      {/* Card */}
       <div style={{
-        flex: 1, background: "linear-gradient(135deg, #0F172A 0%, #1e3a6e 60%, #1A73E8 100%)",
-        display: "flex", flexDirection: "column", justifyContent: "space-between",
-        padding: "48px", position: "relative", overflow: "hidden",
-      }} className="left-panel">
-        <div style={{ position: "absolute", top: "20%", right: "-10%", width: 300, height: 300, background: "rgba(26,115,232,0.2)", borderRadius: "50%", filter: "blur(60px)" }} />
-
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", position: "relative" }}>
-          <div style={{ width: 36, height: 36, background: "#1A73E8", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 4h14l-5 6v5l-4-2V10L3 4z" fill="white" /></svg>
-          </div>
-          <span style={{ fontSize: 20, fontWeight: 800, color: "#fff" }}>Vaulte</span>
-        </Link>
-
-        <div style={{ position: "relative" }}>
-          <h2 style={{ fontSize: 34, fontWeight: 900, color: "#fff", lineHeight: 1.2, marginBottom: 16, letterSpacing: "-1px" }}>
-            Open your free<br /><span style={{ color: "#60A5FA" }}>global account</span>
-          </h2>
-          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.6)", lineHeight: 1.75, maxWidth: 340, marginBottom: 36 }}>
-            Join thousands of customers already banking smarter with Vaulte. No monthly fees, no borders.
-          </p>
-
-          {/* Progress steps display */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {steps.map((s, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{
-                  width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
-                  background: i < step ? "#22C55E" : i === step ? "#1A73E8" : "rgba(255,255,255,0.15)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 12, fontWeight: 700, color: "#fff",
-                }}>
-                  {i < step ? "✓" : i + 1}
-                </div>
-                <span style={{ fontSize: 14, color: i === step ? "#fff" : "rgba(255,255,255,0.5)", fontWeight: i === step ? 600 : 400 }}>{s}</span>
-              </div>
-            ))}
+        width: "100%", maxWidth: 440,
+        background: "#fff", borderRadius: 24,
+        boxShadow: "0 20px 60px rgba(26,115,232,0.18), 0 4px 16px rgba(0,0,0,0.06)",
+        overflow: "hidden", position: "relative", zIndex: 1,
+      }}>
+        {/* Blue top section */}
+        <div style={{
+          background: "linear-gradient(135deg, #1A73E8, #2563EB)",
+          padding: "28px 32px 44px", textAlign: "center", position: "relative", overflow: "hidden",
+        }}>
+          <div style={{ position: "absolute", top: -30, right: -30, width: 120, height: 120, background: "rgba(255,255,255,0.08)", borderRadius: "50%" }} />
+          <div style={{ position: "absolute", bottom: -20, left: -20, width: 100, height: 100, background: "rgba(255,255,255,0.06)", borderRadius: "50%" }} />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, position: "relative" }}>
+            <div style={{ width: 36, height: 36, background: "rgba(255,255,255,0.2)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M3 4h14l-5 6v5l-4-2V10L3 4z" fill="white" />
+              </svg>
+            </div>
+            <span style={{ fontSize: 22, fontWeight: 800, color: "#fff", letterSpacing: "-0.5px" }}>Vaulte</span>
           </div>
         </div>
 
-        <p style={{ fontSize: 13, color: "rgba(255,255,255,0.25)", position: "relative" }}>
-          © 2026 Vaulte — Global Digital Banking
-        </p>
-      </div>
-
-      {/* Right Panel */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 5%", overflowY: "auto" }}>
-        <div style={{ width: "100%", maxWidth: 440 }}>
-          {/* Header */}
-          <div style={{ marginBottom: 32 }}>
-            <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
-              {steps.map((_, i) => (
-                <div key={i} style={{
-                  flex: 1, height: 4, borderRadius: 2,
-                  background: i <= step ? "#1A73E8" : "#E5E7EB",
-                  transition: "background 0.3s",
-                }} />
-              ))}
-            </div>
-            <p style={{ fontSize: 13, color: "#9CA3AF", marginBottom: 4 }}>Step {step + 1} of {steps.length}</p>
-            <h1 style={{ fontSize: 26, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.5px" }}>{steps[step]}</h1>
-          </div>
+        {/* Form */}
+        <div style={{ padding: "28px 32px 32px" }}>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", textAlign: "center", marginBottom: 24, letterSpacing: "-0.5px" }}>
+            Create Your Account
+          </h1>
 
           <form onSubmit={handleSubmit}>
-            {/* Step 0 — Personal Info */}
-            {step === 0 && (
-              <>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
-                  <div>
-                    <label style={labelStyle}>First Name</label>
-                    <input style={inputStyle("firstName")} value={form.firstName} onChange={(e) => update("firstName", e.target.value)} placeholder="John"
-                      onFocus={(e) => (e.target.style.borderColor = "#1A73E8")} onBlur={(e) => (e.target.style.borderColor = errors.firstName ? "#EF4444" : "#E5E7EB")} />
-                    {errors.firstName && <p style={errorStyle}>{errors.firstName}</p>}
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Last Name</label>
-                    <input style={inputStyle("lastName")} value={form.lastName} onChange={(e) => update("lastName", e.target.value)} placeholder="Doe"
-                      onFocus={(e) => (e.target.style.borderColor = "#1A73E8")} onBlur={(e) => (e.target.style.borderColor = errors.lastName ? "#EF4444" : "#E5E7EB")} />
-                    {errors.lastName && <p style={errorStyle}>{errors.lastName}</p>}
-                  </div>
-                </div>
-                <div style={fieldWrap}>
-                  <label style={labelStyle}>Date of Birth</label>
-                  <input type="date" style={inputStyle("dateOfBirth")} value={form.dateOfBirth} onChange={(e) => update("dateOfBirth", e.target.value)}
-                    onFocus={(e) => (e.target.style.borderColor = "#1A73E8")} onBlur={(e) => (e.target.style.borderColor = errors.dateOfBirth ? "#EF4444" : "#E5E7EB")} />
-                  {errors.dateOfBirth && <p style={errorStyle}>{errors.dateOfBirth}</p>}
-                </div>
-                <div style={fieldWrap}>
-                  <label style={labelStyle}>Country of Residence</label>
-                  <select style={{ ...inputStyle("country"), appearance: "none" }} value={form.country} onChange={(e) => update("country", e.target.value)}
-                    onFocus={(e) => (e.target.style.borderColor = "#1A73E8")} onBlur={(e) => (e.target.style.borderColor = errors.country ? "#EF4444" : "#E5E7EB")}>
-                    <option value="">Select your country</option>
-                    {countries.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                  {errors.country && <p style={errorStyle}>{errors.country}</p>}
-                </div>
-              </>
-            )}
-
-            {/* Step 1 — Contact */}
-            {step === 1 && (
-              <>
-                <div style={fieldWrap}>
-                  <label style={labelStyle}>Email Address</label>
-                  <input type="email" style={inputStyle("email")} value={form.email} onChange={(e) => update("email", e.target.value)} placeholder="you@example.com"
-                    onFocus={(e) => (e.target.style.borderColor = "#1A73E8")} onBlur={(e) => (e.target.style.borderColor = errors.email ? "#EF4444" : "#E5E7EB")} />
-                  {errors.email && <p style={errorStyle}>{errors.email}</p>}
-                </div>
-                <div style={fieldWrap}>
-                  <label style={labelStyle}>Phone Number</label>
-                  <input type="tel" style={inputStyle("phone")} value={form.phone} onChange={(e) => update("phone", e.target.value)} placeholder="+1 234 567 8901"
-                    onFocus={(e) => (e.target.style.borderColor = "#1A73E8")} onBlur={(e) => (e.target.style.borderColor = errors.phone ? "#EF4444" : "#E5E7EB")} />
-                  {errors.phone && <p style={errorStyle}>{errors.phone}</p>}
-                </div>
-                <div style={fieldWrap}>
-                  <label style={labelStyle}>Residential Address</label>
-                  <textarea style={{ ...inputStyle("address"), resize: "vertical", minHeight: 90 } as React.CSSProperties} value={form.address} onChange={(e) => update("address", e.target.value)} placeholder="Street, City, State"
-                    onFocus={(e) => (e.target.style.borderColor = "#1A73E8")} onBlur={(e) => (e.target.style.borderColor = errors.address ? "#EF4444" : "#E5E7EB")} />
-                  {errors.address && <p style={errorStyle}>{errors.address}</p>}
-                </div>
-              </>
-            )}
-
-            {/* Step 2 — Security */}
-            {step === 2 && (
-              <>
-                <div style={fieldWrap}>
-                  <label style={labelStyle}>Create Password</label>
-                  <div style={{ position: "relative" }}>
-                    <input type={showPass ? "text" : "password"} style={{ ...inputStyle("password"), paddingRight: 48 }} value={form.password} onChange={(e) => update("password", e.target.value)} placeholder="Min. 8 characters"
-                      onFocus={(e) => (e.target.style.borderColor = "#1A73E8")} onBlur={(e) => (e.target.style.borderColor = errors.password ? "#EF4444" : "#E5E7EB")} />
-                    <button type="button" onClick={() => setShowPass(!showPass)} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#9CA3AF", fontSize: 18 }}>
-                      {showPass ? "🙈" : "👁️"}
-                    </button>
-                  </div>
-                  {errors.password && <p style={errorStyle}>{errors.password}</p>}
-                  {/* Password strength */}
-                  {form.password && (
-                    <div style={{ marginTop: 8, display: "flex", gap: 4 }}>
-                      {[1, 2, 3, 4].map((n) => (
-                        <div key={n} style={{ flex: 1, height: 3, borderRadius: 2, background: form.password.length >= n * 3 ? (form.password.length >= 12 ? "#22C55E" : form.password.length >= 8 ? "#F59E0B" : "#EF4444") : "#E5E7EB" }} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div style={fieldWrap}>
-                  <label style={labelStyle}>Confirm Password</label>
-                  <input type="password" style={inputStyle("confirmPassword")} value={form.confirmPassword} onChange={(e) => update("confirmPassword", e.target.value)} placeholder="Repeat your password"
-                    onFocus={(e) => (e.target.style.borderColor = "#1A73E8")} onBlur={(e) => (e.target.style.borderColor = errors.confirmPassword ? "#EF4444" : "#E5E7EB")} />
-                  {errors.confirmPassword && <p style={errorStyle}>{errors.confirmPassword}</p>}
-                </div>
-                <div style={{ background: "#EFF6FF", borderRadius: 10, padding: "14px 16px", border: "1px solid #BFDBFE", marginBottom: 8 }}>
-                  <p style={{ fontSize: 13, color: "#1E40AF", fontWeight: 500, lineHeight: 1.6 }}>
-                    🔒 After registration, a 2FA code will be sent to your email for every login.
-                  </p>
-                </div>
-              </>
-            )}
-
-            {/* Step 3 — Review */}
-            {step === 3 && (
-              <div style={{ background: "#fff", border: "1.5px solid #E5E7EB", borderRadius: 14, padding: 20, marginBottom: 20 }}>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#6B7280", letterSpacing: "0.08em", marginBottom: 16, textTransform: "uppercase" }}>Account Summary</p>
-                {[
-                  ["Full Name", `${form.firstName} ${form.lastName}`],
-                  ["Date of Birth", form.dateOfBirth],
-                  ["Country", form.country],
-                  ["Email", form.email],
-                  ["Phone", form.phone],
-                  ["Address", form.address],
-                ].map(([label, value]) => (
-                  <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #F3F4F6" }}>
-                    <span style={{ fontSize: 14, color: "#6B7280" }}>{label}</span>
-                    <span style={{ fontSize: 14, color: "#111827", fontWeight: 500, maxWidth: 220, textAlign: "right" }}>{value}</span>
-                  </div>
-                ))}
-                <div style={{ marginTop: 16, background: "#F0FDF4", borderRadius: 8, padding: "12px", border: "1px solid #BBF7D0" }}>
-                  <p style={{ fontSize: 13, color: "#166534", fontWeight: 500 }}>
-                    ✅ By creating an account, you agree to Vaulte Terms of Service and Privacy Policy.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Navigation Buttons */}
-            <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
-              {step > 0 && (
-                <button type="button" onClick={back} style={{
-                  flex: 1, padding: "13px", borderRadius: 10, border: "1.5px solid #E5E7EB",
-                  background: "#fff", color: "#374151", fontSize: 15, fontWeight: 600, cursor: "pointer",
-                }}>← Back</button>
-              )}
-              {step < steps.length - 1 ? (
-                <button type="button" onClick={next} style={{
-                  flex: 1, padding: "13px", borderRadius: 10, border: "none",
-                  background: "#1A73E8", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer",
-                  boxShadow: "0 4px 14px rgba(26,115,232,0.35)",
-                }}>Continue →</button>
-              ) : (
-                <button type="submit" disabled={loading} style={{
-                  flex: 1, padding: "13px", borderRadius: 10, border: "none",
-                  background: loading ? "#93C5FD" : "#22C55E", color: "#fff",
-                  fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
-                  boxShadow: "0 4px 14px rgba(34,197,94,0.35)",
-                }}>
-                  {loading ? "Creating Account..." : "Create My Account"}
-                </button>
-              )}
+            {/* Full Name */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 14, fontWeight: 600, color: "#374151", display: "block", marginBottom: 7 }}>Full Name</label>
+              <input
+                type="text" value={form.fullName} onChange={(e) => update("fullName", e.target.value)}
+                placeholder="John Doe"
+                style={{ ...inputStyle("fullName"), padding: "12px 14px" }}
+                onFocus={(e) => (e.target.style.borderColor = "#1A73E8")}
+                onBlur={(e) => (e.target.style.borderColor = errors.fullName ? "#EF4444" : "#E5E7EB")}
+              />
+              {errors.fullName && <p style={{ fontSize: 12, color: "#EF4444", marginTop: 4 }}>{errors.fullName}</p>}
             </div>
 
-            {step === 0 && (
-              <p style={{ textAlign: "center", fontSize: 14, color: "#6B7280", marginTop: 20 }}>
-                Already have an account?{" "}
-                <Link href="/login" style={{ color: "#1A73E8", fontWeight: 600, textDecoration: "none" }}>Sign in</Link>
-              </p>
-            )}
+            {/* Email */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 14, fontWeight: 600, color: "#374151", display: "block", marginBottom: 7 }}>Email</label>
+              <input
+                type="email" value={form.email} onChange={(e) => update("email", e.target.value)}
+                placeholder="user@example.com"
+                style={{ ...inputStyle("email"), padding: "12px 14px" }}
+                onFocus={(e) => (e.target.style.borderColor = "#1A73E8")}
+                onBlur={(e) => (e.target.style.borderColor = errors.email ? "#EF4444" : "#E5E7EB")}
+              />
+              {errors.email && <p style={{ fontSize: 12, color: "#EF4444", marginTop: 4 }}>{errors.email}</p>}
+            </div>
+
+            {/* Password */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 14, fontWeight: 600, color: "#374151", display: "block", marginBottom: 7 }}>Password</label>
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showPass ? "text" : "password"} value={form.password} onChange={(e) => update("password", e.target.value)}
+                  placeholder="••••••••••"
+                  style={inputStyle("password")}
+                  onFocus={(e) => (e.target.style.borderColor = "#1A73E8")}
+                  onBlur={(e) => (e.target.style.borderColor = errors.password ? "#EF4444" : "#E5E7EB")}
+                />
+                <button type="button" onClick={() => setShowPass(!showPass)} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#9CA3AF", fontSize: 16 }}>
+                  {showPass ? "🙈" : "👁️"}
+                </button>
+              </div>
+              {errors.password && <p style={{ fontSize: 12, color: "#EF4444", marginTop: 4 }}>{errors.password}</p>}
+            </div>
+
+            {/* Confirm Password */}
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ fontSize: 14, fontWeight: 600, color: "#374151", display: "block", marginBottom: 7 }}>Confirm Password</label>
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showConfirm ? "text" : "password"} value={form.confirmPassword} onChange={(e) => update("confirmPassword", e.target.value)}
+                  placeholder="••••••••••"
+                  style={inputStyle("confirmPassword")}
+                  onFocus={(e) => (e.target.style.borderColor = "#1A73E8")}
+                  onBlur={(e) => (e.target.style.borderColor = errors.confirmPassword ? "#EF4444" : "#E5E7EB")}
+                />
+                <button type="button" onClick={() => setShowConfirm(!showConfirm)} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#9CA3AF", fontSize: 16 }}>
+                  {showConfirm ? "🙈" : "👁️"}
+                </button>
+              </div>
+              {errors.confirmPassword && <p style={{ fontSize: 12, color: "#EF4444", marginTop: 4 }}>{errors.confirmPassword}</p>}
+            </div>
+
+            <button type="submit" disabled={loading} style={{
+              width: "100%", padding: "13px", borderRadius: 10, border: "none",
+              background: loading ? "#93C5FD" : "#1A73E8", color: "#fff",
+              fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
+              boxShadow: "0 4px 14px rgba(26,115,232,0.4)", marginBottom: 16, transition: "all 0.2s",
+            }}
+              onMouseEnter={(e) => { if (!loading) (e.currentTarget.style.background = "#1557b0"); }}
+              onMouseLeave={(e) => { if (!loading) (e.currentTarget.style.background = "#1A73E8"); }}
+            >
+              {loading ? "Creating Account..." : "Register"}
+            </button>
+
+            <p style={{ textAlign: "center", fontSize: 14, color: "#6B7280", marginBottom: 20 }}>
+              Already have an account?{" "}
+              <Link href="/login" style={{ color: "#1A73E8", fontWeight: 700, textDecoration: "none" }}>Login</Link>
+            </p>
+
+            {/* OR divider */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+              <div style={{ flex: 1, height: 1, background: "#E5E7EB" }} />
+              <span style={{ fontSize: 13, color: "#9CA3AF", fontWeight: 500 }}>OR</span>
+              <div style={{ flex: 1, height: 1, background: "#E5E7EB" }} />
+            </div>
+
+            {/* Social buttons */}
+            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+              <button type="button" style={{
+                width: 56, height: 56, borderRadius: 14, border: "1.5px solid #E5E7EB",
+                background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "all 0.2s", boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+              }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#1A73E8"; (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#E5E7EB"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+              </button>
+              <button type="button" style={{
+                width: 56, height: 56, borderRadius: 14, border: "1.5px solid #E5E7EB",
+                background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "all 0.2s", boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+              }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#1A73E8"; (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#E5E7EB"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="#000"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+              </button>
+            </div>
           </form>
         </div>
       </div>
-
-      <style>{`
-        @media (max-width: 768px) { .left-panel { display: none !important; } }
-      `}</style>
     </div>
   );
 }
