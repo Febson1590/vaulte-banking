@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { getState, saveState, VaulteState, DEFAULT_STATE, fmtDate } from "@/lib/vaulteState";
+import { getState, saveState, VaulteState, DEFAULT_STATE, getCurrentUser, fmtDate } from "@/lib/vaulteState";
 
 const C = {
   bg: "#F3F5FA", card: "#ffffff", navy: "#0F172A", blue: "#1A73E8",
@@ -36,7 +36,10 @@ export default function CardsPage() {
 
   useEffect(() => { setState(getState()); }, []);
 
-  const { card } = state;
+  const { card }  = state;
+  const user      = getCurrentUser();
+  const firstName = user?.firstName ?? state.profile.firstName;
+  const lastName  = user?.lastName  ?? state.profile.lastName;
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -84,6 +87,49 @@ export default function CardsPage() {
           <span style={{ color: "#4ADE80" }}>✓</span> {toast}
         </div>
       )}
+
+      {/* ─── No card issued empty state ─── */}
+      {!card.issued && (
+        <div style={{ maxWidth: 560, margin: "40px auto", textAlign: "center" }}>
+          <div style={{ background: C.card, borderRadius: 24, padding: "48px 40px", border: `1px solid ${C.border}`, boxShadow: C.shadow }}>
+            {/* Card visual */}
+            <div style={{ width: 200, height: 126, borderRadius: 16, background: "linear-gradient(135deg,#1e40af,#0F172A)", margin: "0 auto 28px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden", boxShadow: "0 8px 24px rgba(30,64,175,0.2)" }}>
+              <div style={{ position: "absolute", top: -30, right: -30, width: 100, height: 100, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
+              <div style={{ textAlign: "center" }}>
+                <p style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Vaulte</p>
+                <p style={{ fontSize: 26, color: "rgba(255,255,255,0.15)", fontFamily: "monospace", letterSpacing: "0.1em" }}>•••• •••• •••• ••••</p>
+              </div>
+            </div>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: C.text, marginBottom: 8, letterSpacing: "-0.3px" }}>No Card Issued Yet</h2>
+            <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.7, marginBottom: 28 }}>
+              Complete your identity verification (KYC) to request your Vaulte virtual card.
+              Once approved, your card will be issued and ready to use instantly.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {user?.kycStatus === "verified" ? (
+                <button onClick={() => { updateCard({ issued: true, spendingLimit: 2000, onlinePayments: true, contactless: true, internationalTxns: true }); showToast("Your Vaulte Virtual Card has been issued! 🎉"); }}
+                  style={{ padding: "13px 28px", borderRadius: 12, background: `linear-gradient(135deg, ${C.blue}, #1558b0)`, border: "none", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(26,115,232,0.3)" }}>
+                  🎉 Issue My Virtual Card
+                </button>
+              ) : (
+                <>
+                  <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 12, padding: "14px 18px" }}>
+                    <p style={{ fontSize: 13, color: "#991B1B", fontWeight: 600 }}>
+                      {user?.kycStatus === "pending" ? "⏳ Your KYC is under review. Card will be issued upon approval." : "🔒 Complete KYC verification to unlock card issuance."}
+                    </p>
+                  </div>
+                  <a href="/dashboard/settings" style={{ padding: "13px 28px", borderRadius: 12, background: C.blue, border: "none", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", textDecoration: "none", display: "inline-block" }}>
+                    Go to Verification →
+                  </a>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Card management UI (only shown when card is issued) ─── */}
+      {card.issued && (<>
 
       {/* Limit modal */}
       {limitModal && (
@@ -165,7 +211,7 @@ export default function CardsPage() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", position: "relative", zIndex: 1 }}>
                   <div>
                     <p style={{ fontSize: 9.5, color: "rgba(255,255,255,0.32)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 5 }}>Card Holder</p>
-                    <p style={{ fontSize: 14, color: "#fff", fontWeight: 600, letterSpacing: "0.04em" }}>{state.profile.firstName} {state.profile.lastName}</p>
+                    <p style={{ fontSize: 14, color: "#fff", fontWeight: 600, letterSpacing: "0.04em" }}>{firstName} {lastName}</p>
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <p style={{ fontSize: 9.5, color: "rgba(255,255,255,0.32)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 5 }}>Expires</p>
@@ -328,6 +374,9 @@ export default function CardsPage() {
           </div>
         </div>
       </div>
+
+      </>)}
+      {/* ─── End of issued-card UI ─── */}
 
       <style>{`@keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }`}</style>
     </DashboardLayout>

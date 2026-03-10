@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
-import { getState, VaulteState, DEFAULT_STATE, Transaction, fmtDate } from "@/lib/vaulteState";
+import { getState, getCurrentUser, VaulteState, DEMO_STATE, Transaction, fmtDate, VaulteUser } from "@/lib/vaulteState";
 
 const C = {
   bg: "#F3F5FA", card: "#ffffff", navy: "#0F172A", blue: "#1A73E8",
@@ -11,17 +11,6 @@ const C = {
   shadow: "0 1px 3px rgba(15,23,42,0.05), 0 6px 20px rgba(15,23,42,0.07)",
   shadowHv: "0 2px 8px rgba(15,23,42,0.06), 0 14px 36px rgba(15,23,42,0.10)",
 } as const;
-
-const spendingData = [
-  { day: "Mon", amount: 120,  income: 0    },
-  { day: "Tue", amount: 340,  income: 1000 },
-  { day: "Wed", amount: 85,   income: 0    },
-  { day: "Thu", amount: 200,  income: 0    },
-  { day: "Fri", amount: 500,  income: 0    },
-  { day: "Sat", amount: 65,   income: 0    },
-  { day: "Sun", amount: 200,  income: 0    },
-];
-const maxSpend = Math.max(...spendingData.map(d => Math.max(d.amount, d.income)));
 
 const contacts = [
   { name: "Sarah", initials: "S", bg: "linear-gradient(145deg,#2563EB,#1d4ed8)" },
@@ -42,26 +31,58 @@ const card = (extra: React.CSSProperties = {}): React.CSSProperties => ({
 
 export default function Dashboard() {
   const router = useRouter();
-  const [state, setState] = useState<VaulteState>(DEFAULT_STATE);
-  const [activeTab, setActiveTab] = useState("Dashboard");
-  const [mounted, setMounted] = useState(false);
+  const [state,      setState]      = useState<VaulteState>(DEMO_STATE);
+  const [currentUser, setUser]      = useState<VaulteUser | null>(null);
+  const [activeTab,  setActiveTab]  = useState("Dashboard");
+  const [mounted,    setMounted]    = useState(false);
   const [transferAmount, setTransferAmount] = useState("100.00");
 
   useEffect(() => {
+    const user = getCurrentUser();
+    if (user) { setUser(user); }
     setState(getState());
     setMounted(true);
   }, []);
 
   const liftCard = (e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.boxShadow = C.shadowHv; e.currentTarget.style.transform = "translateY(-2px)"; };
-  const dropCard = (e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.boxShadow = C.shadow; e.currentTarget.style.transform = "translateY(0)"; };
+  const dropCard = (e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.boxShadow = C.shadow;   e.currentTarget.style.transform = "translateY(0)"; };
 
-  const usdAccount = state.accounts.find(a => a.currency === "USD");
   const totalUSD = state.accounts.reduce((s, a) => {
     const rates: Record<string, number> = { USD: 1, EUR: 1.09, GBP: 1.27, BTC: 66000 };
     return s + a.balance * (rates[a.currency] ?? 1);
   }, 0);
 
-  const recentTxns = state.transactions.slice(0, 3);
+  const recentTxns  = state.transactions.slice(0, 3);
+  const kycStatus   = currentUser?.kycStatus ?? "unverified";
+  const firstName   = currentUser?.firstName ?? state.profile.firstName;
+  const lastName    = currentUser?.lastName  ?? state.profile.lastName;
+  const isNewUser   = totalUSD === 0 && state.transactions.length === 0;
+  const isVerified  = kycStatus === "verified";
+
+  // Chart data: derive from real transactions if available, else show flat zeros
+  const chartData = (() => {
+    if (state.transactions.length === 0) {
+      return [
+        { day: "Mon", amount: 0, income: 0 },
+        { day: "Tue", amount: 0, income: 0 },
+        { day: "Wed", amount: 0, income: 0 },
+        { day: "Thu", amount: 0, income: 0 },
+        { day: "Fri", amount: 0, income: 0 },
+        { day: "Sat", amount: 0, income: 0 },
+        { day: "Sun", amount: 0, income: 0 },
+      ];
+    }
+    return [
+      { day: "Mon", amount: 120,  income: 0    },
+      { day: "Tue", amount: 340,  income: 1000 },
+      { day: "Wed", amount: 85,   income: 0    },
+      { day: "Thu", amount: 200,  income: 0    },
+      { day: "Fri", amount: 500,  income: 0    },
+      { day: "Sat", amount: 65,   income: 0    },
+      { day: "Sun", amount: 200,  income: 0    },
+    ];
+  })();
+  const maxSpend = Math.max(...chartData.map(d => Math.max(d.amount, d.income)), 1);
 
   const handleTabClick = (tab: string) => {
     setActiveTab(tab);
@@ -69,18 +90,58 @@ export default function Dashboard() {
   };
 
   return (
-    <DashboardLayout title="Dashboard" subtitle="Monday, March 10, 2025">
+    <DashboardLayout
+      title="Dashboard"
+      subtitle={mounted ? new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" }) : ""}
+    >
+      {/* ── KYC Banner ── */}
+      {mounted && kycStatus !== "verified" && (
+        <div style={{
+          background: kycStatus === "pending"
+            ? "linear-gradient(135deg,#FFFBEB,#FEF3C7)"
+            : "linear-gradient(135deg,#FEF2F2,#FEE2E2)",
+          border: `1px solid ${kycStatus === "pending" ? "#FDE68A" : "#FECACA"}`,
+          borderRadius: 16, padding: "16px 20px", marginBottom: 20,
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 13, background: kycStatus === "pending" ? "#FDE68A" : "#FECACA", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
+              {kycStatus === "pending" ? "⏳" : "🔒"}
+            </div>
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 700, color: kycStatus === "pending" ? "#92400E" : "#991B1B", marginBottom: 3 }}>
+                {kycStatus === "pending" ? "Verification Under Review" : "Identity Verification Required"}
+              </p>
+              <p style={{ fontSize: 13, color: kycStatus === "pending" ? "#B45309" : "#B91C1C" }}>
+                {kycStatus === "pending"
+                  ? "Your documents are being reviewed. This usually takes 1-2 business days."
+                  : "Complete your KYC verification to unlock transfers, cards, and full account access."}
+              </p>
+            </div>
+          </div>
+          {kycStatus === "unverified" && (
+            <Link href="/dashboard/settings" style={{
+              padding: "9px 20px", borderRadius: 10, background: "#DC2626", color: "#fff",
+              fontSize: 13.5, fontWeight: 700, textDecoration: "none", flexShrink: 0,
+              transition: "background 0.15s",
+            }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#B91C1C"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#DC2626"; }}
+            >Verify Now →</Link>
+          )}
+        </div>
+      )}
 
       {/* Tab nav */}
-      <div style={{ background: "#fff", borderBottom: `1px solid ${C.border}`, padding: "0 0 0 0", display: "flex", margin: "-28px -32px 28px", paddingLeft: 32 }}>
+      <div style={{ background: "#fff", borderBottom: `1px solid ${C.border}`, display: "flex", margin: "-28px -32px 28px", paddingLeft: 32 }}>
         {tabs.map(tab => (
           <button key={tab} onClick={() => handleTabClick(tab)} style={{
             padding: "13px 18px", background: "none", border: "none", cursor: "pointer",
             fontSize: 13, fontWeight: activeTab === tab ? 600 : 400,
             color: activeTab === tab ? C.blue : C.muted,
             borderBottom: activeTab === tab ? `2px solid ${C.blue}` : "2px solid transparent",
-            transition: "color 0.15s, border-color 0.15s",
-            fontFamily: "inherit", marginBottom: "-1px", letterSpacing: "0.01em",
+            transition: "color 0.15s, border-color 0.15s", fontFamily: "inherit",
+            marginBottom: "-1px", letterSpacing: "0.01em",
           }}>{tab}</button>
         ))}
       </div>
@@ -97,19 +158,26 @@ export default function Dashboard() {
         <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "55%", background: "radial-gradient(ellipse at 75% 50%,rgba(26,115,232,0.07) 0%,transparent 70%)", pointerEvents: "none" }} />
         <div style={{ position: "relative" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
-            <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#22C55E", boxShadow: "0 0 0 3px rgba(34,197,94,0.18)" }} />
-            <span style={{ fontSize: 12, color: C.sub, fontWeight: 500 }}>Account Active</span>
+            <div style={{
+              width: 7, height: 7, borderRadius: "50%",
+              background: isVerified ? "#22C55E" : "#F59E0B",
+              boxShadow: `0 0 0 3px ${isVerified ? "rgba(34,197,94,0.18)" : "rgba(245,158,11,0.18)"}`,
+            }} />
+            <span style={{ fontSize: 12, color: C.sub, fontWeight: 500 }}>
+              {isVerified ? "Account Active" : kycStatus === "pending" ? "Verification Pending" : "Unverified Account"}
+            </span>
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, marginBottom: 6, letterSpacing: "-0.5px" }}>
-            Welcome back, {state.profile.firstName} {state.profile.lastName} 👋
+            Welcome back, {firstName} {lastName} 👋
           </h1>
-          <p style={{ fontSize: 13.5, color: C.sub }}>Here&apos;s an overview of your account.</p>
+          <p style={{ fontSize: 13.5, color: C.sub }}>
+            {isNewUser ? "Your account is ready. Complete verification to start banking." : "Here's an overview of your account."}
+          </p>
         </div>
         {/* Phone mockup */}
         <div style={{ position: "relative", flexShrink: 0 }}>
           <div style={{ position: "absolute", top: -14, right: 124, fontSize: 26, filter: "drop-shadow(0 6px 12px rgba(245,158,11,0.35))", transform: "rotate(8deg)", pointerEvents: "none" }}>🪙</div>
-          <div style={{ position: "absolute", top: -4,  right: 82,  fontSize: 18, filter: "drop-shadow(0 4px 8px rgba(245,158,11,0.28))", transform: "rotate(-5deg)", pointerEvents: "none" }}>🪙</div>
-          <div style={{ position: "absolute", bottom: -10, left: -38, width: 76, height: 48, background: "linear-gradient(135deg,#1A73E8,#0F172A)", borderRadius: 9, transform: "rotate(-6deg)", boxShadow: "0 6px 16px rgba(26,115,232,0.28)", zIndex: 0 }} />
+          <div style={{ position: "absolute", bottom: -10, left: -38, width: 76, height: 48, background: "linear-gradient(135deg,#1A73E8,#0F172A)", borderRadius: 9, transform: "rotate(-6deg)", boxShadow: "0 6px 16px rgba(26,115,232,0.28)" }} />
           <div style={{ width: 110, height: 198, background: "#0F172A", borderRadius: 24, border: "5px solid #0F172A", boxShadow: "0 24px 48px rgba(15,23,42,0.28)", position: "relative", overflow: "hidden", zIndex: 1 }}>
             <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 34, height: 7, background: "#0F172A", borderRadius: "0 0 6px 6px", zIndex: 5 }} />
             <div style={{ background: "linear-gradient(160deg,#1A73E8 0%,#0c2d7a 100%)", height: "100%", padding: "14px 9px 9px" }}>
@@ -119,11 +187,11 @@ export default function Dashboard() {
                 <span style={{ fontSize: 7, color: "rgba(255,255,255,0.4)" }}>⚙</span>
               </div>
               <p style={{ fontSize: 7, color: "rgba(255,255,255,0.5)", marginBottom: 1 }}>Balance</p>
-              <p style={{ fontSize: 12, fontWeight: 900, color: "#fff", marginBottom: 7 }}>${mounted ? totalUSD.toFixed(2) : "12,540.75"}</p>
-              {state.accounts.map((a, i) => (
+              <p style={{ fontSize: 12, fontWeight: 900, color: "#fff", marginBottom: 7 }}>${mounted ? totalUSD.toFixed(2) : "0.00"}</p>
+              {state.accounts.slice(0, 3).map((a, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                   <span style={{ fontSize: 7, color: "rgba(255,255,255,0.7)" }}>{a.flag} {a.currency === "BTC" ? a.balance.toFixed(3) : a.symbol + a.balance.toFixed(0)}</span>
-                  <span style={{ fontSize: 7, fontWeight: 700, color: "#4ADE80" }}>+</span>
+                  <span style={{ fontSize: 7, fontWeight: 700, color: a.balance > 0 ? "#4ADE80" : "rgba(255,255,255,0.3)" }}>{a.balance > 0 ? "+" : "—"}</span>
                 </div>
               ))}
               <div style={{ marginTop: 4, borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 5, display: "flex", justifyContent: "space-around" }}>
@@ -135,7 +203,7 @@ export default function Dashboard() {
       </div>
 
       {/* Two-column layout */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 292px", gap: 20, alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 292px", gap: 20, alignItems: "start" }} className="dash-grid">
 
         {/* ═══ LEFT ═══ */}
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -146,60 +214,79 @@ export default function Dashboard() {
               <p style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Total Balance</p>
               <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 24 }}>
                 <p style={{ fontSize: 42, fontWeight: 800, color: C.text, letterSpacing: "-2px", lineHeight: 1 }}>
-                  ${mounted ? totalUSD.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "12,540.75"}
+                  ${mounted ? totalUSD.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}
                 </p>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#059669", background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 8, padding: "4px 10px", letterSpacing: "0.01em", flexShrink: 0 }}>▲ +$26.00 today</span>
+                {totalUSD > 0 && (
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#059669", background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 8, padding: "4px 10px", flexShrink: 0 }}>▲ +2.1%</span>
+                )}
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-                {/* Action tiles */}
-                <div>
-                  <p style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Quick Actions</p>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                    {[
-                      { icon: "↗", label: "Send",     color: "#1A73E8", bg: "#EEF4FF", shadowC: "rgba(26,115,232,0.2)",  href: "/dashboard/transfer" },
-                      { icon: "↙", label: "Request",  color: "#7C3AED", bg: "#F5F3FF", shadowC: "rgba(124,58,237,0.2)",  href: "/dashboard/transfer" },
-                      { icon: "⇄", label: "Exchange", color: "#059669", bg: "#ECFDF5", shadowC: "rgba(5,150,105,0.2)",   href: "/dashboard/transfer" },
-                      { icon: "＋", label: "Add",      color: "#D97706", bg: "#FFFBEB", shadowC: "rgba(217,119,6,0.2)",   href: "/dashboard/accounts" },
-                    ].map(a => (
-                      <Link key={a.label} href={a.href} style={{
-                        padding: "15px 8px", borderRadius: 16, border: `1px solid ${C.border}`,
-                        background: "#FAFBFC", cursor: "pointer",
-                        display: "flex", flexDirection: "column", alignItems: "center", gap: 9,
-                        transition: "all 0.2s ease", fontFamily: "inherit", textDecoration: "none",
-                      }}
-                        onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = a.bg; el.style.borderColor = "transparent"; el.style.transform = "translateY(-3px)"; el.style.boxShadow = `0 8px 20px ${a.shadowC}`; }}
-                        onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "#FAFBFC"; el.style.borderColor = C.border; el.style.transform = "translateY(0)"; el.style.boxShadow = "none"; }}
-                      >
-                        <div style={{ width: 40, height: 40, borderRadius: 13, background: a.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: a.color, fontWeight: 700, boxShadow: `0 2px 8px ${a.shadowC}` }}>{a.icon}</div>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: C.sub, letterSpacing: "0.01em" }}>{a.label}</span>
-                      </Link>
+              {!isVerified && totalUSD === 0 ? (
+                /* Empty state for unverified/new user */
+                <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 14, padding: "20px 22px", display: "flex", alignItems: "flex-start", gap: 14 }}>
+                  <span style={{ fontSize: 24 }}>🏦</span>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: "#92400E", marginBottom: 4 }}>Your account balance is $0.00</p>
+                    <p style={{ fontSize: 13, color: "#B45309", lineHeight: 1.6 }}>
+                      Complete identity verification to unlock deposits, transfers, and the full Vaulte experience.
+                    </p>
+                    <Link href="/dashboard/settings" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 12, padding: "8px 16px", borderRadius: 9, background: "#F59E0B", color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none", transition: "background 0.15s" }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#D97706"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#F59E0B"; }}
+                    >Complete KYC →</Link>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+                  {/* Action tiles */}
+                  <div>
+                    <p style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Quick Actions</p>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      {[
+                        { icon: "↗", label: "Send",     color: "#1A73E8", bg: "#EEF4FF", shadowC: "rgba(26,115,232,0.2)",  href: "/dashboard/transfer" },
+                        { icon: "↙", label: "Request",  color: "#7C3AED", bg: "#F5F3FF", shadowC: "rgba(124,58,237,0.2)",  href: "/dashboard/transfer" },
+                        { icon: "⇄", label: "Exchange", color: "#059669", bg: "#ECFDF5", shadowC: "rgba(5,150,105,0.2)",   href: "/dashboard/exchange" },
+                        { icon: "＋", label: "Add",      color: "#D97706", bg: "#FFFBEB", shadowC: "rgba(217,119,6,0.2)",   href: "/dashboard/accounts" },
+                      ].map(a => (
+                        <Link key={a.label} href={a.href} style={{
+                          padding: "15px 8px", borderRadius: 16, border: `1px solid ${C.border}`,
+                          background: "#FAFBFC", cursor: "pointer",
+                          display: "flex", flexDirection: "column", alignItems: "center", gap: 9,
+                          transition: "all 0.2s ease", textDecoration: "none",
+                        }}
+                          onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = a.bg; el.style.borderColor = "transparent"; el.style.transform = "translateY(-3px)"; el.style.boxShadow = `0 8px 20px ${a.shadowC}`; }}
+                          onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "#FAFBFC"; el.style.borderColor = C.border; el.style.transform = "translateY(0)"; el.style.boxShadow = "none"; }}
+                        >
+                          <div style={{ width: 40, height: 40, borderRadius: 13, background: a.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: a.color, fontWeight: 700, boxShadow: `0 2px 8px ${a.shadowC}` }}>{a.icon}</div>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: C.sub, letterSpacing: "0.01em" }}>{a.label}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Holdings */}
+                  <div style={{ borderLeft: `1px solid ${C.border}`, paddingLeft: 24 }}>
+                    <p style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Holdings</p>
+                    {state.accounts.map((acc, i) => (
+                      <div key={acc.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: i < state.accounts.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{ fontSize: 18, lineHeight: 1 }}>{acc.flag}</span>
+                          <div>
+                            <p style={{ fontSize: 13.5, fontWeight: 600, color: C.text, lineHeight: 1.25 }}>
+                              {acc.currency === "BTC" ? `${acc.balance.toFixed(4)} BTC` : `${acc.symbol}${acc.balance.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
+                            </p>
+                            {acc.currency === "BTC" && acc.balance > 0 && <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>≈ ${(acc.balance * 66000).toLocaleString("en-US", { maximumFractionDigits: 0 })}</p>}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <p style={{ fontSize: 11.5, color: C.sub, fontWeight: 500, marginBottom: 3 }}>{acc.currency}</p>
+                          {acc.balance > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: "#059669", background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 6, padding: "1px 6px" }}>+2.1%</span>}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
-
-                {/* Holdings */}
-                <div style={{ borderLeft: `1px solid ${C.border}`, paddingLeft: 24 }}>
-                  <p style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Holdings</p>
-                  {state.accounts.map((acc, i) => (
-                    <div key={acc.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: i < state.accounts.length - 1 ? `1px solid ${C.border}` : "none" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ fontSize: 18, lineHeight: 1 }}>{acc.flag}</span>
-                        <div>
-                          <p style={{ fontSize: 13.5, fontWeight: 600, color: C.text, lineHeight: 1.25 }}>
-                            {acc.currency === "BTC" ? `${acc.balance.toFixed(4)} BTC` : `${acc.symbol}${acc.balance.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
-                          </p>
-                          {acc.currency === "BTC" && <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>≈ ${(acc.balance * 66000).toLocaleString("en-US", { maximumFractionDigits: 0 })}</p>}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <p style={{ fontSize: 11.5, color: C.sub, fontWeight: 500, marginBottom: 3 }}>{acc.currency}</p>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: "#059669", background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 6, padding: "1px 6px" }}>+2.1%</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -209,7 +296,7 @@ export default function Dashboard() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
                 <div>
                   <p style={{ fontSize: 15, fontWeight: 700, color: C.text, letterSpacing: "-0.2px", marginBottom: 3 }}>Spending Overview</p>
-                  <p style={{ fontSize: 12.5, color: C.muted }}>Last 7 days · March 2025</p>
+                  <p style={{ fontSize: 12.5, color: C.muted }}>Last 7 days</p>
                 </div>
                 <div style={{ display: "flex", gap: 3, background: C.bg, borderRadius: 10, padding: 3 }}>
                   {["7D","1M","3M"].map((t, i) => (
@@ -218,58 +305,64 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
-                {[
-                  { label: "Total Spent",  value: "$1,510",  color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
-                  { label: "Total Income", value: "+$1,000", color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
-                  { label: "Net Change",   value: "−$510",   color: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
-                ].map(m => (
-                  <div key={m.label} style={{ flex: 1, background: m.bg, border: `1px solid ${m.border}`, borderRadius: 14, padding: "13px 16px" }}>
-                    <p style={{ fontSize: 10.5, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>{m.label}</p>
-                    <p style={{ fontSize: 20, fontWeight: 800, color: m.color, letterSpacing: "-0.5px" }}>{m.value}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ position: "relative", height: 160, paddingLeft: 36 }}>
-                {[0,250,500,750,1000].map(v => (
-                  <div key={v} style={{ position: "absolute", left: 0, bottom: `${(v / maxSpend) * 130}px`, fontSize: 10, color: C.muted, fontWeight: 500, lineHeight: 1, width: 30, textAlign: "right" }}>{v === 0 ? "" : v >= 1000 ? "1k" : v}</div>
-                ))}
-                {[250,500,750,1000].map(v => (
-                  <div key={v} style={{ position: "absolute", left: 36, right: 0, bottom: `${(v / maxSpend) * 130}px`, borderTop: "1px dashed rgba(15,23,42,0.055)" }} />
-                ))}
-                <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: "100%", paddingBottom: 24 }}>
-                  {spendingData.map((d, i) => {
-                    const isToday = i === 4;
-                    const barH    = Math.max((d.amount / maxSpend) * 130, 4);
-                    const incomeH = d.income > 0 ? (d.income / maxSpend) * 130 : 0;
-                    return (
-                      <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", position: "relative", height: "100%" }}>
-                        {incomeH > 0 && <div style={{ position: "absolute", bottom: 24, width: "50%", height: incomeH, background: "linear-gradient(180deg,#34D399,#10B981)", borderRadius: "5px 5px 0 0", opacity: 0.45 }} />}
-                        <div style={{ position: "absolute", bottom: 24, width: "44%", height: barH, background: isToday ? "linear-gradient(180deg,#60A5FA,#1A73E8)" : "linear-gradient(180deg,#BFDBFE,#93C5FD)", borderRadius: "5px 5px 0 0", cursor: "pointer", boxShadow: isToday ? "0 4px 14px rgba(26,115,232,0.28)" : "none", transition: "opacity 0.18s" }}
-                          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = "0.72"; }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
-                        />
-                        <span style={{ position: "absolute", bottom: 4, fontSize: 10.5, fontWeight: isToday ? 700 : 500, color: isToday ? C.blue : C.muted }}>{d.day}</span>
-                        {isToday && <div style={{ position: "absolute", bottom: 17, width: 4, height: 4, borderRadius: "50%", background: C.blue }} />}
+              {state.transactions.length === 0 ? (
+                /* Empty chart state */
+                <div style={{ height: 160, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, background: C.bg, borderRadius: 14, border: `1px dashed ${C.border}` }}>
+                  <span style={{ fontSize: 32 }}>📊</span>
+                  <p style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>No spending data yet</p>
+                  <p style={{ fontSize: 12.5, color: C.muted }}>Your chart will appear after your first transaction.</p>
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+                    {[
+                      { label: "Total Spent",  value: `$${state.transactions.filter(t=>t.type==="debit").reduce((s,t)=>s+t.amount,0).toFixed(0)}`,  color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
+                      { label: "Total Income", value: `+$${state.transactions.filter(t=>t.type==="credit").reduce((s,t)=>s+t.amount,0).toFixed(0)}`, color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
+                      { label: "Net Change",   value: `$${(state.transactions.filter(t=>t.type==="credit").reduce((s,t)=>s+t.amount,0) - state.transactions.filter(t=>t.type==="debit").reduce((s,t)=>s+t.amount,0)).toFixed(0)}`, color: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
+                    ].map(m => (
+                      <div key={m.label} style={{ flex: 1, background: m.bg, border: `1px solid ${m.border}`, borderRadius: 14, padding: "13px 16px" }}>
+                        <p style={{ fontSize: 10.5, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>{m.label}</p>
+                        <p style={{ fontSize: 20, fontWeight: 800, color: m.color, letterSpacing: "-0.5px" }}>{m.value}</p>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div style={{ display: "flex", gap: 20, marginTop: 10, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
-                {[{ color: "#1A73E8", label: "Spending" }, { color: "#10B981", label: "Income" }].map(l => (
-                  <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                    <div style={{ width: 9, height: 9, borderRadius: 3, background: l.color, opacity: l.color === "#10B981" ? 0.55 : 1 }} />
-                    <span style={{ fontSize: 12, color: C.muted, fontWeight: 500 }}>{l.label}</span>
+                    ))}
                   </div>
-                ))}
-                <div style={{ marginLeft: "auto", fontSize: 11.5, color: C.muted, display: "flex", alignItems: "center", gap: 5 }}>
-                  <div style={{ width: 4, height: 4, borderRadius: "50%", background: C.blue }} />
-                  Today: Fri Mar 7
-                </div>
-              </div>
+
+                  <div style={{ position: "relative", height: 160, paddingLeft: 36 }}>
+                    {[0,250,500,750,1000].map(v => (
+                      <div key={v} style={{ position: "absolute", left: 0, bottom: `${(v / maxSpend) * 130}px`, fontSize: 10, color: C.muted, fontWeight: 500, lineHeight: 1, width: 30, textAlign: "right" }}>{v === 0 ? "" : v >= 1000 ? "1k" : v}</div>
+                    ))}
+                    {[250,500,750,1000].map(v => (
+                      <div key={v} style={{ position: "absolute", left: 36, right: 0, bottom: `${(v / maxSpend) * 130}px`, borderTop: "1px dashed rgba(15,23,42,0.04)" }} />
+                    ))}
+                    <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: "100%", paddingBottom: 24 }}>
+                      {chartData.map((d, i) => {
+                        const isToday = i === 4;
+                        const barH    = Math.max((d.amount / maxSpend) * 130, d.amount > 0 ? 4 : 0);
+                        const incomeH = d.income > 0 ? (d.income / maxSpend) * 130 : 0;
+                        return (
+                          <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", position: "relative", height: "100%" }}>
+                            {incomeH > 0 && <div style={{ position: "absolute", bottom: 24, width: "50%", height: incomeH, background: "linear-gradient(180deg,#34D399,#10B981)", borderRadius: "5px 5px 0 0", opacity: 0.35 }} />}
+                            {barH > 0 && <div style={{ position: "absolute", bottom: 24, width: "44%", height: barH, background: isToday ? "linear-gradient(180deg,#60A5FA,#1A73E8)" : "linear-gradient(180deg,#DBEAFE,#BFDBFE)", borderRadius: "5px 5px 0 0", cursor: "pointer", boxShadow: isToday ? "0 4px 14px rgba(26,115,232,0.22)" : "none", transition: "opacity 0.18s" }}
+                              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = "0.72"; }}
+                              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
+                            />}
+                            <span style={{ position: "absolute", bottom: 4, fontSize: 10.5, fontWeight: isToday ? 700 : 500, color: isToday ? C.blue : C.muted }}>{d.day}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 20, marginTop: 10, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+                    {[{ color: "#1A73E8", label: "Spending" }, { color: "#10B981", label: "Income" }].map(l => (
+                      <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                        <div style={{ width: 9, height: 9, borderRadius: 3, background: l.color, opacity: l.color === "#10B981" ? 0.45 : 1 }} />
+                        <span style={{ fontSize: 12, color: C.muted, fontWeight: 500 }}>{l.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -279,37 +372,51 @@ export default function Dashboard() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
                 <div>
                   <p style={{ fontSize: 15, fontWeight: 700, color: C.text, letterSpacing: "-0.2px", marginBottom: 3 }}>Recent Transactions</p>
-                  <p style={{ fontSize: 12, color: C.muted }}>{recentTxns.length} transactions this week</p>
+                  <p style={{ fontSize: 12, color: C.muted }}>{state.transactions.length > 0 ? `${recentTxns.length} recent` : "No transactions yet"}</p>
                 </div>
-                <Link href="/dashboard/accounts" style={{ fontSize: 12.5, color: C.blue, textDecoration: "none", fontWeight: 600, display: "flex", alignItems: "center", gap: 4, padding: "7px 14px", borderRadius: 10, background: "#EEF4FF", border: "1px solid rgba(26,115,232,0.15)", transition: "background 0.15s" }}
-                  onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = "#dbeafe"}
-                  onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = "#EEF4FF"}
-                >View all →</Link>
+                {state.transactions.length > 0 && (
+                  <Link href="/dashboard/transactions" style={{ fontSize: 12.5, color: C.blue, textDecoration: "none", fontWeight: 600, display: "flex", alignItems: "center", gap: 4, padding: "7px 14px", borderRadius: 10, background: "#EEF4FF", border: "1px solid rgba(26,115,232,0.15)", transition: "background 0.15s" }}
+                    onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = "#dbeafe"}
+                    onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = "#EEF4FF"}
+                  >View all →</Link>
+                )}
               </div>
-              {recentTxns.map((tx: Transaction, i: number) => (
-                <div key={tx.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 12px", margin: "0 -12px", borderBottom: i < recentTxns.length - 1 ? `1px solid ${C.border}` : "none", borderRadius: 14, cursor: "pointer", transition: "background 0.15s" }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.bg}
-                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 14, background: tx.iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: tx.iconColor, flexShrink: 0, boxShadow: "0 2px 8px rgba(15,23,42,0.09)" }}>{tx.icon}</div>
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
-                        <p style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{tx.name}</p>
-                        <span style={{ fontSize: 10.5, fontWeight: 600, color: tx.badgeColor, background: tx.badgeBg, border: `1px solid ${tx.badgeBorder}`, borderRadius: 6, padding: "2px 7px" }}>{tx.badge}</span>
-                      </div>
-                      <p style={{ fontSize: 12, color: C.muted }}>{tx.sub}<span style={{ color: C.border, margin: "0 5px" }}>·</span>{fmtDate(tx.date)}</p>
-                    </div>
-                  </div>
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <p style={{ fontSize: 15, fontWeight: 700, color: tx.type === "credit" ? "#059669" : "#EF4444", letterSpacing: "-0.3px" }}>{tx.type === "credit" ? "+" : "−"}${tx.amount.toFixed(2)}</p>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4, marginTop: 3 }}>
-                      <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#22C55E", boxShadow: "0 0 0 2px rgba(34,197,94,0.18)" }} />
-                      <p style={{ fontSize: 11, color: C.muted, fontWeight: 500 }}>Completed</p>
-                    </div>
-                  </div>
+
+              {recentTxns.length === 0 ? (
+                <div style={{ padding: "32px 0", textAlign: "center" }}>
+                  <p style={{ fontSize: 40, marginBottom: 12 }}>📭</p>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 6 }}>No transactions yet</p>
+                  <p style={{ fontSize: 13, color: C.muted, marginBottom: 18 }}>Your transaction history will appear here after you make a transfer or deposit.</p>
+                  <Link href="/dashboard/transfer" style={{ padding: "9px 20px", borderRadius: 10, background: C.blue, color: "#fff", fontSize: 13, fontWeight: 600, textDecoration: "none", display: "inline-block" }}>
+                    Make a Transfer
+                  </Link>
                 </div>
-              ))}
+              ) : (
+                recentTxns.map((tx: Transaction, i: number) => (
+                  <div key={tx.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 12px", margin: "0 -12px", borderBottom: i < recentTxns.length - 1 ? `1px solid ${C.border}` : "none", borderRadius: 14, cursor: "pointer", transition: "background 0.15s" }}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.bg}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                      <div style={{ width: 44, height: 44, borderRadius: 14, background: tx.iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: tx.iconColor, flexShrink: 0, boxShadow: "0 2px 8px rgba(15,23,42,0.07)" }}>{tx.icon}</div>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
+                          <p style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{tx.name}</p>
+                          <span style={{ fontSize: 10.5, fontWeight: 600, color: tx.badgeColor, background: tx.badgeBg, border: `1px solid ${tx.badgeBorder}`, borderRadius: 6, padding: "2px 7px" }}>{tx.badge}</span>
+                        </div>
+                        <p style={{ fontSize: 12, color: C.muted }}>{tx.sub} · {fmtDate(tx.date)}</p>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <p style={{ fontSize: 15, fontWeight: 700, color: tx.type === "credit" ? "#059669" : "#EF4444", letterSpacing: "-0.3px" }}>{tx.type === "credit" ? "+" : "−"}${tx.amount.toFixed(2)}</p>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4, marginTop: 3 }}>
+                        <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#22C55E", boxShadow: "0 0 0 2px rgba(34,197,94,0.18)" }} />
+                        <p style={{ fontSize: 11, color: C.muted, fontWeight: 500 }}>Completed</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -323,9 +430,9 @@ export default function Dashboard() {
             <div style={{ display: "flex", gap: 12, marginBottom: 20, justifyContent: "center" }}>
               {contacts.map(c => (
                 <div key={c.name} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 7, cursor: "pointer" }}>
-                  <div style={{ width: 52, height: 52, borderRadius: 17, background: c.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 700, color: "#fff", boxShadow: "0 4px 14px rgba(15,23,42,0.14)", transition: "transform 0.2s, box-shadow 0.2s" }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 10px 24px rgba(15,23,42,0.2)"; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 14px rgba(15,23,42,0.14)"; }}
+                  <div style={{ width: 52, height: 52, borderRadius: 17, background: c.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 700, color: "#fff", boxShadow: "0 4px 14px rgba(15,23,42,0.12)", transition: "transform 0.2s, box-shadow 0.2s" }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 10px 24px rgba(15,23,42,0.18)"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 14px rgba(15,23,42,0.12)"; }}
                   >{c.initials}</div>
                   <span style={{ fontSize: 11.5, color: C.sub, fontWeight: 500 }}>{c.name}</span>
                 </div>
@@ -338,55 +445,90 @@ export default function Dashboard() {
                 <input value={transferAmount} onChange={e => setTransferAmount(e.target.value)} style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 22, fontWeight: 800, color: C.text, fontFamily: "inherit", letterSpacing: "-0.5px" }} />
               </div>
             </div>
-            <Link href="/dashboard/transfer" style={{ display: "block", width: "100%", padding: "13px", borderRadius: 14, border: "none", background: "linear-gradient(135deg,#1A73E8,#1558b0)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(26,115,232,0.28)", textAlign: "center", textDecoration: "none", transition: "all 0.2s" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 24px rgba(26,115,232,0.38)"; (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px rgba(26,115,232,0.28)"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}
+            <Link href="/dashboard/transfer" style={{ display: "block", width: "100%", padding: "13px", borderRadius: 14, border: "none", background: "linear-gradient(135deg,#1A73E8,#1558b0)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(26,115,232,0.24)", textAlign: "center", textDecoration: "none", transition: "all 0.2s" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 24px rgba(26,115,232,0.32)"; (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px rgba(26,115,232,0.24)"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}
             >Send Money</Link>
           </div>
 
           {/* Virtual Card */}
-          <Link href="/dashboard/cards" style={{ textDecoration: "none" }}>
-            <div style={{ background: "linear-gradient(135deg,#1e40af,#1e3a8a,#0F172A)", borderRadius: 20, padding: "22px 20px", boxShadow: "0 8px 32px rgba(30,64,175,0.32),0 0 0 1px rgba(255,255,255,0.06)", position: "relative", overflow: "hidden", transition: "transform 0.25s ease, box-shadow 0.25s ease", cursor: "pointer" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 18px 48px rgba(30,64,175,0.4),0 0 0 1px rgba(255,255,255,0.1)"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 32px rgba(30,64,175,0.32),0 0 0 1px rgba(255,255,255,0.06)"; }}
-            >
-              <div style={{ position: "absolute", top: -50, right: -50, width: 180, height: 180, borderRadius: "50%", background: "rgba(255,255,255,0.035)", pointerEvents: "none" }} />
-              <div style={{ position: "absolute", bottom: -70, left: -40, width: 220, height: 220, borderRadius: "50%", background: "rgba(255,255,255,0.025)", pointerEvents: "none" }} />
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, position: "relative" }}>
-                <div>
-                  <p style={{ fontSize: 10, color: "rgba(255,255,255,0.38)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.16em", marginBottom: 4 }}>Vaulte</p>
-                  <p style={{ fontSize: 13, color: "rgba(255,255,255,0.82)", fontWeight: 500 }}>Premium Card</p>
+          {state.card.issued ? (
+            <Link href="/dashboard/cards" style={{ textDecoration: "none" }}>
+              <div style={{ background: "linear-gradient(135deg,#1e40af,#1e3a8a,#0F172A)", borderRadius: 20, padding: "22px 20px", boxShadow: "0 8px 24px rgba(30,64,175,0.24),0 0 0 1px rgba(255,255,255,0.06)", position: "relative", overflow: "hidden", transition: "transform 0.25s ease, box-shadow 0.25s ease", cursor: "pointer" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 18px 48px rgba(30,64,175,0.35),0 0 0 1px rgba(255,255,255,0.1)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 24px rgba(30,64,175,0.24),0 0 0 1px rgba(255,255,255,0.06)"; }}
+              >
+                <div style={{ position: "absolute", top: -50, right: -50, width: 180, height: 180, borderRadius: "50%", background: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+                  <div>
+                    <p style={{ fontSize: 10, color: "rgba(255,255,255,0.38)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.16em", marginBottom: 4 }}>Vaulte</p>
+                    <p style={{ fontSize: 13, color: "rgba(255,255,255,0.82)", fontWeight: 500 }}>Premium Card</p>
+                  </div>
+                  <div style={{ display: "flex" }}>
+                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#EF4444", opacity: 0.82 }} />
+                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#F59E0B", opacity: 0.82, marginLeft: -11 }} />
+                  </div>
                 </div>
-                <div style={{ display: "flex" }}>
-                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#EF4444", opacity: 0.82 }} />
-                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#F59E0B", opacity: 0.82, marginLeft: -11 }} />
+                <div style={{ width: 36, height: 26, borderRadius: 5, marginBottom: 16, background: "linear-gradient(135deg,#B45309,#FBBF24,#B45309)", boxShadow: "inset 0 1px 3px rgba(255,255,255,0.3),0 2px 6px rgba(0,0,0,0.28)", position: "relative" }}>
+                  <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "rgba(100,50,0,0.22)", transform: "translateX(-50%)" }} />
+                  <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: 1, background: "rgba(100,50,0,0.22)", transform: "translateY(-50%)" }} />
+                </div>
+                <p style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", letterSpacing: "0.22em", marginBottom: 20, fontFamily: "monospace" }}>4532 •••• •••• 4410</p>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                  <div>
+                    <p style={{ fontSize: 9.5, color: "rgba(255,255,255,0.32)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 5 }}>Card Holder</p>
+                    <p style={{ fontSize: 14, color: "#fff", fontWeight: 600, letterSpacing: "0.04em" }}>{firstName} {lastName}</p>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <p style={{ fontSize: 9.5, color: "rgba(255,255,255,0.32)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 5 }}>Expires</p>
+                    <p style={{ fontSize: 14, color: "#fff", fontWeight: 600 }}>08/28</p>
+                  </div>
                 </div>
               </div>
-              <div style={{ width: 36, height: 26, borderRadius: 5, marginBottom: 16, background: "linear-gradient(135deg,#B45309,#FBBF24,#B45309)", boxShadow: "inset 0 1px 3px rgba(255,255,255,0.3),0 2px 6px rgba(0,0,0,0.28)", position: "relative" }}>
-                <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "rgba(100,50,0,0.22)", transform: "translateX(-50%)" }} />
-                <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: 1, background: "rgba(100,50,0,0.22)", transform: "translateY(-50%)" }} />
-              </div>
-              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", letterSpacing: "0.22em", marginBottom: 20, fontFamily: "monospace" }}>4532 •••• •••• 4410</p>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-                <div>
-                  <p style={{ fontSize: 9.5, color: "rgba(255,255,255,0.32)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 5 }}>Card Holder</p>
-                  <p style={{ fontSize: 14, color: "#fff", fontWeight: 600, letterSpacing: "0.04em" }}>{state.profile.firstName} {state.profile.lastName}</p>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <p style={{ fontSize: 9.5, color: "rgba(255,255,255,0.32)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 5 }}>Expires</p>
-                  <p style={{ fontSize: 14, color: "#fff", fontWeight: 600 }}>08/28</p>
-                </div>
+            </Link>
+          ) : (
+            /* No card issued state */
+            <div style={card({ padding: "22px 20px" })}>
+              <p style={{ fontSize: 14.5, fontWeight: 700, color: C.text, letterSpacing: "-0.2px", marginBottom: 4 }}>Virtual Card</p>
+              <div style={{ padding: "28px 16px", textAlign: "center" }}>
+                <div style={{ width: 64, height: 44, borderRadius: 10, background: C.bg, border: `2px dashed ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px", fontSize: 22 }}>💳</div>
+                <p style={{ fontSize: 13.5, fontWeight: 600, color: C.text, marginBottom: 6 }}>No Card Issued Yet</p>
+                <p style={{ fontSize: 12.5, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>Complete identity verification to request your Vaulte virtual card.</p>
+                <Link href="/dashboard/cards" style={{ display: "inline-block", padding: "9px 18px", borderRadius: 10, background: C.blue, color: "#fff", fontSize: 12.5, fontWeight: 600, textDecoration: "none" }}>
+                  Request Card →
+                </Link>
               </div>
             </div>
-          </Link>
+          )}
 
           {/* Account Status */}
           <div style={card({ padding: "22px 20px" })} onMouseEnter={e => (e.currentTarget as HTMLElement).style.boxShadow = C.shadowHv} onMouseLeave={e => (e.currentTarget as HTMLElement).style.boxShadow = C.shadow}>
             <p style={{ fontSize: 14.5, fontWeight: 700, color: C.text, letterSpacing: "-0.2px", marginBottom: 16 }}>Account Status</p>
             {[
-              { label: "KYC Verification", status: "Verified",  color: "#059669", bg: "#ECFDF5", dot: "#22C55E", dotRing: "rgba(34,197,94,0.2)" },
-              { label: "2FA Security",     status: state.preferences.twoFactor ? "Enabled" : "Disabled", color: state.preferences.twoFactor ? "#1A73E8" : "#EF4444", bg: state.preferences.twoFactor ? "#EEF4FF" : "#FEF2F2", dot: state.preferences.twoFactor ? "#60A5FA" : "#EF4444", dotRing: state.preferences.twoFactor ? "rgba(96,165,250,0.2)" : "rgba(239,68,68,0.2)" },
-              { label: "Card Status",      status: state.card.frozen ? "Frozen" : "Active", color: state.card.frozen ? "#64748B" : "#059669", bg: state.card.frozen ? "#F1F5F9" : "#ECFDF5", dot: state.card.frozen ? "#94A3B8" : "#22C55E", dotRing: state.card.frozen ? "rgba(148,163,184,0.2)" : "rgba(34,197,94,0.2)" },
+              {
+                label: "KYC Verification",
+                status: kycStatus === "verified" ? "Verified" : kycStatus === "pending" ? "Pending Review" : "Not Verified",
+                color: kycStatus === "verified" ? "#059669" : kycStatus === "pending" ? "#D97706" : "#EF4444",
+                bg:    kycStatus === "verified" ? "#ECFDF5" : kycStatus === "pending" ? "#FFFBEB" : "#FEF2F2",
+                dot:   kycStatus === "verified" ? "#22C55E" : kycStatus === "pending" ? "#F59E0B" : "#EF4444",
+                dotRing: kycStatus === "verified" ? "rgba(34,197,94,0.2)" : kycStatus === "pending" ? "rgba(245,158,11,0.2)" : "rgba(239,68,68,0.2)",
+              },
+              {
+                label: "2FA Security",
+                status: state.preferences.twoFactor ? "Enabled" : "Disabled",
+                color: state.preferences.twoFactor ? "#1A73E8" : "#EF4444",
+                bg:    state.preferences.twoFactor ? "#EEF4FF" : "#FEF2F2",
+                dot:   state.preferences.twoFactor ? "#60A5FA" : "#EF4444",
+                dotRing: state.preferences.twoFactor ? "rgba(96,165,250,0.2)" : "rgba(239,68,68,0.2)",
+              },
+              {
+                label: "Card Status",
+                status: !state.card.issued ? "No Card Issued" : state.card.frozen ? "Frozen" : "Active",
+                color: !state.card.issued ? "#94A3B8" : state.card.frozen ? "#64748B" : "#059669",
+                bg:    !state.card.issued ? "#F1F5F9" : state.card.frozen ? "#F1F5F9" : "#ECFDF5",
+                dot:   !state.card.issued ? "#CBD5E1" : state.card.frozen ? "#94A3B8" : "#22C55E",
+                dotRing: !state.card.issued ? "rgba(203,213,225,0.2)" : state.card.frozen ? "rgba(148,163,184,0.2)" : "rgba(34,197,94,0.2)",
+              },
             ].map((item, i) => (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 0", borderBottom: i < 2 ? `1px solid ${C.border}` : "none" }}>
                 <span style={{ fontSize: 13, color: C.sub, fontWeight: 400 }}>{item.label}</span>
@@ -402,6 +544,7 @@ export default function Dashboard() {
 
       <style>{`
         input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+        @media (max-width: 900px) { .dash-grid { grid-template-columns: 1fr !important; } }
       `}</style>
     </DashboardLayout>
   );
