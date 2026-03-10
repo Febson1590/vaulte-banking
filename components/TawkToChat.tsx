@@ -11,8 +11,8 @@ import { useEffect } from "react";
 //    It looks like: https://tawk.to/chat/PROPERTY_ID/WIDGET_ID
 // 4. Replace the values below with your own IDs
 // ─────────────────────────────────────────────────────────────
-const TAWK_PROPERTY_ID = "YOUR_PROPERTY_ID"; // e.g. "65f3a1b2c3d4e5f6a7b8c9d0"
-const TAWK_WIDGET_ID   = "YOUR_WIDGET_ID";   // e.g. "1hp1234ab"
+const TAWK_PROPERTY_ID = "69af8003ddd7fc1c348540ae";
+const TAWK_WIDGET_ID   = "1jjaoo3d8";
 
 export default function TawkToChat() {
   useEffect(() => {
