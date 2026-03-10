@@ -9,7 +9,7 @@ const features = [
 
 export default function Features() {
   return (
-    <section id="features" style={{ padding: "88px 5%", background: "#fff" }}>
+    <section id="features" style={{ padding: "24px 5%", background: "#fff" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 14 }}>
           <span style={{ display: "inline-block", background: "#EFF6FF", color: "#1A73E8", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", padding: "5px 14px", borderRadius: 999, textTransform: "uppercase" }}>Features</span>

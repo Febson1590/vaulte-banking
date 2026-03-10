@@ -43,12 +43,9 @@ export default function Dashboard() {
         height: "100vh", display: "flex", flexDirection: "column", zIndex: 100, flexShrink: 0,
       }}>
         {/* Logo */}
-        <div style={{ padding: "22px 18px 16px" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 7, textDecoration: "none" }}>
-            <div style={{ width: 30, height: 30, background: "rgba(255,255,255,0.22)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M3 4h14l-5 6v5l-4-2V10L3 4z" fill="white" /></svg>
-            </div>
-            <span style={{ fontSize: 18, fontWeight: 800, color: "#fff", letterSpacing: "-0.3px" }}>Vaulte</span>
+        <div style={{ height: 120, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(255,255,255,0.12)" }}>
+          <Link href="/" style={{ display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>
+            <img src="/assets/logo-vaulte.png" alt="Vaulte" style={{ height: 240, width: "auto", objectFit: "contain", mixBlendMode: "screen" }} />
           </Link>
         </div>
 

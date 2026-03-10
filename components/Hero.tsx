@@ -140,15 +140,15 @@ export default function Hero() {
   useEffect(() => { setTimeout(() => setVisible(true), 80); }, []);
 
   return (
-    <section style={{
+    <section className="hero-section" style={{
       background: "linear-gradient(145deg,#0F172A 0%,#1a3a7a 45%,#1A73E8 100%)",
       minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center",
-      padding: "100px 5% 60px", position: "relative", overflow: "hidden",
+      padding: "40px 5% 20px", position: "relative", overflow: "hidden",
     }}>
       <div style={{ position: "absolute", inset: 0, opacity: 0.03, backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,1) 1px,transparent 1px)", backgroundSize: "44px 44px" }} />
       <div style={{ position: "absolute", top: "10%", right: "5%", width: 480, height: 480, borderRadius: "50%", background: "rgba(26,115,232,0.12)", filter: "blur(80px)", pointerEvents: "none" }} />
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", width: "100%", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "center" }}>
+      <div className="hero-grid" style={{ maxWidth: 1200, margin: "0 auto", width: "100%", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "center" }}>
         {/* LEFT */}
         <div style={{ opacity: visible?1:0, transform: visible?"translateY(0)":"translateY(24px)", transition: "all 0.7s ease" }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 999, padding: "5px 14px", marginBottom: 24 }}>
@@ -158,7 +158,7 @@ export default function Hero() {
           <h1 style={{ fontSize: "clamp(38px,5.5vw,66px)", fontWeight: 900, color: "#fff", lineHeight: 1.08, letterSpacing: "-2px", marginBottom: 20 }}>
             Global Digital<br />Banking
           </h1>
-          <p style={{ fontSize: 17, color: "rgba(255,255,255,0.72)", lineHeight: 1.75, marginBottom: 36, maxWidth: 460 }}>
+          <p className="hero-desc" style={{ fontSize: 17, color: "rgba(255,255,255,0.72)", lineHeight: 1.75, marginBottom: 36, maxWidth: 460 }}>
             Borderless banking for everyone. Send, save, and manage money worldwide with bank-level security.
           </p>
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 52 }}>
@@ -171,9 +171,9 @@ export default function Hero() {
               onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
             >Watch How It Works</Link>
           </div>
-          <div style={{ display: "flex", gap: 0, flexWrap: "wrap" }}>
+          <div className="hero-stats" style={{ display: "flex", gap: 0, flexWrap: "nowrap" }}>
             {stats.map((s, i) => (
-              <div key={i} style={{ paddingRight: 40, paddingLeft: i>0?40:0, borderLeft: i>0?"1px solid rgba(255,255,255,0.15)":"none" }}>
+              <div key={i} style={{ paddingRight: 32, paddingLeft: i>0?32:0, borderLeft: i>0?"1px solid rgba(255,255,255,0.15)":"none" }}>
                 <div style={{ fontSize: 26, fontWeight: 900, color: "#fff", letterSpacing: "-0.5px" }}>{s.value}</div>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 3 }}>{s.label}</div>
               </div>
@@ -181,13 +181,44 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* RIGHT */}
-        <div style={{ opacity: visible?1:0, transform: visible?"translateY(0)":"translateY(32px)", transition: "all 0.9s ease 0.15s", display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 16, position: "relative" }}>
-          <div style={{ marginBottom: 28, position: "relative", zIndex: 2 }}><PhoneMockup /></div>
-          <div style={{ position: "relative", zIndex: 1 }}><LaptopMockup /></div>
+        {/* RIGHT — mockups */}
+        <div className="hero-right" style={{ opacity: visible?1:0, transform: visible?"translateY(0)":"translateY(32px)", transition: "all 0.9s ease 0.15s", display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 16, position: "relative" }}>
+          <div className="hero-mockups" style={{ display: "flex", alignItems: "flex-end", gap: 16 }}>
+            <div style={{ marginBottom: 28, position: "relative", zIndex: 2 }}><PhoneMockup /></div>
+            <div style={{ position: "relative", zIndex: 1 }}><LaptopMockup /></div>
+          </div>
         </div>
       </div>
-      <style>{`@media (max-width: 900px){section>div{grid-template-columns:1fr!important;}section>div>div:last-child{display:none!important;}}`}</style>
+
+      <style>{`
+        @media (max-width: 900px) {
+          .hero-section { padding: 110px 6% 50px !important; }
+          .hero-grid { grid-template-columns: 1fr !important; }
+          .hero-desc { font-size: 15px !important; max-width: 100% !important; }
+          .hero-right {
+            height: 210px !important;
+            overflow: visible !important;
+            position: relative !important;
+          }
+          .hero-mockups {
+            transform: scale(0.57);
+            transform-origin: top center;
+            position: absolute;
+            top: 0;
+            left: 50%;
+            margin-left: -280px;
+          }
+        }
+        @media (max-width: 480px) {
+          .hero-section { padding: 80px 5% 40px !important; }
+          .hero-desc { font-size: 14px !important; }
+          .hero-mockups {
+            transform: scale(0.46);
+            margin-left: -280px;
+          }
+          .hero-right { height: 170px !important; }
+        }
+      `}</style>
     </section>
   );
 }

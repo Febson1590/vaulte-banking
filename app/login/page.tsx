@@ -45,22 +45,20 @@ export default function LoginPage() {
 
       {/* Card */}
       <div style={{
-        width: "100%", maxWidth: 410, background: "#fff", borderRadius: 20,
+        width: "100%", maxWidth: 480, background: "#fff", borderRadius: 20,
         boxShadow: "0 20px 60px rgba(26,115,232,0.14), 0 4px 20px rgba(0,0,0,0.06)",
         overflow: "hidden", position: "relative", zIndex: 1,
       }}>
         {/* Blue header */}
         <div style={{
           background: "linear-gradient(135deg,#1A73E8 0%,#1d4ed8 100%)",
-          padding: "28px 32px 36px", textAlign: "center", position: "relative", overflow: "hidden",
+          height: 180, padding: "0 32px", textAlign: "center", position: "relative", overflow: "hidden",
+          display: "flex", alignItems: "center", justifyContent: "center",
         }}>
           <div style={{ position: "absolute", top: -24, right: -24, width: 100, height: 100, background: "rgba(255,255,255,0.07)", borderRadius: "50%" }} />
           <div style={{ position: "absolute", bottom: -16, left: -16, width: 80, height: 80, background: "rgba(255,255,255,0.05)", borderRadius: "50%" }} />
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, position: "relative" }}>
-            <div style={{ width: 32, height: 32, background: "rgba(255,255,255,0.2)", borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)" }}>
-              <svg width="17" height="17" viewBox="0 0 20 20" fill="none"><path d="M3 4h14l-5 6v5l-4-2V10L3 4z" fill="white" /></svg>
-            </div>
-            <span style={{ fontSize: 20, fontWeight: 800, color: "#fff", letterSpacing: "-0.4px" }}>Vaulte</span>
+          <div style={{ position: "relative" }}>
+            <img src="/assets/logo-vaulte.png" alt="Vaulte" style={{ height: 240, objectFit: "contain", mixBlendMode: "screen", display: "block", margin: "0 auto" }} />
           </div>
         </div>
 
