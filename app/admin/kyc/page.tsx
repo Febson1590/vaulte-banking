@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
-import { getUsers, updateUser } from "@/lib/vaulteState";
+import { getUsers, updateUser, getKycDoc } from "@/lib/vaulteState";
 
 // ─── KYC Entry Type ─────────────────────────────────────────
 interface KYCEntry {
@@ -17,15 +17,7 @@ interface KYCEntry {
   userId?: string;
 }
 
-// ─── Static demo/dummy KYC entries ─────────────────────────
-const DUMMY_KYC: KYCEntry[] = [
-  { id: "K001", user: "Oluwaseun Adeyemi", email: "seun@mail.com", doc: "Passport",          docNumber: "A12345678",  submitted: "Mar 8, 2025 · 10:12am", status: "Pending",  country: "Nigeria" },
-  { id: "K002", user: "Priya Sharma",      email: "priya@mail.com", doc: "Driver's License",  docNumber: "DL-9876543", submitted: "Mar 7, 2025 · 2:45pm",  status: "Pending",  country: "India"   },
-  { id: "K003", user: "Li Wei",            email: "liwei@mail.com", doc: "National ID",       docNumber: "CN-11223344",submitted: "Mar 6, 2025 · 9:00am",  status: "Pending",  country: "China"   },
-  { id: "K004", user: "Samson Febaide",    email: "sam@gmail.com",  doc: "Passport",          docNumber: "NG-55667788",submitted: "Jan 13, 2025 · 11:00am",status: "Approved", country: "Nigeria" },
-  { id: "K005", user: "Maria Kowalski",    email: "maria@mail.com", doc: "National ID",       docNumber: "PL-99001122",submitted: "Feb 5, 2025 · 3:30pm",  status: "Approved", country: "Poland"  },
-  { id: "K006", user: "Carlos Mendez",     email: "carlos@mail.com",doc: "Driver's License",  docNumber: "MX-44556677",submitted: "Nov 21, 2024 · 8:15am", status: "Rejected", country: "Mexico"  },
-];
+// No dummy KYC entries — only real registered users are shown
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { bg: string; color: string }> = {
@@ -43,34 +35,46 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function AdminKYC() {
-  const [kycs, setKycs]               = useState<KYCEntry[]>(DUMMY_KYC);
+  const [kycs, setKycs]               = useState<KYCEntry[]>([]);
   const [filter, setFilter]           = useState("All");
   const [selected, setSelected]       = useState<KYCEntry | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [showReject, setShowReject]   = useState(false);
+  const [docPreview, setDocPreview]   = useState<string | null>(null);
 
-  // ─── Merge real registered users into KYC list ──────────
+  // ─── Load KYC document when modal opens ─────────────────
   useEffect(() => {
-    const realUsers = getUsers();
-    if (realUsers.length === 0) return;
+    if (!selected) { setDocPreview(null); return; }
+    if (selected.isRealUser && selected.userId) {
+      setDocPreview(getKycDoc(selected.userId));
+    } else {
+      setDocPreview(null);
+    }
+  }, [selected]);
 
-    const realEntries: KYCEntry[] = realUsers.map((u) => ({
+  // ─── Load real registered users into KYC list ──────────
+  useEffect(() => {
+    const users = getUsers();
+    const entries: KYCEntry[] = users.map((u) => ({
       id:         u.id,
       user:       `${u.firstName} ${u.lastName}`,
       email:      u.email,
-      doc:        "Pending Upload",
+      doc:        u.kycDocType === "passport"        ? "Passport"
+                : u.kycDocType === "drivers_license" ? "Driver's License"
+                : u.kycDocType === "national_id"     ? "National ID"
+                : "Not uploaded",
       docNumber:  "—",
-      submitted:  new Date(u.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      submitted:  u.kycSubmittedAt
+                    ? new Date(u.kycSubmittedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })
+                    : `Joined ${new Date(u.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
       status:     u.kycStatus === "verified" ? "Approved"
                 : u.kycStatus === "pending"  ? "Pending"
                 : "Pending",
-      country:    "Unknown",
+      country:    u.kycNationality ?? "Unknown",
       isRealUser: true,
       userId:     u.id,
     }));
-
-    // Merge real users at the top, followed by dummy entries
-    setKycs([...realEntries, ...DUMMY_KYC]);
+    setKycs(entries);
   }, []);
 
   const filtered = kycs.filter(k => filter === "All" || k.status === filter);
@@ -144,8 +148,14 @@ export default function AdminKYC() {
           <tbody>
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={8} style={{ padding: "40px", textAlign: "center", color: "#9CA3AF", fontSize: "14px" }}>
-                  No KYC submissions match this filter.
+                <td colSpan={8} style={{ padding: "48px", textAlign: "center" }}>
+                  <p style={{ fontSize: "36px", marginBottom: "10px" }}>🪪</p>
+                  <p style={{ fontSize: "15px", fontWeight: 700, color: "#374151", marginBottom: "6px" }}>
+                    {kycs.length === 0 ? "No registered users yet" : "No entries match this filter"}
+                  </p>
+                  <p style={{ fontSize: "13px", color: "#9CA3AF" }}>
+                    {kycs.length === 0 ? "KYC submissions will appear here once users register and submit their documents." : "Try selecting a different filter tab."}
+                  </p>
                 </td>
               </tr>
             )}
@@ -219,12 +229,33 @@ export default function AdminKYC() {
               </div>
             </div>
 
-            {/* Simulated document preview */}
-            <div style={{ background: "#F8FAFC", borderRadius: "12px", padding: "20px", marginBottom: "20px", textAlign: "center", border: "2px dashed #E5E7EB" }}>
-              <div style={{ fontSize: "40px", marginBottom: "8px" }}>🪪</div>
-              <div style={{ fontSize: "13px", fontWeight: 600, color: "#374151" }}>{selected.doc} Document</div>
-              <div style={{ fontSize: "12px", color: "#9CA3AF" }}>Document preview — dummy mode</div>
-            </div>
+            {/* Document preview — real upload if available, dummy placeholder otherwise */}
+            {docPreview ? (
+              <div style={{ marginBottom: "20px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+                  <p style={{ fontSize: "12px", fontWeight: 700, color: "#374151" }}>
+                    Uploaded Document · <span style={{ color: "#6B7280", fontWeight: 400 }}>{selected.doc}</span>
+                  </p>
+                  <span style={{ fontSize: "11px", background: "#ECFDF5", color: "#059669", borderRadius: "6px", padding: "2px 8px", fontWeight: 600 }}>✓ Photo Uploaded</span>
+                </div>
+                <div style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid #E5E7EB", boxShadow: "0 4px 12px rgba(0,0,0,0.08)", background: "#0F172A" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={docPreview} alt="Submitted ID document"
+                    style={{ width: "100%", height: "auto", maxHeight: "260px", objectFit: "contain", display: "block" }} />
+                </div>
+                <p style={{ fontSize: "11px", color: "#9CA3AF", marginTop: "8px", textAlign: "center" }}>
+                  Review the document carefully before approving or rejecting.
+                </p>
+              </div>
+            ) : (
+              <div style={{ background: "#F8FAFC", borderRadius: "12px", padding: "20px", marginBottom: "20px", textAlign: "center", border: "2px dashed #E5E7EB" }}>
+                <div style={{ fontSize: "40px", marginBottom: "8px" }}>🪪</div>
+                <div style={{ fontSize: "13px", fontWeight: 600, color: "#374151" }}>{selected.doc} Document</div>
+                <div style={{ fontSize: "12px", color: "#9CA3AF" }}>
+                  {selected.isRealUser ? "No document uploaded yet — user has not submitted KYC" : "Document preview — demo entry"}
+                </div>
+              </div>
+            )}
 
             {showReject ? (
               <div style={{ marginBottom: "16px" }}>

@@ -13,6 +13,16 @@ export interface VaulteUser {
   password: string;
   kycStatus: KycStatus;
   createdAt: string;
+  // KYC submission fields
+  kycDocType?: string;       // "passport" | "drivers_license" | "national_id"
+  kycSubmittedAt?: string;   // ISO date string
+  kycDob?: string;           // Date of birth
+  kycNationality?: string;   // Nationality
+  kycAddress?: string;       // Address
+  kycCity?: string;          // City
+  // Admin-controlled fields
+  accountStatus?: "active" | "suspended" | "frozen" | "closed";
+  adminNotes?: string;
 }
 
 // ─── Banking State Types ────────────────────────────────────
@@ -256,6 +266,62 @@ export function updateUser(userId: string, updates: Partial<VaulteUser>): void {
   if (current?.id === userId) {
     saveCurrentUser(users[idx]);
   }
+}
+
+// ─── Admin: Per-User State Access (without session change) ──
+export function getUserState(userId: string): VaulteState {
+  if (typeof window === "undefined") return DEMO_STATE;
+  try {
+    const key = stateKey(userId);
+    const raw = localStorage.getItem(key);
+    if (!raw) {
+      if (userId === DEMO_USER_ID) return DEMO_STATE;
+      const user = getUsers().find(u => u.id === userId);
+      return user ? createEmptyUserState(user) : DEMO_STATE;
+    }
+    return JSON.parse(raw) as VaulteState;
+  } catch { return DEMO_STATE; }
+}
+
+export function saveUserState(userId: string, state: VaulteState): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(stateKey(userId), JSON.stringify({ ...state, lastUpdated: new Date().toISOString() }));
+    // If this user is currently logged in, their session is now stale — leave it;
+    // they will pick up fresh state on next page load via getState()
+  } catch { /* silently fail */ }
+}
+
+// ─── KYC Document Storage ───────────────────────────────────
+// Stored separately (can be large base64 strings)
+const kycDocKey = (userId: string) => `vaulte_kyc_doc_${userId}`;
+
+export function getKycDoc(userId: string): string | null {
+  if (typeof window === "undefined") return null;
+  try { return localStorage.getItem(kycDocKey(userId)); } catch { return null; }
+}
+
+export function saveKycDoc(userId: string, base64DataUrl: string): void {
+  if (typeof window === "undefined") return;
+  try { localStorage.setItem(kycDocKey(userId), base64DataUrl); } catch { /* silently fail */ }
+}
+
+export function submitKyc(
+  userId: string,
+  docType: string,
+  docBase64: string,
+  details: { dob: string; nationality: string; address: string; city: string }
+): void {
+  saveKycDoc(userId, docBase64);
+  updateUser(userId, {
+    kycStatus: "pending",
+    kycDocType: docType,
+    kycSubmittedAt: new Date().toISOString(),
+    kycDob: details.dob,
+    kycNationality: details.nationality,
+    kycAddress: details.address,
+    kycCity: details.city,
+  });
 }
 
 export function getUserById(id: string): VaulteUser | null {

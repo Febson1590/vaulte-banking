@@ -1,73 +1,110 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import AdminLayout from "@/components/AdminLayout";
+import { getUsers, getUserState, saveUserState, DEMO_USER, DEMO_USER_ID } from "@/lib/vaulteState";
+import type { Transaction } from "@/lib/vaulteState";
 
-const allTransactions = [
-  { id: "TX1045", user: "Samson Febaide", type: "Transfer", amount: "$500.00", currency: "USD", status: "Completed", date: "Mar 10, 2025 · 14:32", ref: "VLT-2025-001045", desc: "Internal Transfer to Maria K." },
-  { id: "TX1046", user: "Maria Kowalski", type: "Deposit", amount: "$1,000.00", currency: "USD", status: "Completed", date: "Mar 10, 2025 · 14:08", ref: "VLT-2025-001046", desc: "Bank Deposit — Chase" },
-  { id: "TX1047", user: "John Doe", type: "Withdrawal", amount: "$2,000.00", currency: "USD", status: "Pending", date: "Mar 10, 2025 · 13:55", ref: "VLT-2025-001047", desc: "Withdrawal Request" },
-  { id: "TX1048", user: "Aisha Bello", type: "Transfer", amount: "$340.00", currency: "USD", status: "Flagged", date: "Mar 10, 2025 · 13:38", ref: "VLT-2025-001048", desc: "External Transfer — Unknown Recipient" },
-  { id: "TX1049", user: "Carlos Mendez", type: "Deposit", amount: "$5,000.00", currency: "USD", status: "Completed", date: "Mar 10, 2025 · 13:25", ref: "VLT-2025-001049", desc: "Salary Payment" },
-  { id: "TX1050", user: "Priya Sharma", type: "Transfer", amount: "€800.00", currency: "EUR", status: "Completed", date: "Mar 10, 2025 · 12:44", ref: "VLT-2025-001050", desc: "International Transfer — UK" },
-  { id: "TX1051", user: "Li Wei", type: "Withdrawal", amount: "$1,200.00", currency: "USD", status: "Failed", date: "Mar 10, 2025 · 12:10", ref: "VLT-2025-001051", desc: "ATM Withdrawal — insufficient balance" },
-  { id: "TX1052", user: "Oluwaseun Adeyemi", type: "Deposit", amount: "£200.00", currency: "GBP", status: "Completed", date: "Mar 10, 2025 · 11:30", ref: "VLT-2025-001052", desc: "Online Transfer Received" },
-  { id: "TX1053", user: "Samson Febaide", type: "Adjustment", amount: "+$500.00", currency: "USD", status: "Completed", date: "Mar 9, 2025 · 15:45", ref: "VLT-2025-001053", desc: "Manual Credit — Admin Correction" },
-  { id: "TX1054", user: "John Doe", type: "Transfer", amount: "$250.00", currency: "USD", status: "Reversed", date: "Mar 9, 2025 · 10:00", ref: "VLT-2025-001054", desc: "Disputed Transfer — Reversed by Admin" },
-];
+// ─── Enriched transaction type ────────────────────────────
+interface AdminTx extends Transaction {
+  userName: string;
+  userEmail: string;
+  userId: string;
+}
 
 const typeBadge: Record<string, { bg: string; color: string }> = {
-  Transfer: { bg: "#EEF4FF", color: "#1A73E8" },
-  Deposit: { bg: "#ECFDF5", color: "#059669" },
+  credit:     { bg: "#ECFDF5", color: "#059669" },
+  debit:      { bg: "#FFF7ED", color: "#EA580C" },
+  Transfer:   { bg: "#EEF4FF", color: "#1A73E8" },
+  Deposit:    { bg: "#ECFDF5", color: "#059669" },
   Withdrawal: { bg: "#FFF7ED", color: "#EA580C" },
   Adjustment: { bg: "#F5F3FF", color: "#7C3AED" },
-  Flagged: { bg: "#FEF2F2", color: "#DC2626" },
 };
 
 const statusBadge: Record<string, { bg: string; color: string }> = {
-  Completed: { bg: "#ECFDF5", color: "#059669" },
-  Pending: { bg: "#FFFBEB", color: "#D97706" },
-  Flagged: { bg: "#FEF2F2", color: "#DC2626" },
-  Failed: { bg: "#F3F4F6", color: "#6B7280" },
-  Reversed: { bg: "#F5F3FF", color: "#7C3AED" },
+  completed:  { bg: "#ECFDF5", color: "#059669" },
+  pending:    { bg: "#FFFBEB", color: "#D97706" },
+  failed:     { bg: "#F3F4F6", color: "#6B7280" },
+  Flagged:    { bg: "#FEF2F2", color: "#DC2626" },
+  Reversed:   { bg: "#F5F3FF", color: "#7C3AED" },
 };
 
 function Badge({ label, map }: { label: string; map: Record<string, { bg: string; color: string }> }) {
   const s = map[label] || { bg: "#F3F4F6", color: "#6B7280" };
-  return <span style={{ background: s.bg, color: s.color, borderRadius: "20px", padding: "3px 10px", fontSize: "12px", fontWeight: 600 }}>{label}</span>;
+  return (
+    <span style={{ background: s.bg, color: s.color, borderRadius: "20px", padding: "3px 10px", fontSize: "12px", fontWeight: 600, textTransform: "capitalize" }}>
+      {label}
+    </span>
+  );
 }
 
 export default function AdminTransactions() {
-  const [transactions, setTransactions] = useState(allTransactions);
-  const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("All");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [selected, setSelected] = useState<typeof allTransactions[0] | null>(null);
+  const [allTx, setAllTx]         = useState<AdminTx[]>([]);
+  const [search, setSearch]       = useState("");
+  const [typeFilter, setType]     = useState("All");
+  const [statusFilter, setStatus] = useState("All");
+  const [selected, setSelected]   = useState<AdminTx | null>(null);
+  const [loaded, setLoaded]       = useState(false);
 
-  const filtered = transactions.filter(tx =>
-    (typeFilter === "All" || tx.type === typeFilter) &&
-    (statusFilter === "All" || tx.status === statusFilter) &&
-    (tx.user.toLowerCase().includes(search.toLowerCase()) || tx.id.toLowerCase().includes(search.toLowerCase()))
-  );
+  // ─── Load all user transactions ─────────────────────────
+  useEffect(() => {
+    const users = getUsers();
+    // Include demo user's transactions
+    const allUsers = [DEMO_USER, ...users];
+    const txs: AdminTx[] = [];
 
-  const flagTransaction = (id: string) => {
-    setTransactions(prev => prev.map(tx => tx.id === id ? { ...tx, status: "Flagged" } : tx));
-    setSelected(null);
-  };
+    allUsers.forEach(u => {
+      const state = getUserState(u.id);
+      state.transactions.forEach(tx => {
+        txs.push({
+          ...tx,
+          userName:  `${u.firstName} ${u.lastName}`,
+          userEmail: u.email,
+          userId:    u.id,
+        });
+      });
+    });
 
-  const approveTransaction = (id: string) => {
-    setTransactions(prev => prev.map(tx => tx.id === id ? { ...tx, status: "Completed" } : tx));
+    // Sort by date descending
+    txs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    setAllTx(txs);
+    setLoaded(true);
+  }, []);
+
+  const filtered = useMemo(() => allTx.filter(tx => {
+    const matchType   = typeFilter   === "All" || tx.type === typeFilter || tx.category === typeFilter;
+    const matchStatus = statusFilter === "All" || tx.status === statusFilter;
+    const q = search.toLowerCase();
+    const matchSearch = !q || tx.userName.toLowerCase().includes(q) || tx.id.toLowerCase().includes(q) || tx.name.toLowerCase().includes(q);
+    return matchType && matchStatus && matchSearch;
+  }), [allTx, typeFilter, statusFilter, search]);
+
+  // ─── Flag/approve a transaction ────────────────────────
+  const updateTxStatus = (tx: AdminTx, newStatus: string) => {
+    const state = getUserState(tx.userId);
+    const updated = state.transactions.map(t => t.id === tx.id ? { ...t, status: newStatus as Transaction["status"] } : t);
+    saveUserState(tx.userId, { ...state, transactions: updated });
+    setAllTx(prev => prev.map(t => t.id === tx.id && t.userId === tx.userId ? { ...t, status: newStatus as Transaction["status"] } : t));
     setSelected(null);
   };
 
   return (
-    <AdminLayout title="Transaction Monitoring">
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px" }}>
+    <AdminLayout title="Transactions">
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: "22px", fontWeight: 800, color: "#0A1628" }}>Transaction Monitoring</h1>
-          <p style={{ margin: "4px 0 0", color: "#6B7280", fontSize: "14px" }}>{transactions.length} total transactions · {transactions.filter(t => t.status === "Flagged").length} flagged</p>
+          <h1 style={{ margin: 0, fontSize: "22px", fontWeight: 800, color: "#0A1628" }}>Transaction Monitor</h1>
+          <p style={{ margin: "4px 0 0", color: "#6B7280", fontSize: "14px" }}>
+            {loaded ? `${allTx.length} total transaction${allTx.length !== 1 ? "s" : ""} across all users` : "Loading..."}
+          </p>
         </div>
-        <div style={{ background: "#1A73E8", color: "#fff", borderRadius: "10px", padding: "10px 20px", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
-          📥 Export CSV
+        <div style={{ display: "flex", gap: "10px" }}>
+          {[
+            { label: `Completed (${allTx.filter(t => t.status === "completed").length})`,color: "#059669", bg: "#ECFDF5" },
+            { label: `Pending (${allTx.filter(t => t.status === "pending").length})`,    color: "#D97706", bg: "#FFFBEB" },
+            { label: `Failed (${allTx.filter(t => t.status === "failed").length})`,      color: "#6B7280", bg: "#F3F4F6" },
+          ].map(b => (
+            <div key={b.label} style={{ background: b.bg, color: b.color, borderRadius: "8px", padding: "8px 14px", fontSize: "13px", fontWeight: 700 }}>{b.label}</div>
+          ))}
         </div>
       </div>
 
@@ -75,91 +112,116 @@ export default function AdminTransactions() {
       <div style={{ background: "#fff", borderRadius: "14px", padding: "16px 20px", marginBottom: "20px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ position: "relative", flex: 1, minWidth: "200px" }}>
           <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }}>🔍</span>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by user or TX ID..."
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by user, ID, or name..."
             style={{ width: "100%", padding: "10px 14px 10px 36px", border: "1.5px solid #E5E7EB", borderRadius: "10px", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
         </div>
-        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
-          style={{ padding: "10px 14px", border: "1.5px solid #E5E7EB", borderRadius: "10px", fontSize: "13px", outline: "none", color: "#374151" }}>
-          {["All", "Transfer", "Deposit", "Withdrawal", "Adjustment"].map(t => <option key={t}>{t}</option>)}
+        <select value={typeFilter} onChange={e => setType(e.target.value)}
+          style={{ padding: "10px 14px", border: "1.5px solid #E5E7EB", borderRadius: "10px", fontSize: "13px", background: "#fff", color: "#374151", outline: "none" }}>
+          {["All", "credit", "debit"].map(t => <option key={t} value={t}>{t === "All" ? "All Types" : t === "credit" ? "Credits" : "Debits"}</option>)}
         </select>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-          style={{ padding: "10px 14px", border: "1.5px solid #E5E7EB", borderRadius: "10px", fontSize: "13px", outline: "none", color: "#374151" }}>
-          {["All", "Completed", "Pending", "Flagged", "Failed", "Reversed"].map(s => <option key={s}>{s}</option>)}
+        <select value={statusFilter} onChange={e => setStatus(e.target.value)}
+          style={{ padding: "10px 14px", border: "1.5px solid #E5E7EB", borderRadius: "10px", fontSize: "13px", background: "#fff", color: "#374151", outline: "none" }}>
+          {["All", "completed", "pending", "failed"].map(s => <option key={s} value={s}>{s === "All" ? "All Statuses" : s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
         </select>
       </div>
 
       {/* Table */}
-      <div style={{ background: "#fff", borderRadius: "14px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "800px" }}>
-          <thead style={{ background: "#F8FAFC" }}>
-            <tr>
-              {["TX ID", "User", "Type", "Amount", "Currency", "Status", "Date", "Actions"].map(h => (
-                <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontSize: "11px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((tx, i) => (
-              <tr key={tx.id} style={{ borderTop: "1px solid #F3F4F6", background: tx.status === "Flagged" ? "#FFF9F9" : i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
-                <td style={{ padding: "12px 16px", fontSize: "13px", fontWeight: 600, color: "#1A73E8", fontFamily: "monospace" }}>{tx.id}</td>
-                <td style={{ padding: "12px 16px", fontSize: "13px", color: "#374151" }}>{tx.user}</td>
-                <td style={{ padding: "12px 16px" }}><Badge label={tx.type} map={typeBadge} /></td>
-                <td style={{ padding: "12px 16px", fontSize: "14px", fontWeight: 700, color: "#0A1628" }}>{tx.amount}</td>
-                <td style={{ padding: "12px 16px", fontSize: "12px", color: "#9CA3AF" }}>{tx.currency}</td>
-                <td style={{ padding: "12px 16px" }}><Badge label={tx.status} map={statusBadge} /></td>
-                <td style={{ padding: "12px 16px", fontSize: "12px", color: "#9CA3AF" }}>{tx.date}</td>
-                <td style={{ padding: "12px 16px" }}>
-                  <button onClick={() => setSelected(tx)}
-                    style={{ background: "#EEF4FF", color: "#1A73E8", border: "none", borderRadius: "8px", padding: "6px 12px", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
-                    Details
-                  </button>
-                </td>
+      <div style={{ background: "#fff", borderRadius: "14px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "hidden" }}>
+        {!loaded ? (
+          <div style={{ padding: "60px", textAlign: "center", color: "#9CA3AF" }}>Loading transactions...</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: "60px", textAlign: "center" }}>
+            <p style={{ fontSize: "36px", marginBottom: "12px" }}>💸</p>
+            <p style={{ fontSize: "15px", fontWeight: 700, color: "#374151", marginBottom: "6px" }}>
+              {allTx.length === 0 ? "No transactions yet" : "No transactions match your filters"}
+            </p>
+            <p style={{ fontSize: "13px", color: "#9CA3AF" }}>
+              {allTx.length === 0 ? "Transactions will appear here once users start making transfers and deposits." : "Try adjusting your search or filters."}
+            </p>
+          </div>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead style={{ background: "#F8FAFC" }}>
+              <tr>
+                {["User", "Transaction", "Type", "Amount", "Status", "Date", "Actions"].map(h => (
+                  <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontSize: "11px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.slice(0, 50).map((tx, i) => (
+                <tr key={`${tx.id}-${tx.userId}`} style={{ borderTop: "1px solid #F3F4F6", background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
+                  <td style={{ padding: "12px 16px" }}>
+                    <div style={{ fontSize: "13px", fontWeight: 600, color: "#0A1628" }}>{tx.userName}</div>
+                    <div style={{ fontSize: "11px", color: "#9CA3AF" }}>{tx.userEmail}</div>
+                  </td>
+                  <td style={{ padding: "12px 16px" }}>
+                    <div style={{ fontSize: "13px", fontWeight: 600, color: "#0A1628" }}>{tx.name}</div>
+                    <div style={{ fontSize: "11px", color: "#9CA3AF", fontFamily: "monospace" }}>{tx.id}</div>
+                  </td>
+                  <td style={{ padding: "12px 16px" }}><Badge label={tx.type} map={typeBadge} /></td>
+                  <td style={{ padding: "12px 16px", fontSize: "13px", fontWeight: 700, color: tx.type === "credit" ? "#059669" : "#DC2626" }}>
+                    {tx.type === "credit" ? "+" : "-"}{tx.currency === "BTC" ? `₿${tx.amount}` : `$${tx.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
+                  </td>
+                  <td style={{ padding: "12px 16px" }}><Badge label={tx.status} map={statusBadge} /></td>
+                  <td style={{ padding: "12px 16px", fontSize: "12px", color: "#9CA3AF" }}>{new Date(tx.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</td>
+                  <td style={{ padding: "12px 16px" }}>
+                    <button onClick={() => setSelected(tx)}
+                      style={{ background: "#EEF4FF", color: "#1A73E8", border: "none", borderRadius: "8px", padding: "6px 12px", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
+                      Review
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {filtered.length > 50 && (
+          <div style={{ padding: "14px", textAlign: "center", color: "#9CA3AF", fontSize: "13px", borderTop: "1px solid #F3F4F6" }}>
+            Showing first 50 of {filtered.length} transactions. Use filters to narrow results.
+          </div>
+        )}
       </div>
 
-      {/* Detail Modal */}
+      {/* Review modal */}
       {selected && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "20px" }}>
           <div style={{ background: "#fff", borderRadius: "16px", padding: "32px", width: "100%", maxWidth: "480px", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px" }}>
-              <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 700, color: "#0A1628" }}>Transaction Details</h2>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+              <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 700, color: "#0A1628" }}>Transaction Detail</h2>
               <button onClick={() => setSelected(null)} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#9CA3AF" }}>✕</button>
             </div>
             <div style={{ background: "#F8FAFC", borderRadius: "12px", padding: "16px", marginBottom: "20px" }}>
-              <div style={{ fontSize: "24px", fontWeight: 800, color: "#0A1628", marginBottom: "4px" }}>{selected.amount}</div>
-              <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-                <Badge label={selected.type} map={typeBadge} />
-                <Badge label={selected.status} map={statusBadge} />
-              </div>
               {[
-                { label: "Reference", value: selected.ref },
-                { label: "User", value: selected.user },
-                { label: "Description", value: selected.desc },
-                { label: "Date & Time", value: selected.date },
-                { label: "Currency", value: selected.currency },
+                { label: "User",        value: `${selected.userName} (${selected.userEmail})` },
+                { label: "Name",        value: selected.name },
+                { label: "Description", value: selected.sub },
+                { label: "Amount",      value: `${selected.currency} ${selected.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}` },
+                { label: "Type",        value: selected.type },
+                { label: "Status",      value: selected.status },
+                { label: "Category",    value: selected.category },
+                { label: "Date",        value: new Date(selected.date).toLocaleString() },
+                { label: "Tx ID",       value: selected.id },
               ].map(f => (
-                <div key={f.label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #E5E7EB" }}>
-                  <span style={{ fontSize: "12px", color: "#9CA3AF" }}>{f.label}</span>
-                  <span style={{ fontSize: "13px", fontWeight: 600, color: "#0A1628" }}>{f.value}</span>
+                <div key={f.label} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid #E5E7EB", gap: "12px" }}>
+                  <span style={{ fontSize: "12px", color: "#9CA3AF", fontWeight: 600, flexShrink: 0 }}>{f.label}</span>
+                  <span style={{ fontSize: "12.5px", color: "#0A1628", fontWeight: 500, textAlign: "right", wordBreak: "break-all" }}>{f.value}</span>
                 </div>
               ))}
             </div>
-            <div style={{ display: "flex", gap: "8px" }}>
-              {selected.status !== "Flagged" && (
-                <button onClick={() => flagTransaction(selected.id)}
-                  style={{ flex: 1, padding: "10px", background: "#FEF2F2", color: "#DC2626", border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
-                  🚩 Flag
-                </button>
-              )}
-              {(selected.status === "Pending" || selected.status === "Flagged") && (
-                <button onClick={() => approveTransaction(selected.id)}
-                  style={{ flex: 1, padding: "10px", background: "#ECFDF5", color: "#059669", border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
-                  ✅ Approve
-                </button>
-              )}
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <button onClick={() => updateTxStatus(selected, "completed")}
+                style={{ flex: 1, padding: "10px", background: "#059669", color: "#fff", border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+                ✅ Mark Completed
+              </button>
+              <button onClick={() => updateTxStatus(selected, "pending")}
+                style={{ flex: 1, padding: "10px", background: "#D97706", color: "#fff", border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+                ⏳ Mark Pending
+              </button>
+              <button onClick={() => updateTxStatus(selected, "failed")}
+                style={{ flex: 1, padding: "10px", background: "#DC2626", color: "#fff", border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+                ❌ Mark Failed
+              </button>
             </div>
           </div>
         </div>

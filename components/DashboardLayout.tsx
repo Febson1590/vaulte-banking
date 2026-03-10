@@ -106,6 +106,28 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
         })}
       </nav>
 
+      {/* KYC verification link — only for non-verified users */}
+      {mounted && kycStatus !== "verified" && (
+        <div style={{ padding: "4px 10px 0" }}>
+          <Link href="/dashboard/kyc" style={{
+            display: "flex", alignItems: "center", gap: 11,
+            padding: "10px 12px", borderRadius: 12, textDecoration: "none",
+            background: pathname === "/dashboard/kyc" ? "rgba(26,115,232,0.14)" : "rgba(239,68,68,0.07)",
+            borderLeft: pathname === "/dashboard/kyc" ? "2.5px solid #1A73E8" : "2.5px solid rgba(239,68,68,0.5)",
+            transition: "background 0.15s",
+          }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.12)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = pathname === "/dashboard/kyc" ? "rgba(26,115,232,0.14)" : "rgba(239,68,68,0.07)"; }}
+          >
+            <span style={{ fontSize: 14, color: "#EF4444", lineHeight: 1 }}>🪪</span>
+            <span style={{ fontSize: 13.5, fontWeight: 600, color: kycStatus === "pending" ? "#F59E0B" : "#EF4444", letterSpacing: "0.01em" }}>
+              {kycStatus === "pending" ? "KYC Pending" : "Verify Identity"}
+            </span>
+            <span style={{ marginLeft: "auto", width: 7, height: 7, borderRadius: "50%", background: kycStatus === "pending" ? "#F59E0B" : "#EF4444", flexShrink: 0 }} />
+          </Link>
+        </div>
+      )}
+
       {/* Notifications */}
       <div style={{ padding: "4px 10px 0" }}>
         <Link href="/dashboard/notifications" style={{

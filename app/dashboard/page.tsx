@@ -120,7 +120,7 @@ export default function Dashboard() {
             </div>
           </div>
           {kycStatus === "unverified" && (
-            <Link href="/dashboard/settings" style={{
+            <Link href="/dashboard/kyc" style={{
               padding: "9px 20px", borderRadius: 10, background: "#DC2626", color: "#fff",
               fontSize: 13.5, fontWeight: 700, textDecoration: "none", flexShrink: 0,
               transition: "background 0.15s",
@@ -230,7 +230,7 @@ export default function Dashboard() {
                     <p style={{ fontSize: 13, color: "#B45309", lineHeight: 1.6 }}>
                       Complete identity verification to unlock deposits, transfers, and the full Vaulte experience.
                     </p>
-                    <Link href="/dashboard/settings" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 12, padding: "8px 16px", borderRadius: 9, background: "#F59E0B", color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none", transition: "background 0.15s" }}
+                    <Link href="/dashboard/kyc" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 12, padding: "8px 16px", borderRadius: 9, background: "#F59E0B", color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none", transition: "background 0.15s" }}
                       onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#D97706"; }}
                       onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#F59E0B"; }}
                     >Complete KYC →</Link>
