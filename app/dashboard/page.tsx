@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const currencies = [
   { flag: "🇺🇸", code: "USD", balance: "$5,240.00" },
@@ -32,7 +33,13 @@ const navItems = [
 const tabs = ["Dashboard","Accounts","Transfers","Cards","Help"];
 
 export default function Dashboard() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("Dashboard");
+
+  const handleLogout = () => {
+    localStorage.removeItem("vaulte_user");
+    router.push("/login");
+  };
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#EEF4FF", fontFamily: "'Inter',sans-serif" }}>
@@ -91,7 +98,7 @@ export default function Dashboard() {
 
         {/* Logout */}
         <div style={{ padding: "12px 10px" }}>
-          <button style={{
+          <button onClick={handleLogout} style={{
             display: "flex", alignItems: "center", gap: 8, width: "100%",
             padding: "9px 10px", borderRadius: 8, background: "transparent",
             border: "none", color: "rgba(255,255,255,0.7)", fontSize: 13.5, cursor: "pointer", fontFamily: "inherit",
@@ -99,7 +106,7 @@ export default function Dashboard() {
             onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.1)"}
             onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}
           >
-            <span style={{ fontSize: 15 }}>💬</span> Logout
+            <span style={{ fontSize: 15 }}>🚪</span> Logout
           </button>
         </div>
       </aside>

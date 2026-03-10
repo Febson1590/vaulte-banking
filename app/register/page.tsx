@@ -1,8 +1,10 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [form, setForm] = useState({ fullName: "", email: "", password: "", confirmPassword: "" });
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -20,7 +22,10 @@ export default function RegisterPage() {
     if (form.password !== form.confirmPassword) errs.confirmPassword = "Passwords do not match";
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setLoading(true);
-    setTimeout(() => setLoading(false), 1500);
+    setTimeout(() => {
+      localStorage.setItem("vaulte_user", JSON.stringify({ email: form.email, name: form.fullName }));
+      router.push("/dashboard");
+    }, 1500);
   };
 
   const inputStyle = (field: string): React.CSSProperties => ({
