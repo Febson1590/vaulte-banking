@@ -70,12 +70,25 @@ export interface Preferences {
   };
 }
 
+export interface Notification {
+  id: string;
+  type: "transaction" | "security" | "account" | "promo";
+  title: string;
+  message: string;
+  date: string;
+  read: boolean;
+  icon: string;
+  iconBg: string;
+  iconColor: string;
+}
+
 export interface VaulteState {
   accounts: Account[];
   transactions: Transaction[];
   profile: Profile;
   card: CardSettings;
   preferences: Preferences;
+  notifications: Notification[];
   lastUpdated: string;
 }
 
@@ -138,16 +151,16 @@ export const DEFAULT_STATE: VaulteState = {
     },
   ],
   transactions: [
-    { id: "tx-001", type: "debit",  name: "Bitcoin Purchase",   sub: "Crypto.com",           amount: 500.00, currency: "USD", date: "2025-03-07T14:14:00", category: "Crypto",        badge: "Crypto",   badgeBg: "#FFFBEB", badgeBorder: "#FDE68A", badgeColor: "#D97706", status: "completed", accountId: "acc-001", icon: "₿",  iconBg: "linear-gradient(135deg,#F59E0B,#D97706)", iconColor: "#fff" },
-    { id: "tx-002", type: "debit",  name: "ATM Withdrawal",     sub: "Chase Bank · NYC",     amount: 200.00, currency: "USD", date: "2025-03-07T10:30:00", category: "Cash",          badge: "Cash",     badgeBg: "#EFF6FF", badgeBorder: "#BFDBFE", badgeColor: "#2563EB", status: "completed", accountId: "acc-001", icon: "🏧", iconBg: "linear-gradient(135deg,#DBEAFE,#BFDBFE)", iconColor: "#2563EB" },
-    { id: "tx-003", type: "credit", name: "Transfer Received",  sub: "From Sarah L.",        amount: 1000.00,currency: "USD", date: "2025-03-06T16:45:00", category: "Transfer",      badge: "Incoming", badgeBg: "#F0FDF4", badgeBorder: "#BBF7D0", badgeColor: "#16A34A", status: "completed", accountId: "acc-001", icon: "↗",  iconBg: "linear-gradient(135deg,#D1FAE5,#A7F3D0)", iconColor: "#059669" },
-    { id: "tx-004", type: "debit",  name: "Netflix Subscription",sub: "Netflix Inc.",         amount: 15.99,  currency: "USD", date: "2025-03-05T00:00:00", category: "Entertainment", badge: "Sub",      badgeBg: "#FEF2F2", badgeBorder: "#FECACA", badgeColor: "#DC2626", status: "completed", accountId: "acc-001", icon: "▶",  iconBg: "linear-gradient(135deg,#FEE2E2,#FECACA)", iconColor: "#DC2626" },
-    { id: "tx-005", type: "debit",  name: "Whole Foods Market",  sub: "Grocery Store",        amount: 87.50,  currency: "USD", date: "2025-03-04T13:22:00", category: "Food",          badge: "Food",     badgeBg: "#F0FDF4", badgeBorder: "#BBF7D0", badgeColor: "#16A34A", status: "completed", accountId: "acc-001", icon: "🛒", iconBg: "linear-gradient(135deg,#D1FAE5,#A7F3D0)", iconColor: "#059669" },
-    { id: "tx-006", type: "credit", name: "Salary — March",      sub: "Acme Corp Ltd.",       amount: 3500.00,currency: "USD", date: "2025-03-01T09:00:00", category: "Income",        badge: "Income",   badgeBg: "#EFF6FF", badgeBorder: "#BFDBFE", badgeColor: "#2563EB", status: "completed", accountId: "acc-001", icon: "💼", iconBg: "linear-gradient(135deg,#EEF4FF,#DBEAFE)", iconColor: "#1A73E8" },
-    { id: "tx-007", type: "debit",  name: "Amazon Purchase",     sub: "Amazon.com",           amount: 124.99, currency: "USD", date: "2025-02-28T15:40:00", category: "Shopping",      badge: "Shop",     badgeBg: "#FFFBEB", badgeBorder: "#FDE68A", badgeColor: "#D97706", status: "completed", accountId: "acc-001", icon: "📦", iconBg: "linear-gradient(135deg,#FFFBEB,#FDE68A)", iconColor: "#D97706" },
-    { id: "tx-008", type: "debit",  name: "Uber Ride",           sub: "Uber Technologies",    amount: 12.50,  currency: "USD", date: "2025-02-27T20:15:00", category: "Transport",     badge: "Ride",     badgeBg: "#F8FAFC", badgeBorder: "#E2E8F0", badgeColor: "#64748B", status: "completed", accountId: "acc-001", icon: "🚗", iconBg: "linear-gradient(135deg,#F1F5F9,#E2E8F0)", iconColor: "#374151" },
-    { id: "tx-009", type: "debit",  name: "Spotify Premium",     sub: "Spotify AB",           amount: 9.99,   currency: "USD", date: "2025-02-26T00:00:00", category: "Entertainment", badge: "Sub",      badgeBg: "#F0FDF4", badgeBorder: "#BBF7D0", badgeColor: "#16A34A", status: "completed", accountId: "acc-001", icon: "🎵", iconBg: "linear-gradient(135deg,#D1FAE5,#A7F3D0)", iconColor: "#059669" },
-    { id: "tx-010", type: "credit", name: "Freelance Payment",   sub: "Client · Web Project", amount: 750.00, currency: "USD", date: "2025-02-25T11:30:00", category: "Income",        badge: "Income",   badgeBg: "#EFF6FF", badgeBorder: "#BFDBFE", badgeColor: "#2563EB", status: "completed", accountId: "acc-001", icon: "💻", iconBg: "linear-gradient(135deg,#EEF4FF,#DBEAFE)", iconColor: "#1A73E8" },
+    { id: "tx-001", type: "debit",  name: "Bitcoin Purchase",    sub: "Crypto.com",           amount: 500.00, currency: "USD", date: "2025-03-07T14:14:00", category: "Crypto",        badge: "Crypto",   badgeBg: "#FFFBEB", badgeBorder: "#FDE68A", badgeColor: "#D97706", status: "completed", accountId: "acc-001", icon: "₿",  iconBg: "linear-gradient(135deg,#F59E0B,#D97706)", iconColor: "#fff" },
+    { id: "tx-002", type: "debit",  name: "ATM Withdrawal",      sub: "Chase Bank · NYC",     amount: 200.00, currency: "USD", date: "2025-03-07T10:30:00", category: "Cash",          badge: "Cash",     badgeBg: "#EFF6FF", badgeBorder: "#BFDBFE", badgeColor: "#2563EB", status: "completed", accountId: "acc-001", icon: "🏧", iconBg: "linear-gradient(135deg,#DBEAFE,#BFDBFE)", iconColor: "#2563EB" },
+    { id: "tx-003", type: "credit", name: "Transfer Received",   sub: "From Sarah L.",        amount: 1000.00,currency: "USD", date: "2025-03-06T16:45:00", category: "Transfer",      badge: "Incoming", badgeBg: "#F0FDF4", badgeBorder: "#BBF7D0", badgeColor: "#16A34A", status: "completed", accountId: "acc-001", icon: "↗",  iconBg: "linear-gradient(135deg,#D1FAE5,#A7F3D0)", iconColor: "#059669" },
+    { id: "tx-004", type: "debit",  name: "Netflix Subscription", sub: "Netflix Inc.",         amount: 15.99,  currency: "USD", date: "2025-03-05T00:00:00", category: "Entertainment", badge: "Sub",      badgeBg: "#FEF2F2", badgeBorder: "#FECACA", badgeColor: "#DC2626", status: "completed", accountId: "acc-001", icon: "▶",  iconBg: "linear-gradient(135deg,#FEE2E2,#FECACA)", iconColor: "#DC2626" },
+    { id: "tx-005", type: "debit",  name: "Whole Foods Market",   sub: "Grocery Store",        amount: 87.50,  currency: "USD", date: "2025-03-04T13:22:00", category: "Food",          badge: "Food",     badgeBg: "#F0FDF4", badgeBorder: "#BBF7D0", badgeColor: "#16A34A", status: "completed", accountId: "acc-001", icon: "🛒", iconBg: "linear-gradient(135deg,#D1FAE5,#A7F3D0)", iconColor: "#059669" },
+    { id: "tx-006", type: "credit", name: "Salary — March",       sub: "Acme Corp Ltd.",       amount: 3500.00,currency: "USD", date: "2025-03-01T09:00:00", category: "Income",        badge: "Income",   badgeBg: "#EFF6FF", badgeBorder: "#BFDBFE", badgeColor: "#2563EB", status: "completed", accountId: "acc-001", icon: "💼", iconBg: "linear-gradient(135deg,#EEF4FF,#DBEAFE)", iconColor: "#1A73E8" },
+    { id: "tx-007", type: "debit",  name: "Amazon Purchase",      sub: "Amazon.com",           amount: 124.99, currency: "USD", date: "2025-02-28T15:40:00", category: "Shopping",      badge: "Shop",     badgeBg: "#FFFBEB", badgeBorder: "#FDE68A", badgeColor: "#D97706", status: "completed", accountId: "acc-001", icon: "📦", iconBg: "linear-gradient(135deg,#FFFBEB,#FDE68A)", iconColor: "#D97706" },
+    { id: "tx-008", type: "debit",  name: "Uber Ride",            sub: "Uber Technologies",    amount: 12.50,  currency: "USD", date: "2025-02-27T20:15:00", category: "Transport",     badge: "Ride",     badgeBg: "#F8FAFC", badgeBorder: "#E2E8F0", badgeColor: "#64748B", status: "completed", accountId: "acc-001", icon: "🚗", iconBg: "linear-gradient(135deg,#F1F5F9,#E2E8F0)", iconColor: "#374151" },
+    { id: "tx-009", type: "debit",  name: "Spotify Premium",      sub: "Spotify AB",           amount: 9.99,   currency: "USD", date: "2025-02-26T00:00:00", category: "Entertainment", badge: "Sub",      badgeBg: "#F0FDF4", badgeBorder: "#BBF7D0", badgeColor: "#16A34A", status: "completed", accountId: "acc-001", icon: "🎵", iconBg: "linear-gradient(135deg,#D1FAE5,#A7F3D0)", iconColor: "#059669" },
+    { id: "tx-010", type: "credit", name: "Freelance Payment",    sub: "Client · Web Project", amount: 750.00, currency: "USD", date: "2025-02-25T11:30:00", category: "Income",        badge: "Income",   badgeBg: "#EFF6FF", badgeBorder: "#BFDBFE", badgeColor: "#2563EB", status: "completed", accountId: "acc-001", icon: "💻", iconBg: "linear-gradient(135deg,#EEF4FF,#DBEAFE)", iconColor: "#1A73E8" },
   ],
   profile: {
     firstName: "John",
@@ -174,6 +187,16 @@ export const DEFAULT_STATE: VaulteState = {
     twoFactor: true,
     notifications: { email: true, push: true, sms: false, marketing: false },
   },
+  notifications: [
+    { id: "notif-001", type: "transaction", title: "Salary Received",          message: "Your March salary of $3,500.00 from Acme Corp Ltd. has been credited to your Current Account.",     date: "2025-03-01T09:01:00", read: false, icon: "💼", iconBg: "#EEF4FF", iconColor: "#1A73E8" },
+    { id: "notif-002", type: "security",    title: "New Login Detected",        message: "A new login was detected from Chrome on Windows · New York, US. If this wasn't you, secure your account immediately.", date: "2025-03-06T08:15:00", read: false, icon: "🔐", iconBg: "#FEF2F2", iconColor: "#DC2626" },
+    { id: "notif-003", type: "transaction", title: "Transfer Received",         message: "Sarah L. sent you $1,000.00. The funds are now available in your Current Account.",                 date: "2025-03-06T16:45:00", read: false, icon: "↗",  iconBg: "#F0FDF4", iconColor: "#16A34A" },
+    { id: "notif-004", type: "account",     title: "KYC Verification Complete", message: "Your identity has been verified successfully. You now have full access to all Vaulte features.",   date: "2025-03-05T10:00:00", read: true,  icon: "✓",  iconBg: "#F0FDF4", iconColor: "#059669" },
+    { id: "notif-005", type: "account",     title: "Spending Limit Alert",      message: "You have used 80% ($1,205.48 of $2,000.00) of your monthly card spending limit.",                  date: "2025-03-04T20:00:00", read: true,  icon: "⚠",  iconBg: "#FFFBEB", iconColor: "#D97706" },
+    { id: "notif-006", type: "promo",       title: "Better Exchange Rates",     message: "Send money abroad with zero fees this weekend. Exchange rates updated — EUR and GBP at their best.", date: "2025-03-03T12:00:00", read: true,  icon: "🎁", iconBg: "#EEF4FF", iconColor: "#7C3AED" },
+    { id: "notif-007", type: "security",    title: "Password Changed",          message: "Your account password was changed successfully. If you did not make this change, contact support.",  date: "2025-02-28T14:20:00", read: true,  icon: "🔑", iconBg: "#F0FDF4", iconColor: "#059669" },
+    { id: "notif-008", type: "account",     title: "Card Expiry Reminder",      message: "Your Vaulte Virtual Card expires in 60 days. Request a new card in the Cards section to avoid disruption.", date: "2025-02-25T09:00:00", read: true, icon: "📅", iconBg: "#FEF2F2", iconColor: "#DC2626" },
+  ],
   lastUpdated: new Date().toISOString(),
 };
 
@@ -183,16 +206,16 @@ export function getState(): VaulteState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_STATE;
     const parsed = JSON.parse(raw) as Partial<VaulteState>;
-    // Merge with defaults to handle missing keys from old state
     return {
-      accounts:     parsed.accounts     ?? DEFAULT_STATE.accounts,
-      transactions: parsed.transactions ?? DEFAULT_STATE.transactions,
-      profile:      { ...DEFAULT_STATE.profile,      ...(parsed.profile ?? {}) },
-      card:         { ...DEFAULT_STATE.card,         ...(parsed.card ?? {}) },
-      preferences:  { ...DEFAULT_STATE.preferences,  ...(parsed.preferences ?? {}),
+      accounts:      parsed.accounts      ?? DEFAULT_STATE.accounts,
+      transactions:  parsed.transactions  ?? DEFAULT_STATE.transactions,
+      profile:       { ...DEFAULT_STATE.profile,      ...(parsed.profile ?? {}) },
+      card:          { ...DEFAULT_STATE.card,         ...(parsed.card ?? {}) },
+      preferences:   { ...DEFAULT_STATE.preferences,  ...(parsed.preferences ?? {}),
         notifications: { ...DEFAULT_STATE.preferences.notifications, ...(parsed.preferences?.notifications ?? {}) },
       },
-      lastUpdated: parsed.lastUpdated ?? new Date().toISOString(),
+      notifications: parsed.notifications ?? DEFAULT_STATE.notifications,
+      lastUpdated:   parsed.lastUpdated   ?? new Date().toISOString(),
     };
   } catch {
     return DEFAULT_STATE;
@@ -221,7 +244,7 @@ export function fmtAmount(amount: number, currency: string, symbol: string): str
 
 export function fmtDate(dateStr: string): string {
   const date = new Date(dateStr);
-  const now  = new Date();
+  const now   = new Date();
   const diffMs = now.getTime() - date.getTime();
   const days   = Math.floor(diffMs / 86_400_000);
   if (days === 0) return `Today, ${date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
@@ -232,4 +255,8 @@ export function fmtDate(dateStr: string): string {
 
 export function genTxId(): string {
   return `tx-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+export function genNotifId(): string {
+  return `notif-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
