@@ -4,6 +4,7 @@ import AdminLayout from "@/components/AdminLayout";
 import {
   getUsers, updateUser, getUserState, saveUserState, getKycDoc,
   VaulteUser, VaulteState, genTxId, genRef, genNotifId,
+  DEMO_USER, DEMO_STATE,
 } from "@/lib/vaulteState";
 
 // ─── Badge helper ─────────────────────────────────────────
@@ -381,8 +382,10 @@ export default function AdminUsers() {
   const [loaded,     setLoaded]     = useState(false);
 
   const loadRows = () => {
-    const users = getUsers();
-    const r: UserRow[] = users.map(u => {
+    const registeredUsers = getUsers();
+    // Always include the demo user at the top, then all registered users
+    const allUsers = [DEMO_USER, ...registeredUsers.filter(u => u.id !== DEMO_USER.id)];
+    const r: UserRow[] = allUsers.map(u => {
       const state = getUserState(u.id);
       return { user: u, state, totalBalance: getTotalBalance(state) };
     });
@@ -417,7 +420,7 @@ export default function AdminUsers() {
             {loaded ? `${rows.length} registered user${rows.length !== 1 ? "s" : ""}` : "Loading..."}
           </p>
         </div>
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
           {[
             { label: `Total (${rows.length})`,         color: "#1A73E8", bg: "#EEF4FF" },
             { label: `Pending KYC (${rows.filter(r => r.user.kycStatus === "pending").length})`, color: "#D97706", bg: "#FFFBEB" },
@@ -425,6 +428,10 @@ export default function AdminUsers() {
           ].map(b => (
             <div key={b.label} style={{ background: b.bg, color: b.color, borderRadius: "8px", padding: "8px 14px", fontSize: "13px", fontWeight: 700 }}>{b.label}</div>
           ))}
+          <button onClick={loadRows}
+            style={{ padding: "8px 16px", borderRadius: "8px", border: "1.5px solid #E5E7EB", background: "#fff", color: "#374151", fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "6px" }}>
+            ↻ Refresh
+          </button>
         </div>
       </div>
 
