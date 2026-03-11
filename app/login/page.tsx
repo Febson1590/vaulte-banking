@@ -1,24 +1,78 @@
 "use client";
-import { useState } from "react";
+import { Suspense } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { loginUser, saveCurrentUser } from "@/lib/vaulteState";
 
-export default function LoginPage() {
-  const router = useRouter();
+function LoginPageInner() {
+  const router       = useRouter();
+  const searchParams = useSearchParams();
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState("");
+  const [resetSuccess, setResetSuccess] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (searchParams.get("reset") === "1") setResetSuccess(true);
+  }, [searchParams]);
+
+  const inputBase: React.CSSProperties = {
+    width: "100%", padding: "12px 14px", borderRadius: 10,
+    border: "1.5px solid #E2E8F0", fontSize: 14, color: "#111827",
+    background: "#F8FAFC", outline: "none", boxSizing: "border-box",
+    transition: "border-color 0.2s, box-shadow 0.2s", fontFamily: "inherit",
+  };
+
+  // ── Real login flow (via API → OTP step) ─────────────────
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setResetSuccess(false);
     if (!email || !password) { setError("Please fill in all fields."); return; }
-    if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
 
     setLoading(true);
+
+    // 1. Check if there's a real auth user via the API
+    try {
+      const res  = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+
+      // ── API login succeeded → OTP step ───────────────────
+      if (res.ok && data.success) {
+        const firstName = encodeURIComponent(data.firstName ?? "");
+        const emailEnc  = encodeURIComponent(email.toLowerCase().trim());
+        router.push(`/login-verify?email=${emailEnc}&name=${firstName}`);
+        return;
+      }
+
+      // ── Not verified yet ──────────────────────────────────
+      if (res.status === 403 && data.notVerified) {
+        const emailEnc = encodeURIComponent(data.email ?? email.toLowerCase().trim());
+        router.push(`/verify-email?email=${emailEnc}`);
+        return;
+      }
+
+      // ── API returned error (wrong creds, rate limit) ──────
+      if (!res.ok) {
+        // Fall through to localStorage demo check only if it's a 401
+        if (res.status !== 401) {
+          setError(data.error ?? "Sign in failed. Please try again.");
+          setLoading(false);
+          return;
+        }
+      }
+    } catch {
+      // Network error — fall through to localStorage fallback
+    }
+
+    // 2. Fallback: check localStorage (demo user + pre-existing localStorage users)
     setTimeout(() => {
       const user = loginUser(email, password);
       if (!user) {
@@ -27,23 +81,31 @@ export default function LoginPage() {
         return;
       }
       saveCurrentUser(user);
+      // Track login (for localStorage users — fire-and-forget)
+      fetch("/api/auth/track-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ userId: user.id, email: user.email, status: "success" }),
+      }).catch(() => {});
       router.push("/dashboard");
-    }, 1200);
+    }, 600);
   };
 
+  // ── Demo login (bypass OTP for demo account) ─────────────
   const handleDemoLogin = () => {
     setLoading(true);
     setTimeout(() => {
       const user = loginUser("demo@vaulte.com", "Demo@12345");
-      if (user) { saveCurrentUser(user); router.push("/dashboard"); }
+      if (user) {
+        saveCurrentUser(user);
+        fetch("/api/auth/track-login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ userId: user.id, email: user.email, status: "success" }),
+        }).catch(() => {});
+        router.push("/dashboard");
+      }
     }, 800);
-  };
-
-  const inputBase: React.CSSProperties = {
-    width: "100%", padding: "12px 14px", borderRadius: 10,
-    border: "1.5px solid #E2E8F0", fontSize: 14, color: "#111827",
-    background: "#F8FAFC", outline: "none", boxSizing: "border-box",
-    transition: "border-color 0.2s, box-shadow 0.2s", fontFamily: "inherit",
   };
 
   return (
@@ -71,7 +133,14 @@ export default function LoginPage() {
 
         <div style={{ padding: "32px 32px 28px" }}>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", textAlign: "center", marginBottom: 6, letterSpacing: "-0.4px" }}>Welcome Back</h1>
-          <p style={{ fontSize: 13, color: "#94A3B8", textAlign: "center", marginBottom: 28 }}>Sign in to access your Vaulte account</p>
+          <p style={{ fontSize: 13, color: "#94A3B8", textAlign: "center", marginBottom: 24 }}>Sign in to access your Vaulte account</p>
+
+          {/* Reset success banner */}
+          {resetSuccess && (
+            <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 8, padding: "10px 14px", marginBottom: 18, fontSize: 13, color: "#16A34A" }}>
+              ✅ Password reset successfully. You can now sign in with your new password.
+            </div>
+          )}
 
           {error && (
             <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 14px", marginBottom: 18, fontSize: 13, color: "#DC2626" }}>
@@ -96,7 +165,7 @@ export default function LoginPage() {
             </div>
 
             {/* Password */}
-            <div style={{ marginBottom: 24 }}>
+            <div style={{ marginBottom: 10 }}>
               <label style={{ fontSize: 13.5, fontWeight: 600, color: "#374151", display: "block", marginBottom: 7 }}>Password</label>
               <div style={{ position: "relative" }}>
                 <input type={showPass ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••••"
@@ -108,6 +177,13 @@ export default function LoginPage() {
                   {showPass ? "🙈" : "👁️"}
                 </button>
               </div>
+            </div>
+
+            {/* Forgot password link */}
+            <div style={{ textAlign: "right", marginBottom: 22 }}>
+              <Link href="/forgot-password" style={{ fontSize: 13, color: "#1A73E8", fontWeight: 600, textDecoration: "none" }}>
+                Forgot Password?
+              </Link>
             </div>
 
             <button type="submit" disabled={loading} style={{
@@ -147,12 +223,21 @@ export default function LoginPage() {
               <span style={{ fontSize: 18 }}>🎮</span>
               <div style={{ textAlign: "left" }}>
                 <p style={{ fontSize: 13.5, fontWeight: 700, color: "#0F172A", lineHeight: 1.2 }}>Demo Account</p>
-                <p style={{ fontSize: 11.5, color: "#94A3B8", marginTop: 2 }}>Pre-loaded with data · demo@vaulte.com</p>
+                <p style={{ fontSize: 11.5, color: "#94A3B8", marginTop: 2 }}>Pre-loaded with data · No OTP required</p>
               </div>
             </button>
           </form>
         </div>
       </div>
     </div>
+  );
+}
+
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(160deg,#BFDBFE 0%,#DBEAFE 100%)"}}><div style={{textAlign:"center"}}><div style={{width:40,height:40,border:"3px solid #1A73E8",borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto 12px"}}/><style>{"@keyframes spin{to{transform:rotate(360deg)}}"}</style><p style={{color:"#64748B",fontSize:14}}>Loading…</p></div></div>}>
+      <LoginPageInner />
+    </Suspense>
   );
 }

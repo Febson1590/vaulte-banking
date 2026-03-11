@@ -14,7 +14,13 @@ export default function RegisterPage() {
 
   const update = (f: string, v: string) => { setForm(p => ({ ...p, [f]: v })); setErrors(p => ({ ...p, [f]: "" })); };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Password strength check
+  const pw = form.password;
+  const pwScore = [pw.length >= 8, /[A-Z]/.test(pw), /[a-z]/.test(pw), /[0-9]/.test(pw), /[^A-Za-z0-9]/.test(pw)].filter(Boolean).length;
+  const pwColor = pwScore <= 1 ? "#EF4444" : pwScore <= 3 ? "#F59E0B" : "#10B981";
+  const pwLabel = pwScore <= 1 ? "Weak" : pwScore <= 3 ? "Fair" : pwScore === 4 ? "Good" : "Strong";
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs: Record<string, string> = {};
     if (!form.firstName.trim())  errs.firstName = "First name is required";
@@ -23,18 +29,62 @@ export default function RegisterPage() {
     if (!form.password || form.password.length < 8) errs.password = "Min. 8 characters";
     if (form.password !== form.confirmPassword) errs.confirmPassword = "Passwords do not match";
 
-    // Check if email already taken
-    const existing = getUsers().find(u => u.email === form.email.toLowerCase().trim());
-    if (existing) errs.email = "An account with this email already exists";
+    // Check if email already taken in localStorage
+    const existingLocal = getUsers().find(u => u.email === form.email.toLowerCase().trim());
+    if (existingLocal) errs.email = "An account with this email already exists";
 
     if (Object.keys(errs).length) { setErrors(errs); return; }
 
     setLoading(true);
+
+    // ── Try real API registration (sends verification email) ──
+    try {
+      const res  = await fetch("/api/auth/register", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          firstName: form.firstName,
+          lastName:  form.lastName,
+          email:     form.email,
+          password:  form.password,
+        }),
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        // Also store in localStorage so dashboard works even before OTP
+        // (with a placeholder password since the real hash is in Redis)
+        createUser(form.firstName, form.lastName, form.email, form.password);
+
+        // Redirect to verify email page
+        const emailEnc = encodeURIComponent(form.email.toLowerCase().trim());
+        const nameEnc  = encodeURIComponent(form.firstName.trim());
+        router.push(`/verify-email?email=${emailEnc}&name=${nameEnc}`);
+        return;
+      }
+
+      if (!res.ok) {
+        // API error (email taken on server, validation, etc.)
+        if (data.error?.includes("already exists")) {
+          setErrors({ email: "An account with this email already exists." });
+        } else {
+          setErrors({ email: data.error ?? "Registration failed." });
+        }
+        setLoading(false);
+        return;
+      }
+    } catch {
+      // Network / server not configured — fall through to localStorage-only mode
+      console.warn("[register] API call failed — falling back to localStorage-only registration");
+    }
+
+    // ── Fallback: localStorage-only (no email verification) ──
+    // This runs if the API is not configured (no .env vars set)
     setTimeout(() => {
       const newUser = createUser(form.firstName, form.lastName, form.email, form.password);
       saveCurrentUser(newUser);
       router.push("/dashboard");
-    }, 1500);
+    }, 1000);
   };
 
   const inputStyle = (field: string): React.CSSProperties => ({
@@ -63,7 +113,7 @@ export default function RegisterPage() {
 
         <div style={{ padding: "28px 32px 28px" }}>
           <h1 style={{ fontSize: 21, fontWeight: 800, color: "#0F172A", textAlign: "center", marginBottom: 6, letterSpacing: "-0.4px" }}>Create Your Account</h1>
-          <p style={{ fontSize: 13, color: "#94A3B8", textAlign: "center", marginBottom: 24 }}>Free to open · Takes less than 2 minutes</p>
+          <p style={{ fontSize: 13, color: "#94A3B8", textAlign: "center", marginBottom: 24 }}>Free to open · Email verification required</p>
 
           <form onSubmit={handleSubmit}>
             {/* Name row */}
@@ -113,10 +163,21 @@ export default function RegisterPage() {
                 </button>
               </div>
               {errors.password && <p style={{ fontSize: 11.5, color: "#EF4444", marginTop: 4 }}>{errors.password}</p>}
+              {/* Password strength bar */}
+              {form.password && (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ display: "flex", gap: 3, marginBottom: 4 }}>
+                    {[1,2,3,4,5].map(i => (
+                      <div key={i} style={{ flex: 1, height: 3, borderRadius: 999, background: i <= pwScore ? pwColor : "#E2E8F0", transition: "background 0.3s" }} />
+                    ))}
+                  </div>
+                  <p style={{ margin: 0, fontSize: 11.5, color: pwColor, fontWeight: 600 }}>{pwLabel} password</p>
+                </div>
+              )}
             </div>
 
             {/* Confirm Password */}
-            <div style={{ marginBottom: 22 }}>
+            <div style={{ marginBottom: 18 }}>
               <label style={{ fontSize: 13.5, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Confirm Password</label>
               <div style={{ position: "relative" }}>
                 <input type={showConfirm ? "text" : "password"} value={form.confirmPassword} onChange={e => update("confirmPassword", e.target.value)} placeholder="Repeat password"
@@ -131,6 +192,14 @@ export default function RegisterPage() {
               {errors.confirmPassword && <p style={{ fontSize: 11.5, color: "#EF4444", marginTop: 4 }}>{errors.confirmPassword}</p>}
             </div>
 
+            {/* Email verification notice */}
+            <div style={{ background: "#EEF4FF", border: "1px solid #BFDBFE", borderRadius: 10, padding: "12px 14px", marginBottom: 18, display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <span style={{ fontSize: 18, flexShrink: 0 }}>📧</span>
+              <p style={{ margin: 0, fontSize: 12.5, color: "#1e3a5f", lineHeight: 1.5 }}>
+                A <strong>6-digit verification code</strong> will be sent to your email. You&apos;ll need to verify it to activate your account.
+              </p>
+            </div>
+
             <button type="submit" disabled={loading} style={{
               width: "100%", padding: "13px", borderRadius: 10, border: "none",
               background: loading ? "#93C5FD" : "#1A73E8", color: "#fff",
@@ -140,7 +209,7 @@ export default function RegisterPage() {
             }}
               onMouseEnter={e => { if (!loading) { e.currentTarget.style.background = "#1557b0"; e.currentTarget.style.transform = "translateY(-1px)"; } }}
               onMouseLeave={e => { if (!loading) { e.currentTarget.style.background = "#1A73E8"; e.currentTarget.style.transform = "translateY(0)"; } }}
-            >{loading ? "Creating Account…" : "Create Account"}</button>
+            >{loading ? "Creating Account…" : "Create Account & Verify Email"}</button>
 
             <p style={{ textAlign: "center", fontSize: 14, color: "#6B7280" }}>
               Already have an account?{" "}

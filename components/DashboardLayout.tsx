@@ -17,6 +17,7 @@ const NAV = [
   { icon: "↔", label: "Exchange",     href: "/dashboard/exchange" },
   { icon: "≡", label: "Transactions", href: "/dashboard/transactions" },
   { icon: "▭", label: "Cards",        href: "/dashboard/cards" },
+  { icon: "🛡", label: "Security",     href: "/dashboard/security" },
   { icon: "◎", label: "Settings",     href: "/dashboard/settings" },
 ];
 
