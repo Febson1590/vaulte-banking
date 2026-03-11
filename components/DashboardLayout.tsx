@@ -156,7 +156,7 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
       <div style={{
         margin: "0 10px", borderRadius: 16, padding: "16px",
         background: "linear-gradient(150deg, rgba(26,115,232,0.16) 0%, rgba(15,23,42,0.35) 100%)",
-        border: "1px solid rgba(26,115,232,0.18)", flex: "1 1 auto", overflow: "hidden", minHeight: 0,
+        border: "1px solid rgba(26,115,232,0.18)", flex: "0 0 auto", overflow: "hidden",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
           <div>
@@ -215,7 +215,7 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
       <aside className="vaulte-sidebar" style={{
         width: 236, background: C.navy, position: "fixed", top: 0, left: 0,
         height: "100vh", display: "flex", flexDirection: "column",
-        zIndex: 100, boxShadow: "2px 0 32px rgba(15,23,42,0.2)",
+        zIndex: 100, boxShadow: "2px 0 32px rgba(15,23,42,0.2)", overflowY: "auto",
       }}>
         <SidebarContent />
       </aside>
@@ -234,7 +234,7 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
         height: "100vh", display: "flex", flexDirection: "column",
         zIndex: 150, boxShadow: "2px 0 32px rgba(15,23,42,0.3)",
         transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)",
-        transition: "transform 0.28s cubic-bezier(0.4,0,0.2,1)",
+        transition: "transform 0.28s cubic-bezier(0.4,0,0.2,1)", overflowY: "auto",
       }}>
         <SidebarContent />
       </aside>
