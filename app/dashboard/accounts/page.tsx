@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { getState, saveState, VaulteState, DEFAULT_STATE, Account, Transaction, fmtAmount, fmtDate } from "@/lib/vaulteState";
+import { getState, saveState, VaulteState, DEFAULT_STATE, Account, Transaction, fmtAmount, fmtDate, genTxId, genRef } from "@/lib/vaulteState";
 
 const C = {
   bg: "#F3F5FA", card: "#ffffff", navy: "#0F172A", blue: "#1A73E8",
@@ -18,6 +18,14 @@ export default function AccountsPage() {
   const [copied, setCopied] = useState<string | null>(null);
   const [freezing, setFreezing] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  // Deposit modal state
+  const [depositModal, setDepositModal] = useState(false);
+  const [depositAccountId, setDepositAccountId] = useState("");
+  const [depositAmount, setDepositAmount] = useState("");
+  const [depositMethod, setDepositMethod] = useState("bank");
+  const [depositStep, setDepositStep] = useState<"form"|"processing"|"success">("form");
+  const [depositErr, setDepositErr] = useState("");
 
   useEffect(() => { setState(getState()); }, []);
 
@@ -46,6 +54,45 @@ export default function AccountsPage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
+  const openDeposit = (acc?: Account) => {
+    setDepositAccountId(acc?.id ?? selected?.id ?? state.accounts[0]?.id ?? "");
+    setDepositAmount("");
+    setDepositMethod("bank");
+    setDepositStep("form");
+    setDepositErr("");
+    setDepositModal(true);
+  };
+
+  const handleDeposit = () => {
+    const amt = parseFloat(depositAmount);
+    if (!depositAmount || isNaN(amt) || amt <= 0) { setDepositErr("Enter a valid amount."); return; }
+    if (amt > 50000) { setDepositErr("Maximum single deposit is $50,000."); return; }
+    setDepositErr("");
+    setDepositStep("processing");
+    setTimeout(() => {
+      const acc = state.accounts.find(a => a.id === depositAccountId)!;
+      const newBal = parseFloat((acc.balance + amt).toFixed(8));
+      const newTx: Transaction = {
+        id: genTxId(), txType: "deposit", type: "credit",
+        name: "Account Deposit",
+        sub: depositMethod === "bank" ? "Bank Transfer" : depositMethod === "card" ? "Card Deposit" : "Crypto Deposit",
+        amount: amt, fee: 0, balanceAfter: newBal,
+        currency: acc.currency, date: new Date().toISOString(),
+        category: "Income", badge: "Deposit",
+        badgeBg: "#F0FDF4", badgeBorder: "#BBF7D0", badgeColor: "#16A34A",
+        status: "completed", accountId: depositAccountId,
+        icon: "↙", iconBg: "linear-gradient(135deg,#DCFCE7,#BBF7D0)", iconColor: "#16A34A",
+        reference: genRef(),
+      };
+      const newAccounts = state.accounts.map(a => a.id === depositAccountId ? { ...a, balance: newBal } : a);
+      const newState = { ...state, accounts: newAccounts, transactions: [newTx, ...state.transactions] };
+      setState(newState);
+      saveState(newState);
+      if (selected?.id === depositAccountId) setSelected({ ...acc, balance: newBal });
+      setDepositStep("success");
+    }, 1600);
+  };
+
   const accountTxns = (accountId: string): Transaction[] =>
     state.transactions.filter(t => t.accountId === accountId).slice(0, 5);
 
@@ -55,12 +102,140 @@ export default function AccountsPage() {
   }, 0);
 
   return (
-    <DashboardLayout title="My Accounts" subtitle={`${state.accounts.length} accounts · Total ≈ $${totalUSD.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}>
+    <DashboardLayout title="My Accounts" subtitle={`${state.accounts.length} accounts · Total ≈ $${totalUSD.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+      topRight={
+        <button onClick={() => openDeposit()} style={{ padding: "10px 20px", borderRadius: 12, border: "none", background: "linear-gradient(135deg,#059669,#047857)", color: "#fff", fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(5,150,105,0.28)", display: "flex", alignItems: "center", gap: 7, transition: "all 0.2s" }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 20px rgba(5,150,105,0.36)"; (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 14px rgba(5,150,105,0.28)"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}
+        >
+          <span style={{ fontSize: 16 }}>＋</span> Deposit Funds
+        </button>
+      }
+    >
 
       {/* Toast */}
       {toast && (
         <div style={{ position: "fixed", top: 88, right: 32, zIndex: 999, background: C.navy, color: "#fff", padding: "12px 20px", borderRadius: 12, fontSize: 13.5, fontWeight: 500, boxShadow: "0 8px 24px rgba(15,23,42,0.25)", display: "flex", alignItems: "center", gap: 10, animation: "slideIn 0.25s ease" }}>
           <span style={{ color: "#4ADE80" }}>✓</span> {toast}
+        </div>
+      )}
+
+      {/* ─── Deposit Modal ─── */}
+      {depositModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(5px)" }}>
+          <div style={{ background: C.card, borderRadius: 24, width: 420, maxWidth: "90vw", boxShadow: "0 32px 80px rgba(15,23,42,0.32)", border: `1px solid ${C.border}`, overflow: "hidden" }}>
+
+            {/* Modal header */}
+            <div style={{ padding: "24px 28px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <p style={{ fontSize: 17, fontWeight: 800, color: C.text, letterSpacing: "-0.3px" }}>Deposit Funds</p>
+                <p style={{ fontSize: 12.5, color: C.muted, marginTop: 3 }}>Add money to your account instantly</p>
+              </div>
+              {depositStep === "form" && (
+                <button onClick={() => setDepositModal(false)} style={{ width: 32, height: 32, borderRadius: 10, background: C.bg, border: `1px solid ${C.border}`, cursor: "pointer", fontSize: 14, color: C.sub }}>✕</button>
+              )}
+            </div>
+
+            <div style={{ padding: "28px 28px 32px" }}>
+
+              {/* ── FORM step ── */}
+              {depositStep === "form" && (
+                <div>
+                  {/* Account selector */}
+                  <label style={{ fontSize: 12, fontWeight: 600, color: C.sub, display: "block", marginBottom: 6 }}>Deposit To</label>
+                  <select value={depositAccountId} onChange={e => setDepositAccountId(e.target.value)}
+                    style={{ width: "100%", padding: "11px 14px", borderRadius: 12, border: `1.5px solid ${C.border}`, fontSize: 13.5, color: C.text, background: "#fff", outline: "none", fontFamily: "inherit", marginBottom: 18, cursor: "pointer", appearance: "none", backgroundImage: "url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22><path fill=%22%2394A3B8%22 d=%22M6 8L1 3h10z%22/></svg>')", backgroundRepeat: "no-repeat", backgroundPosition: "right 14px center" }}>
+                    {state.accounts.filter(a => a.type !== "crypto").map(a => (
+                      <option key={a.id} value={a.id}>{a.flag} {a.name} — {a.symbol}{a.balance.toLocaleString("en-US", { minimumFractionDigits: 2 })}</option>
+                    ))}
+                  </select>
+
+                  {/* Amount */}
+                  <label style={{ fontSize: 12, fontWeight: 600, color: C.sub, display: "block", marginBottom: 6 }}>Amount (USD)</label>
+                  <div style={{ position: "relative", marginBottom: 8 }}>
+                    <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 20, fontWeight: 700, color: C.muted }}>$</span>
+                    <input type="number" min="1" step="0.01" value={depositAmount} onChange={e => { setDepositAmount(e.target.value); setDepositErr(""); }}
+                      placeholder="0.00" autoFocus
+                      style={{ width: "100%", padding: "14px 14px 14px 36px", borderRadius: 12, border: `1.5px solid ${depositErr ? "#EF4444" : C.border}`, fontSize: 24, fontWeight: 800, color: C.text, background: C.bg, outline: "none", fontFamily: "inherit", boxSizing: "border-box", letterSpacing: "-0.5px", transition: "border-color 0.18s, box-shadow 0.18s" }}
+                      onFocus={e => { e.target.style.borderColor = depositErr ? "#EF4444" : C.blue; e.target.style.boxShadow = "0 0 0 3px rgba(26,115,232,0.08)"; e.target.style.background = "#fff"; }}
+                      onBlur={e => { e.target.style.borderColor = depositErr ? "#EF4444" : C.border; e.target.style.boxShadow = "none"; e.target.style.background = C.bg; }}
+                    />
+                  </div>
+                  {/* Quick amounts */}
+                  <div style={{ display: "flex", gap: 8, marginBottom: depositErr ? 8 : 20 }}>
+                    {[100, 500, 1000, 5000].map(v => (
+                      <button key={v} onClick={() => { setDepositAmount(v.toString()); setDepositErr(""); }}
+                        style={{ flex: 1, padding: "7px 0", borderRadius: 9, border: `1px solid ${C.border}`, background: depositAmount === v.toString() ? C.blue : "#FAFBFC", color: depositAmount === v.toString() ? "#fff" : C.sub, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
+                        ${v.toLocaleString()}
+                      </button>
+                    ))}
+                  </div>
+                  {depositErr && <p style={{ fontSize: 12.5, color: "#EF4444", marginBottom: 14 }}>⚠ {depositErr}</p>}
+
+                  {/* Deposit method */}
+                  <label style={{ fontSize: 12, fontWeight: 600, color: C.sub, display: "block", marginBottom: 10 }}>Deposit Method</label>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>
+                    {[
+                      { key: "bank",   icon: "🏦", label: "Bank Transfer",     sub: "ACH / Wire — 1-2 business days" },
+                      { key: "card",   icon: "💳", label: "Debit / Credit Card", sub: "Instant deposit — small fee may apply" },
+                      { key: "crypto", icon: "₿",  label: "Crypto Deposit",     sub: "Send BTC/ETH to your wallet address" },
+                    ].map(m => (
+                      <div key={m.key} onClick={() => setDepositMethod(m.key)}
+                        style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", borderRadius: 12, border: depositMethod === m.key ? `1.5px solid ${C.blue}` : `1px solid ${C.border}`, background: depositMethod === m.key ? "#EEF4FF" : "#FAFBFC", cursor: "pointer", transition: "all 0.15s" }}>
+                        <span style={{ fontSize: 20 }}>{m.icon}</span>
+                        <div>
+                          <p style={{ fontSize: 13.5, fontWeight: 600, color: depositMethod === m.key ? C.blue : C.text }}>{m.label}</p>
+                          <p style={{ fontSize: 11.5, color: C.muted }}>{m.sub}</p>
+                        </div>
+                        <div style={{ marginLeft: "auto", width: 16, height: 16, borderRadius: "50%", border: `2px solid ${depositMethod === m.key ? C.blue : C.border}`, background: depositMethod === m.key ? C.blue : "transparent", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          {depositMethod === m.key && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff" }} />}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ display: "flex", gap: 12 }}>
+                    <button onClick={() => setDepositModal(false)} style={{ padding: "13px 20px", borderRadius: 14, border: `1px solid ${C.border}`, background: "transparent", color: C.sub, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+                    <button onClick={handleDeposit} style={{ flex: 1, padding: "13px", borderRadius: 14, border: "none", background: "linear-gradient(135deg,#059669,#047857)", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(5,150,105,0.28)", transition: "all 0.2s" }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 24px rgba(5,150,105,0.36)"; (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px rgba(5,150,105,0.28)"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}>
+                      Deposit Funds ↓
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ── PROCESSING step ── */}
+              {depositStep === "processing" && (
+                <div style={{ textAlign: "center", padding: "32px 20px" }}>
+                  <div style={{ width: 56, height: 56, borderRadius: "50%", border: "3px solid #059669", borderTop: "3px solid transparent", margin: "0 auto 20px", animation: "spin 0.8s linear infinite" }} />
+                  <p style={{ fontSize: 17, fontWeight: 700, color: C.text, marginBottom: 6 }}>Processing Deposit…</p>
+                  <p style={{ fontSize: 13, color: C.muted }}>Verifying and crediting your account.</p>
+                </div>
+              )}
+
+              {/* ── SUCCESS step ── */}
+              {depositStep === "success" && (
+                <div style={{ textAlign: "center", padding: "24px 16px" }}>
+                  <div style={{ width: 72, height: 72, borderRadius: "50%", background: "linear-gradient(135deg,#22C55E,#16A34A)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", boxShadow: "0 8px 24px rgba(34,197,94,0.3)", fontSize: 32, color: "#fff" }}>✓</div>
+                  <p style={{ fontSize: 21, fontWeight: 800, color: C.text, marginBottom: 6, letterSpacing: "-0.3px" }}>Deposit Successful!</p>
+                  <p style={{ fontSize: 13.5, color: C.muted, marginBottom: 24 }}>
+                    ${parseFloat(depositAmount).toLocaleString("en-US", { minimumFractionDigits: 2 })} added to {state.accounts.find(a => a.id === depositAccountId)?.name}.
+                  </p>
+                  <div style={{ display: "flex", gap: 12 }}>
+                    <button onClick={() => { setDepositModal(false); setDepositStep("form"); }}
+                      style={{ flex: 1, padding: "13px", borderRadius: 14, border: `1px solid ${C.border}`, background: "transparent", color: C.sub, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                      Done
+                    </button>
+                    <button onClick={() => { setDepositStep("form"); setDepositAmount(""); setDepositErr(""); }}
+                      style={{ flex: 1, padding: "13px", borderRadius: 14, border: "none", background: "linear-gradient(135deg,#059669,#047857)", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(5,150,105,0.28)" }}>
+                      Deposit Again
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -213,6 +388,12 @@ export default function AccountsPage() {
                 </div>
 
                 {/* Actions */}
+                {selected.type !== "crypto" && (
+                  <button onClick={() => openDeposit(selected)}
+                    style={{ width: "100%", padding: "13px", borderRadius: 14, marginBottom: 10, border: "none", background: "linear-gradient(135deg,#059669,#047857)", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(5,150,105,0.28)", transition: "all 0.2s" }}>
+                    ↙ Deposit Funds
+                  </button>
+                )}
                 <button
                   onClick={() => handleFreeze(selected.id)}
                   disabled={freezing}
@@ -256,7 +437,11 @@ export default function AccountsPage() {
         )}
       </div>
 
-      <style>{`@keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }`}</style>
+      <style>{`
+        @keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+      `}</style>
     </DashboardLayout>
   );
 }

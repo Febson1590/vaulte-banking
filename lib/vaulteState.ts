@@ -115,9 +115,10 @@ export interface CardSettings {
   internationalTxns: boolean;
   spendingLimit: number;
   spentThisMonth: number;
-  cardNumber?: string;    // masked last 4, e.g. "4532 •••• •••• 7841"
+  cardNumber?: string;    // masked, e.g. "4532 •••• •••• 7841"
+  cardNumberFull?: string; // full number, e.g. "4532 8821 3401 7841"
   expiry?: string;        // "MM/YY"
-  cvv?: string;           // masked "•••"
+  cvv?: string;           // 3-digit, e.g. "391"
   cardBrand?: string;     // "visa"
   linkedAccountId?: string;
   issuedAt?: string;
@@ -229,7 +230,7 @@ export const DEMO_STATE: VaulteState = {
   card: {
     issued: true, frozen: false, onlinePayments: true, contactless: true,
     internationalTxns: true, spendingLimit: 2000, spentThisMonth: 1205.48,
-    cardNumber: "4532 •••• •••• 7841", expiry: "09/27", cvv: "•••",
+    cardNumber: "4532 •••• •••• 7841", cardNumberFull: "4532 8821 3401 7841", expiry: "09/27", cvv: "391",
     cardBrand: "visa", linkedAccountId: "acc-001", issuedAt: "2024-01-15T00:00:00",
   },
   preferences: {

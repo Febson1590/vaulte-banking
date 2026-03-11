@@ -10,8 +10,25 @@ const C = {
   shadowHv: "0 2px 8px rgba(15,23,42,0.06), 0 14px 36px rgba(15,23,42,0.10)",
 } as const;
 
-const FULL_NUMBER = "4532 8821 3401 4410";
-const MASKED      = "4532 •••• •••• 4410";
+// Card display helpers — derived from state.card (no hardcoded values)
+function genCardFull(): string {
+  const r = () => Math.floor(1000 + Math.random() * 9000).toString();
+  const last4 = r();
+  return `4532 ${r()} ${r()} ${last4}`;
+}
+function maskCard(full: string): string {
+  const p = full.replace(/\s/g, "");
+  return `${p.slice(0,4)} •••• •••• ${p.slice(12)}`;
+}
+function genExpiry(): string {
+  const d = new Date();
+  const m = (d.getMonth() + 1).toString().padStart(2, "0");
+  const y = (d.getFullYear() + 3).toString().slice(2);
+  return `${m}/${y}`;
+}
+function genCvv(): string {
+  return Math.floor(100 + Math.random() * 900).toString();
+}
 
 function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
   return (
@@ -58,7 +75,8 @@ export default function CardsPage() {
   };
 
   const copyNumber = () => {
-    navigator.clipboard.writeText(FULL_NUMBER.replace(/\s/g, "")).catch(() => {});
+    const num = (card.cardNumberFull ?? card.cardNumber ?? "").replace(/\s/g, "");
+    navigator.clipboard.writeText(num).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -107,7 +125,7 @@ export default function CardsPage() {
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {user?.kycStatus === "verified" ? (
-                <button onClick={() => { updateCard({ issued: true, spendingLimit: 2000, onlinePayments: true, contactless: true, internationalTxns: true }); showToast("Your Vaulte Virtual Card has been issued! 🎉"); }}
+                <button onClick={() => { const full = genCardFull(); updateCard({ issued: true, spendingLimit: 2000, onlinePayments: true, contactless: true, internationalTxns: true, cardNumberFull: full, cardNumber: maskCard(full), expiry: genExpiry(), cvv: genCvv(), issuedAt: new Date().toISOString() }); showToast("Your Vaulte Virtual Card has been issued! 🎉"); }}
                   style={{ padding: "13px 28px", borderRadius: 12, background: `linear-gradient(135deg, ${C.blue}, #1558b0)`, border: "none", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(26,115,232,0.3)" }}>
                   🎉 Issue My Virtual Card
                 </button>
@@ -205,7 +223,7 @@ export default function CardsPage() {
                 </div>
 
                 <p style={{ fontSize: 14, color: "rgba(255,255,255,0.65)", letterSpacing: "0.22em", marginBottom: 20, fontFamily: "monospace", position: "relative", zIndex: 1 }}>
-                  {showNumber ? FULL_NUMBER : MASKED}
+                  {showNumber ? (card.cardNumberFull ?? card.cardNumber ?? "•••• •••• •••• ••••") : (card.cardNumber ?? "•••• •••• •••• ••••")}
                 </p>
 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", position: "relative", zIndex: 1 }}>
@@ -213,9 +231,17 @@ export default function CardsPage() {
                     <p style={{ fontSize: 9.5, color: "rgba(255,255,255,0.32)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 5 }}>Card Holder</p>
                     <p style={{ fontSize: 14, color: "#fff", fontWeight: 600, letterSpacing: "0.04em" }}>{firstName} {lastName}</p>
                   </div>
-                  <div style={{ textAlign: "right" }}>
-                    <p style={{ fontSize: 9.5, color: "rgba(255,255,255,0.32)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 5 }}>Expires</p>
-                    <p style={{ fontSize: 14, color: "#fff", fontWeight: 600 }}>08/28</p>
+                  <div style={{ display: "flex", gap: 18, alignItems: "flex-end" }}>
+                    {showNumber && (
+                      <div style={{ textAlign: "right" }}>
+                        <p style={{ fontSize: 9.5, color: "rgba(255,255,255,0.32)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 5 }}>CVV</p>
+                        <p style={{ fontSize: 14, color: "#fff", fontWeight: 600, fontFamily: "monospace" }}>{card.cvv ?? "•••"}</p>
+                      </div>
+                    )}
+                    <div style={{ textAlign: "right" }}>
+                      <p style={{ fontSize: 9.5, color: "rgba(255,255,255,0.32)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 5 }}>Expires</p>
+                      <p style={{ fontSize: 14, color: "#fff", fontWeight: 600 }}>{card.expiry ?? "—/——"}</p>
+                    </div>
                   </div>
                 </div>
               </div>

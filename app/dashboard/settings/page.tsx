@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { getState, saveState, VaulteState, DEFAULT_STATE } from "@/lib/vaulteState";
+import { getState, saveState, VaulteState, DEFAULT_STATE, getCurrentUser } from "@/lib/vaulteState";
 
 const C = {
   bg: "#F3F5FA", card: "#ffffff", navy: "#0F172A", blue: "#1A73E8",
@@ -99,16 +99,38 @@ export default function SettingsPage() {
     setState(newState);
   };
 
-  const handlePwChange = () => {
+  const [pwLoading, setPwLoading] = useState(false);
+
+  const handlePwChange = async () => {
     setPwErr("");
     if (!oldPw) { setPwErr("Enter your current password."); return; }
     if (newPw.length < 8) { setPwErr("New password must be at least 8 characters."); return; }
     if (newPw !== confPw) { setPwErr("Passwords do not match."); return; }
-    // Simulate save
-    setPwDone(true);
-    setOldPw(""); setNewPw(""); setConfPw("");
-    showToast("Password changed successfully.");
-    setTimeout(() => setPwDone(false), 4000);
+
+    const user = getCurrentUser();
+    if (!user?.email) { setPwErr("Could not identify your account. Please log in again."); return; }
+
+    setPwLoading(true);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email, currentPassword: oldPw, newPassword: newPw, confirmPassword: confPw }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPwErr(data.error ?? "Password change failed.");
+      } else {
+        setPwDone(true);
+        setOldPw(""); setNewPw(""); setConfPw("");
+        showToast("Password changed successfully.");
+        setTimeout(() => setPwDone(false), 4000);
+      }
+    } catch {
+      setPwErr("Network error. Please try again.");
+    } finally {
+      setPwLoading(false);
+    }
   };
 
   const TABS: { key: Tab; label: string; icon: string }[] = [
@@ -220,7 +242,7 @@ export default function SettingsPage() {
               </div>
               {pwErr && <p style={{ fontSize: 12.5, color: "#EF4444", marginBottom: 12 }}>⚠ {pwErr}</p>}
               {pwDone && <p style={{ fontSize: 12.5, color: "#059669", marginBottom: 12 }}>✓ Password changed successfully.</p>}
-              <button onClick={handlePwChange} style={{ padding: "12px 28px", borderRadius: 12, border: "none", background: "linear-gradient(135deg,#1A73E8,#1558b0)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(26,115,232,0.26)", marginBottom: 28 }}>Update Password</button>
+              <button onClick={handlePwChange} disabled={pwLoading} style={{ padding: "12px 28px", borderRadius: 12, border: "none", background: pwLoading ? "#94A3B8" : "linear-gradient(135deg,#1A73E8,#1558b0)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: pwLoading ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: pwLoading ? "none" : "0 4px 14px rgba(26,115,232,0.26)", marginBottom: 28 }}>{pwLoading ? "Updating…" : "Update Password"}</button>
 
               {/* Active sessions */}
               <p style={{ fontSize: 14.5, fontWeight: 700, color: C.text, marginBottom: 14 }}>Active Sessions</p>

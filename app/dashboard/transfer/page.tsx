@@ -2,7 +2,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
-import { getState, saveState, VaulteState, DEFAULT_STATE, Transaction, genTxId, genRef, fmtDate } from "@/lib/vaulteState";
+import {
+  getState, saveState, VaulteState, DEFAULT_STATE, Transaction,
+  genTxId, genRef, fmtDate, getRecipients, Recipient, getCurrentUser,
+} from "@/lib/vaulteState";
 
 const C = {
   bg: "#F3F5FA", card: "#ffffff", navy: "#0F172A", blue: "#1A73E8",
@@ -10,74 +13,104 @@ const C = {
   shadow: "0 1px 3px rgba(15,23,42,0.05), 0 6px 20px rgba(15,23,42,0.07)",
 } as const;
 
-const CONTACTS = [
-  { name: "Sarah Williams",  initials: "SW", bg: "linear-gradient(145deg,#2563EB,#1d4ed8)",  bank: "Chase Bank",        accountNo: "****3842" },
-  { name: "Alex Johnson",    initials: "AJ", bg: "linear-gradient(145deg,#374151,#1f2937)",  bank: "Bank of America",   accountNo: "****1290" },
-  { name: "Emma Davis",      initials: "ED", bg: "linear-gradient(145deg,#7C3AED,#6d28d9)",  bank: "Wells Fargo",       accountNo: "****7734" },
-  { name: "Mike Chen",       initials: "MC", bg: "linear-gradient(145deg,#059669,#047857)",  bank: "Citibank",          accountNo: "****5521" },
-];
-
-const FEE_RATE = 0; // 0% fees for same-currency, shown as $0.00
+// Exchange rates: fromCurrency → toCurrency
 const EXCHANGE_RATES: Record<string, Record<string, number>> = {
   USD: { USD: 1, EUR: 0.917, GBP: 0.787, BTC: 0.0000152 },
   EUR: { USD: 1.09, EUR: 1, GBP: 0.858, BTC: 0.0000166 },
   GBP: { USD: 1.27, EUR: 1.165, GBP: 1, BTC: 0.0000193 },
 };
 
-type Step = 1 | 2 | 3 | "processing" | "success";
+// Gradient colors for recipient initials avatar
+const AVATAR_GRADIENTS = [
+  "linear-gradient(145deg,#2563EB,#1d4ed8)",
+  "linear-gradient(145deg,#374151,#1f2937)",
+  "linear-gradient(145deg,#7C3AED,#6d28d9)",
+  "linear-gradient(145deg,#059669,#047857)",
+  "linear-gradient(145deg,#DC2626,#b91c1c)",
+  "linear-gradient(145deg,#D97706,#b45309)",
+];
 
+type Step = 1 | 2 | 3 | "processing" | "success";
 interface RecipientForm { name: string; accountNo: string; bank: string; }
+
+function getInitials(name: string): string {
+  return name.split(" ").map(w => w[0] ?? "").join("").slice(0, 2).toUpperCase();
+}
 
 export default function TransferPage() {
   const router = useRouter();
-  const [state, setState] = useState<VaulteState>(DEFAULT_STATE);
-  const [step, setStep] = useState<Step>(1);
+  const [state, setState]             = useState<VaulteState>(DEFAULT_STATE);
+  const [savedRecipients, setSaved]   = useState<Recipient[]>([]);
+  const [kycStatus, setKycStatus]     = useState<"verified"|"pending"|"none">("none");
+  const [step, setStep]               = useState<Step>(1);
 
   // Step 1
-  const [selectedContact, setSelectedContact] = useState<number | null>(null);
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [manualMode, setManualMode]   = useState(false);
   const [recipient, setRecipient]     = useState<RecipientForm>({ name: "", accountNo: "", bank: "" });
 
   // Step 2
-  const [fromAccountId, setFromAccountId] = useState("acc-001");
+  const [fromAccountId, setFromAccountId] = useState("");
   const [amount, setAmount]               = useState("");
   const [currency, setCurrency]           = useState("USD");
   const [note, setNote]                   = useState("");
   const [amountErr, setAmountErr]         = useState("");
 
   // Result
-  const [txId, setTxId]         = useState("");
+  const [txId, setTxId]             = useState("");
   const [newBalance, setNewBalance] = useState(0);
 
-  useEffect(() => { setState(getState()); }, []);
+  useEffect(() => {
+    const s = getState();
+    setState(s);
+    // Set default from account: first non-frozen non-crypto account
+    const first = s.accounts.find(a => !a.frozen && a.type !== "crypto");
+    setFromAccountId(first?.id ?? s.accounts[0]?.id ?? "");
+    // Load KYC status + saved recipients
+    const user = getCurrentUser();
+    if (user) {
+      setKycStatus(user.kycStatus as "verified" | "pending" | "none");
+      setSaved(getRecipients(user.id));
+    }
+  }, []);
 
-  const fromAccount = state.accounts.find(a => a.id === fromAccountId) ?? state.accounts[0];
-  const numAmount   = parseFloat(amount) || 0;
-  const fee         = 0;
-  const total       = numAmount + fee;
-  const rate        = EXCHANGE_RATES[fromAccount?.currency]?.[currency] ?? 1;
-  const recipientName = selectedContact !== null ? CONTACTS[selectedContact].name : recipient.name;
-  const recipientBank = selectedContact !== null ? CONTACTS[selectedContact].bank : recipient.bank;
+  const fromAccount   = state.accounts.find(a => a.id === fromAccountId) ?? state.accounts[0];
+  const numAmount     = parseFloat(amount) || 0;
+  const fee           = 0;
+  const total         = numAmount + fee;
+  const rate          = EXCHANGE_RATES[fromAccount?.currency ?? "USD"]?.[currency] ?? 1;
+  const recipientName = selectedIdx !== null
+    ? savedRecipients[selectedIdx]?.recipientName ?? ""
+    : recipient.name;
+  const recipientBank = selectedIdx !== null
+    ? savedRecipients[selectedIdx]?.bankName ?? ""
+    : recipient.bank;
+  const recipientAcct = selectedIdx !== null
+    ? savedRecipients[selectedIdx]?.accountNumberMasked ?? ""
+    : recipient.accountNo;
 
-  const canProceedStep1 = selectedContact !== null || (recipient.name.trim() && recipient.accountNo.trim());
+  const canProceedStep1 = selectedIdx !== null || (recipient.name.trim() && recipient.accountNo.trim());
   const canProceedStep2 = numAmount > 0 && numAmount <= (fromAccount?.balance ?? 0) && !amountErr;
 
   const validateAmount = (val: string) => {
     const n = parseFloat(val);
     if (!val) { setAmountErr(""); return; }
     if (isNaN(n) || n <= 0) { setAmountErr("Enter a valid amount"); return; }
-    if (fromAccount && n > fromAccount.balance) { setAmountErr(`Insufficient balance (${fromAccount.symbol}${fromAccount.balance.toFixed(2)} available)`); return; }
+    if (fromAccount && n > fromAccount.balance) {
+      setAmountErr(`Insufficient balance (${fromAccount.symbol}${fromAccount.balance.toFixed(2)} available)`);
+      return;
+    }
     setAmountErr("");
   };
 
   const handleConfirm = () => {
     setStep("processing");
     setTimeout(() => {
-      const id = genTxId();
-      const newAccounts = state.accounts.map(a =>
-        a.id === fromAccountId ? { ...a, balance: parseFloat((a.balance - numAmount).toFixed(8)) } : a
-      );
+      const id       = genTxId();
       const balAfter = parseFloat((fromAccount.balance - numAmount).toFixed(8));
+      const newAccounts = state.accounts.map(a =>
+        a.id === fromAccountId ? { ...a, balance: balAfter } : a
+      );
       const newTx: Transaction = {
         id, txType: "transfer_out", type: "debit",
         name: `Transfer to ${recipientName}`,
@@ -103,11 +136,45 @@ export default function TransferPage() {
   };
 
   const resetForm = () => {
-    setStep(1); setSelectedContact(null); setManualMode(false);
+    setStep(1); setSelectedIdx(null); setManualMode(false);
     setRecipient({ name: "", accountNo: "", bank: "" });
     setAmount(""); setCurrency("USD"); setNote(""); setAmountErr("");
   };
 
+  // ─── KYC Gate ───────────────────────────────────────────────────────────
+  if (kycStatus !== "verified") {
+    return (
+      <DashboardLayout title="Send Money" subtitle="Instant transfers · 0% fees">
+        <div style={{ maxWidth: 480, margin: "48px auto", textAlign: "center" }}>
+          <div style={{ background: C.card, borderRadius: 24, padding: "48px 40px", border: `1px solid ${C.border}`, boxShadow: C.shadow }}>
+            <div style={{ width: 80, height: 80, borderRadius: "50%", background: kycStatus === "pending" ? "#FEF3C7" : "#FEF2F2", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, margin: "0 auto 24px" }}>
+              {kycStatus === "pending" ? "⏳" : "🔒"}
+            </div>
+            <h2 style={{ fontSize: 21, fontWeight: 800, color: C.text, marginBottom: 10, letterSpacing: "-0.3px" }}>
+              {kycStatus === "pending" ? "Verification In Progress" : "Identity Verification Required"}
+            </h2>
+            <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.75, marginBottom: 28 }}>
+              {kycStatus === "pending"
+                ? "Your KYC submission is under review. Transfers will be unlocked once approved, usually within 24 hours."
+                : "You need to complete KYC verification before you can send money. This helps keep your account secure and ensures regulatory compliance."}
+            </p>
+            {kycStatus !== "pending" && (
+              <a href="/dashboard/settings" style={{ display: "inline-block", padding: "13px 32px", borderRadius: 14, background: "linear-gradient(135deg,#1A73E8,#1558b0)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", boxShadow: "0 4px 16px rgba(26,115,232,0.28)" }}>
+                Complete Verification →
+              </a>
+            )}
+            {kycStatus === "pending" && (
+              <div style={{ padding: "14px 18px", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, fontSize: 13, color: "#92400E", fontWeight: 500 }}>
+                ⏳ Estimated approval: within 24 hours
+              </div>
+            )}
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // ─── Main Transfer UI ──────────────────────────────────────────────────
   return (
     <DashboardLayout title="Send Money" subtitle="Instant transfers · 0% fees">
       <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 24, alignItems: "start" }}>
@@ -145,18 +212,23 @@ export default function TransferPage() {
             {step === 1 && (
               <div>
                 <p style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 6, letterSpacing: "-0.2px" }}>Who are you sending to?</p>
-                <p style={{ fontSize: 13, color: C.muted, marginBottom: 24 }}>Select a saved contact or enter recipient details.</p>
+                <p style={{ fontSize: 13, color: C.muted, marginBottom: 24 }}>
+                  {savedRecipients.length > 0 ? "Select a saved recipient or enter details manually." : "Enter recipient details below or save a recipient first."}
+                </p>
 
-                {/* Quick contacts */}
-                {!manualMode && (
+                {/* Saved recipients */}
+                {savedRecipients.length > 0 && !manualMode && (
                   <>
-                    <p style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>Quick Contacts</p>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
-                      {CONTACTS.map((c, i) => (
-                        <div key={i} onClick={() => setSelectedContact(i === selectedContact ? null : i)} style={{ padding: "16px 10px", borderRadius: 16, border: selectedContact === i ? `2px solid ${C.blue}` : `1px solid ${C.border}`, background: selectedContact === i ? "#EEF4FF" : "#FAFBFC", cursor: "pointer", textAlign: "center", transition: "all 0.18s", boxShadow: selectedContact === i ? `0 0 0 3px rgba(26,115,232,0.12)` : "none" }}>
-                          <div style={{ width: 44, height: 44, borderRadius: 14, background: c.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, color: "#fff", margin: "0 auto 8px", boxShadow: "0 4px 12px rgba(15,23,42,0.16)" }}>{c.initials}</div>
-                          <p style={{ fontSize: 12.5, fontWeight: 600, color: C.text, lineHeight: 1.3 }}>{c.name.split(" ")[0]}</p>
-                          <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{c.accountNo}</p>
+                    <p style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>Saved Recipients</p>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(120px,1fr))", gap: 12, marginBottom: 24 }}>
+                      {savedRecipients.map((r, i) => (
+                        <div key={r.id} onClick={() => setSelectedIdx(i === selectedIdx ? null : i)}
+                          style={{ padding: "16px 10px", borderRadius: 16, border: selectedIdx === i ? `2px solid ${C.blue}` : `1px solid ${C.border}`, background: selectedIdx === i ? "#EEF4FF" : "#FAFBFC", cursor: "pointer", textAlign: "center", transition: "all 0.18s", boxShadow: selectedIdx === i ? `0 0 0 3px rgba(26,115,232,0.12)` : "none" }}>
+                          <div style={{ width: 44, height: 44, borderRadius: 14, background: AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, color: "#fff", margin: "0 auto 8px", boxShadow: "0 4px 12px rgba(15,23,42,0.16)" }}>
+                            {getInitials(r.recipientName)}
+                          </div>
+                          <p style={{ fontSize: 12.5, fontWeight: 600, color: C.text, lineHeight: 1.3 }}>{r.recipientName.split(" ")[0]}</p>
+                          <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{r.accountNumberMasked}</p>
                         </div>
                       ))}
                     </div>
@@ -171,13 +243,15 @@ export default function TransferPage() {
                 {/* Manual form */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 8 }}>
                   {[
-                    { label: "Recipient Name", key: "name",      placeholder: "Full name",       value: recipient.name },
-                    { label: "Account Number", key: "accountNo", placeholder: "Account or IBAN", value: recipient.accountNo },
-                    { label: "Bank / Institution", key: "bank",  placeholder: "Bank name",       value: recipient.bank },
+                    { label: "Recipient Name",    key: "name",      placeholder: "Full name",        value: recipient.name },
+                    { label: "Account / IBAN",     key: "accountNo", placeholder: "Account or IBAN",  value: recipient.accountNo },
+                    { label: "Bank / Institution", key: "bank",      placeholder: "Bank name (opt.)", value: recipient.bank },
                   ].map(f => (
                     <div key={f.key} style={{ gridColumn: f.key === "bank" ? "1" : "auto" }}>
                       <label style={{ fontSize: 12, fontWeight: 600, color: C.sub, display: "block", marginBottom: 6 }}>{f.label}</label>
-                      <input value={f.value} onChange={e => { setManualMode(true); setSelectedContact(null); setRecipient(r => ({ ...r, [f.key]: e.target.value })); }} placeholder={f.placeholder}
+                      <input value={f.value}
+                        onChange={e => { setManualMode(true); setSelectedIdx(null); setRecipient(r => ({ ...r, [f.key]: e.target.value })); }}
+                        placeholder={f.placeholder}
                         style={{ width: "100%", padding: "11px 14px", borderRadius: 12, border: `1.5px solid ${C.border}`, fontSize: 13.5, color: C.text, background: C.bg, outline: "none", fontFamily: "inherit", boxSizing: "border-box", transition: "border-color 0.18s, box-shadow 0.18s" }}
                         onFocus={e => { e.target.style.borderColor = C.blue; e.target.style.boxShadow = "0 0 0 3px rgba(26,115,232,0.08)"; e.target.style.background = "#fff"; }}
                         onBlur={e => { e.target.style.borderColor = C.border; e.target.style.boxShadow = "none"; e.target.style.background = C.bg; }}
@@ -186,7 +260,8 @@ export default function TransferPage() {
                   ))}
                 </div>
 
-                <button onClick={() => setStep(2)} disabled={!canProceedStep1} style={{ marginTop: 20, width: "100%", padding: "14px", borderRadius: 14, border: "none", background: canProceedStep1 ? "linear-gradient(135deg,#1A73E8,#1558b0)" : C.bg, color: canProceedStep1 ? "#fff" : C.muted, fontSize: 14, fontWeight: 600, cursor: canProceedStep1 ? "pointer" : "not-allowed", fontFamily: "inherit", boxShadow: canProceedStep1 ? "0 4px 16px rgba(26,115,232,0.28)" : "none", transition: "all 0.2s" }}>
+                <button onClick={() => setStep(2)} disabled={!canProceedStep1}
+                  style={{ marginTop: 20, width: "100%", padding: "14px", borderRadius: 14, border: "none", background: canProceedStep1 ? "linear-gradient(135deg,#1A73E8,#1558b0)" : C.bg, color: canProceedStep1 ? "#fff" : C.muted, fontSize: 14, fontWeight: 600, cursor: canProceedStep1 ? "pointer" : "not-allowed", fontFamily: "inherit", boxShadow: canProceedStep1 ? "0 4px 16px rgba(26,115,232,0.28)" : "none", transition: "all 0.2s" }}>
                   Continue →
                 </button>
               </div>
@@ -197,22 +272,23 @@ export default function TransferPage() {
               <div>
                 {/* Recipient pill */}
                 <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: C.bg, borderRadius: 14, border: `1px solid ${C.border}`, marginBottom: 28 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 11, background: selectedContact !== null ? CONTACTS[selectedContact].bg : "linear-gradient(135deg,#64748B,#475569)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff" }}>{recipientName.split(" ").map(w => w[0]).join("").slice(0, 2)}</div>
+                  <div style={{ width: 36, height: 36, borderRadius: 11, background: selectedIdx !== null ? AVATAR_GRADIENTS[selectedIdx % AVATAR_GRADIENTS.length] : "linear-gradient(135deg,#64748B,#475569)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff" }}>
+                    {getInitials(recipientName)}
+                  </div>
                   <div>
                     <p style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>{recipientName}</p>
-                    <p style={{ fontSize: 12, color: C.muted }}>{recipientBank}</p>
+                    <p style={{ fontSize: 12, color: C.muted }}>{recipientBank || recipientAcct || "Manual entry"}</p>
                   </div>
                   <button onClick={() => setStep(1)} style={{ marginLeft: "auto", fontSize: 12, color: C.blue, fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>Change</button>
                 </div>
 
                 <p style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 6, letterSpacing: "-0.2px" }}>How much?</p>
-                <p style={{ fontSize: 13, color: C.muted, marginBottom: 22 }}>Enter the amount to send.</p>
+                <p style={{ fontSize: 13, color: C.muted, marginBottom: 22 }}>Enter the amount to send from your account.</p>
 
                 {/* From account */}
                 <label style={{ fontSize: 12, fontWeight: 600, color: C.sub, display: "block", marginBottom: 6 }}>From Account</label>
                 <select value={fromAccountId} onChange={e => { setFromAccountId(e.target.value); setAmount(""); setAmountErr(""); }}
-                  style={{ width: "100%", padding: "11px 14px", borderRadius: 12, border: `1.5px solid ${C.border}`, fontSize: 13.5, color: C.text, background: "#fff", outline: "none", fontFamily: "inherit", cursor: "pointer", marginBottom: 18, appearance: "none", backgroundImage: "url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22><path fill=%22%2394A3B8%22 d=%22M6 8L1 3h10z%22/></svg>')", backgroundRepeat: "no-repeat", backgroundPosition: "right 14px center" }}
-                >
+                  style={{ width: "100%", padding: "11px 14px", borderRadius: 12, border: `1.5px solid ${C.border}`, fontSize: 13.5, color: C.text, background: "#fff", outline: "none", fontFamily: "inherit", cursor: "pointer", marginBottom: 18, appearance: "none", backgroundImage: "url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22><path fill=%22%2394A3B8%22 d=%22M6 8L1 3h10z%22/></svg>')", backgroundRepeat: "no-repeat", backgroundPosition: "right 14px center" }}>
                   {state.accounts.filter(a => !a.frozen && a.type !== "crypto").map(a => (
                     <option key={a.id} value={a.id}>{a.flag} {a.name} — {a.symbol}{a.balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</option>
                   ))}
@@ -223,7 +299,8 @@ export default function TransferPage() {
                 <div style={{ display: "flex", gap: 10, marginBottom: amountErr ? 6 : 18 }}>
                   <div style={{ flex: 1, position: "relative" }}>
                     <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 18, fontWeight: 600, color: C.muted, pointerEvents: "none" }}>{fromAccount?.symbol ?? "$"}</span>
-                    <input type="number" min="0" step="0.01" value={amount} onChange={e => { setAmount(e.target.value); validateAmount(e.target.value); }}
+                    <input type="number" min="0" step="0.01" value={amount}
+                      onChange={e => { setAmount(e.target.value); validateAmount(e.target.value); }}
                       placeholder="0.00"
                       style={{ width: "100%", padding: "13px 14px 13px 34px", borderRadius: 12, border: `1.5px solid ${amountErr ? "#EF4444" : C.border}`, fontSize: 22, fontWeight: 800, color: C.text, background: C.bg, outline: "none", fontFamily: "inherit", boxSizing: "border-box", transition: "border-color 0.18s, box-shadow 0.18s", letterSpacing: "-0.5px" }}
                       onFocus={e => { e.target.style.borderColor = amountErr ? "#EF4444" : C.blue; e.target.style.boxShadow = `0 0 0 3px ${amountErr ? "rgba(239,68,68,0.1)" : "rgba(26,115,232,0.08)"}`; e.target.style.background = "#fff"; }}
@@ -231,8 +308,7 @@ export default function TransferPage() {
                     />
                   </div>
                   <select value={currency} onChange={e => setCurrency(e.target.value)}
-                    style={{ width: 90, padding: "13px 10px", borderRadius: 12, border: `1.5px solid ${C.border}`, fontSize: 13.5, fontWeight: 600, color: C.text, background: "#fff", outline: "none", fontFamily: "inherit", cursor: "pointer", appearance: "none", textAlign: "center" }}
-                  >
+                    style={{ width: 90, padding: "13px 10px", borderRadius: 12, border: `1.5px solid ${C.border}`, fontSize: 13.5, fontWeight: 600, color: C.text, background: "#fff", outline: "none", fontFamily: "inherit", cursor: "pointer", appearance: "none", textAlign: "center" }}>
                     {["USD","EUR","GBP"].map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
@@ -256,12 +332,13 @@ export default function TransferPage() {
                 {/* Fee info */}
                 <div style={{ padding: "12px 16px", background: "#ECFDF5", borderRadius: 12, border: "1px solid #A7F3D0", marginBottom: 22, display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ fontSize: 16 }}>✓</span>
-                  <span style={{ fontSize: 13, color: "#059669", fontWeight: 500 }}>0% transfer fee · Instant arrival · Encrypted</span>
+                  <span style={{ fontSize: 13, color: "#059669", fontWeight: 500 }}>0% transfer fee · Instant arrival · End-to-end encrypted</span>
                 </div>
 
                 <div style={{ display: "flex", gap: 12 }}>
                   <button onClick={() => setStep(1)} style={{ padding: "13px 20px", borderRadius: 14, border: `1px solid ${C.border}`, background: "transparent", color: C.sub, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>← Back</button>
-                  <button onClick={() => setStep(3)} disabled={!canProceedStep2} style={{ flex: 1, padding: "13px", borderRadius: 14, border: "none", background: canProceedStep2 ? "linear-gradient(135deg,#1A73E8,#1558b0)" : C.bg, color: canProceedStep2 ? "#fff" : C.muted, fontSize: 14, fontWeight: 600, cursor: canProceedStep2 ? "pointer" : "not-allowed", fontFamily: "inherit", boxShadow: canProceedStep2 ? "0 4px 16px rgba(26,115,232,0.28)" : "none", transition: "all 0.2s" }}>
+                  <button onClick={() => setStep(3)} disabled={!canProceedStep2}
+                    style={{ flex: 1, padding: "13px", borderRadius: 14, border: "none", background: canProceedStep2 ? "linear-gradient(135deg,#1A73E8,#1558b0)" : C.bg, color: canProceedStep2 ? "#fff" : C.muted, fontSize: 14, fontWeight: 600, cursor: canProceedStep2 ? "pointer" : "not-allowed", fontFamily: "inherit", boxShadow: canProceedStep2 ? "0 4px 16px rgba(26,115,232,0.28)" : "none", transition: "all 0.2s" }}>
                     Review Transfer →
                   </button>
                 </div>
@@ -277,13 +354,14 @@ export default function TransferPage() {
                 {/* Summary card */}
                 <div style={{ background: C.bg, borderRadius: 16, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: 24 }}>
                   {[
-                    { label: "From",         value: `${fromAccount?.flag ?? ""} ${fromAccount?.name ?? ""}` },
-                    { label: "To",           value: recipientName },
-                    { label: "Bank",         value: recipientBank || "Vaulte Network" },
-                    { label: "Amount",       value: `${fromAccount?.symbol ?? "$"}${numAmount.toFixed(2)} ${fromAccount?.currency ?? "USD"}` },
-                    { label: "Fee",          value: "Free (0%)" },
-                    { label: "You send",     value: `${fromAccount?.symbol ?? "$"}${total.toFixed(2)} ${fromAccount?.currency ?? "USD"}` },
-                    { label: "Est. arrival", value: "Instant" },
+                    { label: "From",          value: `${fromAccount?.flag ?? ""} ${fromAccount?.name ?? ""}` },
+                    { label: "To",            value: recipientName },
+                    { label: "Bank",          value: recipientBank || "Manual / Vaulte Network" },
+                    { label: "Account",       value: recipientAcct || "—" },
+                    { label: "Amount",        value: `${fromAccount?.symbol ?? "$"}${numAmount.toFixed(2)} ${fromAccount?.currency ?? "USD"}` },
+                    { label: "Fee",           value: "Free (0%)" },
+                    { label: "You send",      value: `${fromAccount?.symbol ?? "$"}${total.toFixed(2)} ${fromAccount?.currency ?? "USD"}` },
+                    { label: "Est. arrival",  value: "Instant" },
                     ...(note ? [{ label: "Reference", value: note }] : []),
                   ].map((row, i, arr) => (
                     <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : "none", background: row.label === "You send" ? "#EEF4FF" : "transparent" }}>
@@ -295,10 +373,10 @@ export default function TransferPage() {
 
                 <div style={{ display: "flex", gap: 12 }}>
                   <button onClick={() => setStep(2)} style={{ padding: "13px 20px", borderRadius: 14, border: `1px solid ${C.border}`, background: "transparent", color: C.sub, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>← Back</button>
-                  <button onClick={handleConfirm} style={{ flex: 1, padding: "13px", borderRadius: 14, border: "none", background: "linear-gradient(135deg,#1A73E8,#1558b0)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(26,115,232,0.28)", transition: "all 0.2s" }}
+                  <button onClick={handleConfirm}
+                    style={{ flex: 1, padding: "13px", borderRadius: 14, border: "none", background: "linear-gradient(135deg,#1A73E8,#1558b0)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(26,115,232,0.28)", transition: "all 0.2s" }}
                     onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 24px rgba(26,115,232,0.38)"; (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px rgba(26,115,232,0.28)"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}
-                  >
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px rgba(26,115,232,0.28)"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}>
                     ✓ Confirm &amp; Send
                   </button>
                 </div>
@@ -346,7 +424,7 @@ export default function TransferPage() {
           </div>
         </div>
 
-        {/* ═══ Sidebar: Recent transfers ═══ */}
+        {/* ═══ Sidebar ═══ */}
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           {/* Info card */}
           <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.border}`, boxShadow: C.shadow, padding: "22px 20px" }}>

@@ -59,28 +59,21 @@ export default function Dashboard() {
   const isNewUser   = totalUSD === 0 && state.transactions.length === 0;
   const isVerified  = kycStatus === "verified";
 
-  // Chart data: derive from real transactions if available, else show flat zeros
+  // Chart data: real transactions grouped by day for the last 7 days
   const chartData = (() => {
-    if (state.transactions.length === 0) {
-      return [
-        { day: "Mon", amount: 0, income: 0 },
-        { day: "Tue", amount: 0, income: 0 },
-        { day: "Wed", amount: 0, income: 0 },
-        { day: "Thu", amount: 0, income: 0 },
-        { day: "Fri", amount: 0, income: 0 },
-        { day: "Sat", amount: 0, income: 0 },
-        { day: "Sun", amount: 0, income: 0 },
-      ];
-    }
-    return [
-      { day: "Mon", amount: 120,  income: 0    },
-      { day: "Tue", amount: 340,  income: 1000 },
-      { day: "Wed", amount: 85,   income: 0    },
-      { day: "Thu", amount: 200,  income: 0    },
-      { day: "Fri", amount: 500,  income: 0    },
-      { day: "Sat", amount: 65,   income: 0    },
-      { day: "Sun", amount: 200,  income: 0    },
-    ];
+    const now = new Date();
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(now);
+      d.setDate(d.getDate() - (6 - i)); // i=0 is 6 days ago, i=6 is today
+      const dateStr = d.toISOString().slice(0, 10);
+      const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
+      const dayTxns = state.transactions.filter(t => t.date.startsWith(dateStr));
+      return {
+        day:    dayName,
+        amount: dayTxns.filter(t => t.type === "debit").reduce((s, t) => s + t.amount, 0),
+        income: dayTxns.filter(t => t.type === "credit").reduce((s, t) => s + t.amount, 0),
+      };
+    });
   })();
   const maxSpend = Math.max(...chartData.map(d => Math.max(d.amount, d.income)), 1);
 
@@ -336,7 +329,7 @@ export default function Dashboard() {
                     ))}
                     <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: "100%", paddingBottom: 24 }}>
                       {chartData.map((d, i) => {
-                        const isToday = i === 4;
+                        const isToday = i === 6;
                         const barH    = Math.max((d.amount / maxSpend) * 130, d.amount > 0 ? 4 : 0);
                         const incomeH = d.income > 0 ? (d.income / maxSpend) * 130 : 0;
                         return (
@@ -473,7 +466,7 @@ export default function Dashboard() {
                   <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "rgba(100,50,0,0.22)", transform: "translateX(-50%)" }} />
                   <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: 1, background: "rgba(100,50,0,0.22)", transform: "translateY(-50%)" }} />
                 </div>
-                <p style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", letterSpacing: "0.22em", marginBottom: 20, fontFamily: "monospace" }}>4532 •••• •••• 4410</p>
+                <p style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", letterSpacing: "0.22em", marginBottom: 20, fontFamily: "monospace" }}>{state.card.cardNumber ?? "•••• •••• •••• ••••"}</p>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
                   <div>
                     <p style={{ fontSize: 9.5, color: "rgba(255,255,255,0.32)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 5 }}>Card Holder</p>
@@ -481,7 +474,7 @@ export default function Dashboard() {
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <p style={{ fontSize: 9.5, color: "rgba(255,255,255,0.32)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 5 }}>Expires</p>
-                    <p style={{ fontSize: 14, color: "#fff", fontWeight: 600 }}>08/28</p>
+                    <p style={{ fontSize: 14, color: "#fff", fontWeight: 600 }}>{state.card.expiry ?? "—/——"}</p>
                   </div>
                 </div>
               </div>
