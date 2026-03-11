@@ -28,8 +28,8 @@ function getResend(): Resend {
   return _resend;
 }
 
-const NOREPLY = "Vaulte <no-reply@vaulte.com>";
-const SUPPORT = "Vaulte Support <support@vaulte.com>";
+const NOREPLY = "Vaulte <no-reply@vaulteapp.com>";
+const SUPPORT = "Vaulte Support <support@vaulteapp.com>";
 
 // ─── Generic send wrapper ────────────────────────────────────
 async function sendEmail(opts: {

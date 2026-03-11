@@ -5,9 +5,9 @@
 //          clean white card, blue accent, professional footer
 // ─────────────────────────────────────────────────────────────
 
-const LOGO_URL = "https://vaulte-banking.vercel.app/assets/logo-vaulte.png";
-const SUPPORT_EMAIL  = "support@vaulte.com";
-const NOREPLY_EMAIL  = "no-reply@vaulte.com";
+const LOGO_URL = "https://vaulteapp.com/assets/logo-vaulte.png";
+const SUPPORT_EMAIL  = "support@vaulteapp.com";
+const NOREPLY_EMAIL  = "no-reply@vaulteapp.com";
 const BRAND_PRIMARY  = "#1A73E8";
 const BRAND_NAVY     = "#0F172A";
 const BRAND_LIGHT    = "#F3F5FA";
