@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { getUsers, getUserState, DEMO_USER } from "@/lib/vaulteState";
+import { getUsers, getUserState } from "@/lib/vaulteState";
 
 const navItems = [
   { icon: "🏠", label: "Dashboard", href: "/admin/dashboard", active: true },
@@ -59,8 +59,7 @@ export default function AdminDashboard() {
   const [recentKYC, setRecentKYC] = useState<RecentKYCItem[]>([]);
 
   useEffect(() => {
-    const users = getUsers();
-    const allUsers = [DEMO_USER, ...users];
+    const allUsers = getUsers();
     const rates: Record<string, number> = { USD: 1, EUR: 1.09, GBP: 1.27, BTC: 66000 };
 
     let totalAccounts = 0, totalBalanceUSD = 0, pendingKYC = 0, totalTxns = 0;
@@ -86,8 +85,8 @@ export default function AdminDashboard() {
       });
     });
 
-    // Count pending KYC from registered users only
-    users.forEach(u => {
+    // Count pending KYC from registered users
+    allUsers.forEach(u => {
       if (u.kycStatus === "pending") {
         pendingKYC++;
         kycList.push({
@@ -99,7 +98,7 @@ export default function AdminDashboard() {
       }
     });
 
-    setLiveStats({ totalUsers: users.length, totalAccounts, totalBalanceUSD, pendingKYC, totalTxns });
+    setLiveStats({ totalUsers: allUsers.length, totalAccounts, totalBalanceUSD, pendingKYC, totalTxns });
     // Sort txList by most recent and take 5
     setRecentTx(txList.slice(0, 5));
     setRecentKYC(kycList.slice(0, 4));

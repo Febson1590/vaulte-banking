@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import AdminLayout from "@/components/AdminLayout";
-import { getUsers, getUserState, saveUserState, DEMO_USER, DEMO_USER_ID } from "@/lib/vaulteState";
+import { getUsers, getUserState, saveUserState } from "@/lib/vaulteState";
 import type { Transaction } from "@/lib/vaulteState";
 
 // ─── Enriched transaction type ────────────────────────────
@@ -47,12 +47,10 @@ export default function AdminTransactions() {
 
   // ─── Load all user transactions ─────────────────────────
   useEffect(() => {
-    const users = getUsers();
-    // Include demo user's transactions
-    const allUsers = [DEMO_USER, ...users];
+    const allUsers = getUsers();
     const txs: AdminTx[] = [];
 
-    allUsers.forEach(u => {
+    allUsers.forEach((u) => {
       const state = getUserState(u.id);
       state.transactions.forEach(tx => {
         txs.push({

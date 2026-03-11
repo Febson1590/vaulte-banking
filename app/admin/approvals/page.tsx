@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
-import { getUsers, getUserState, saveUserState, DEMO_USER } from "@/lib/vaulteState";
+import { getUsers, getUserState, saveUserState } from "@/lib/vaulteState";
 import type { Transaction } from "@/lib/vaulteState";
 
 // ─── Enriched approval item ───────────────────────────────
@@ -52,7 +52,7 @@ export default function AdminApprovals() {
 
   // ─── Load pending transactions from all users ────────────
   const loadApprovals = () => {
-    const users = [DEMO_USER, ...getUsers()];
+    const users = getUsers();
     const items: ApprovalItem[] = [];
 
     users.forEach(u => {

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
-import { getUsers, getUserState, saveUserState, DEMO_USER, fmtAmount } from "@/lib/vaulteState";
+import { getUsers, getUserState, saveUserState, fmtAmount } from "@/lib/vaulteState";
 import type { Account, VaulteState } from "@/lib/vaulteState";
 
 // ─── Enriched account row ─────────────────────────────────
@@ -32,7 +32,7 @@ export default function AdminAccounts() {
   const [adjDone,   setAdjDone]   = useState(false);
 
   const loadAccounts = () => {
-    const users = [DEMO_USER, ...getUsers()];
+    const users = getUsers();
     const rows: AdminAccount[] = [];
     users.forEach(u => {
       const state = getUserState(u.id);
