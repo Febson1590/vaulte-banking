@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
-import { getState, saveState, VaulteState, DEFAULT_STATE, Transaction, genTxId, fmtDate } from "@/lib/vaulteState";
+import { getState, saveState, VaulteState, DEFAULT_STATE, Transaction, genTxId, genRef, fmtDate } from "@/lib/vaulteState";
 
 const C = {
   bg: "#F3F5FA", card: "#ffffff", navy: "#0F172A", blue: "#1A73E8",
@@ -77,14 +77,21 @@ export default function TransferPage() {
       const newAccounts = state.accounts.map(a =>
         a.id === fromAccountId ? { ...a, balance: parseFloat((a.balance - numAmount).toFixed(8)) } : a
       );
+      const balAfter = parseFloat((fromAccount.balance - numAmount).toFixed(8));
       const newTx: Transaction = {
-        id, type: "debit", name: `Transfer to ${recipientName}`,
+        id, txType: "transfer_out", type: "debit",
+        name: `Transfer to ${recipientName}`,
         sub: recipientBank || "Vaulte Transfer",
-        amount: numAmount, currency, date: new Date().toISOString(),
+        amount: numAmount, fee: 0, balanceAfter: balAfter,
+        currency, date: new Date().toISOString(),
         category: "Transfer", badge: "Transfer",
         badgeBg: "#EFF6FF", badgeBorder: "#BFDBFE", badgeColor: "#2563EB",
         status: "completed", accountId: fromAccountId,
         icon: "↗", iconBg: "linear-gradient(135deg,#DBEAFE,#BFDBFE)", iconColor: "#2563EB",
+        reference: genRef(),
+        recipientName,
+        recipientBank: recipientBank || undefined,
+        note: note || undefined,
       };
       const newState = { ...state, accounts: newAccounts, transactions: [newTx, ...state.transactions] };
       setState(newState);

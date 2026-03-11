@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import {
   getUsers, updateUser, getUserState, saveUserState, getKycDoc,
-  VaulteUser, VaulteState, genTxId, genNotifId,
+  VaulteUser, VaulteState, genTxId, genRef, genNotifId,
 } from "@/lib/vaulteState";
 
 // ─── Badge helper ─────────────────────────────────────────
@@ -123,13 +123,16 @@ function ManageModal({
     // Create admin transaction record
     const txn = {
       id: genTxId(),
+      txType: balType === "credit" ? "admin_credit" as const : "admin_debit" as const,
       type: balType === "credit" ? "credit" as const : "debit" as const,
       name: balType === "credit" ? "Admin Credit" : "Admin Debit",
       sub: "Manual Adjustment by Admin",
-      amount: amt, currency: "USD", date: new Date().toISOString(),
+      amount: amt, fee: 0, balanceAfter: newBal,
+      currency: "USD", date: new Date().toISOString(),
       category: "Adjustment", badge: "Admin", badgeBg: "#F5F3FF",
       badgeBorder: "#DDD6FE", badgeColor: "#7C3AED", status: "completed" as const,
       accountId: accounts[idx].id, icon: "⚙", iconBg: "linear-gradient(135deg,#F5F3FF,#DDD6FE)", iconColor: "#7C3AED",
+      reference: genRef(),
     };
     const s = { ...localState, accounts, transactions: [txn, ...localState.transactions] };
     persist(localUser, s);
