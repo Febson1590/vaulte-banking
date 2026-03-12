@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import {
-  getUsers, updateUser, getUserState, saveUserState, getKycDoc,
+  getUsers, saveUsers, updateUser, getUserState, saveUserState, getKycDoc,
   VaulteUser, VaulteState, genTxId, genRef, genNotifId,
   DEMO_USER, DEMO_STATE,
 } from "@/lib/vaulteState";
@@ -381,10 +381,38 @@ export default function AdminUsers() {
   const [managing,   setManaging]   = useState<UserRow | null>(null);
   const [loaded,     setLoaded]     = useState(false);
 
-  const loadRows = () => {
-    const registeredUsers = getUsers();
-    // Always include the demo user at the top, then all registered users
-    const allUsers = [DEMO_USER, ...registeredUsers.filter(u => u.id !== DEMO_USER.id)];
+  const loadRows = async () => {
+    // 1. Fetch all real registered users from Redis via API
+    let redisUsers: VaulteUser[] = [];
+    try {
+      const res  = await fetch("/api/admin/users");
+      const data = await res.json();
+      if (data.success) redisUsers = data.users as VaulteUser[];
+    } catch (e) {
+      console.error("[AdminUsers] Failed to fetch from Redis API:", e);
+    }
+
+    // 2. Get any admin-applied overrides already stored in localStorage
+    //    (KYC status changes, account status, admin notes, etc.)
+    const localUsers    = getUsers();
+    const overrideMap   = new Map(localUsers.map(u => [u.id, u]));
+
+    // 3. Merge: Redis user is the base, localStorage overrides win for admin-managed fields
+    const mergedUsers = redisUsers.map(u => {
+      const override = overrideMap.get(u.id);
+      return override ? { ...u, ...override } : u;
+    });
+
+    // 4. Upsert Redis users into localStorage so updateUser() can find them
+    //    for future admin actions (KYC, status, notes, balance adjustments)
+    const localIds  = new Set(localUsers.map(u => u.id));
+    const brandNew  = mergedUsers.filter(u => !localIds.has(u.id) && u.id !== DEMO_USER.id);
+    if (brandNew.length > 0) {
+      saveUsers([...localUsers, ...brandNew]);
+    }
+
+    // 5. Build rows — DEMO_USER always pinned at top
+    const allUsers = [DEMO_USER, ...mergedUsers.filter(u => u.id !== DEMO_USER.id)];
     const r: UserRow[] = allUsers.map(u => {
       const state = getUserState(u.id);
       return { user: u, state, totalBalance: getTotalBalance(state) };
