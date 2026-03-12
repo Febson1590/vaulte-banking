@@ -1,11 +1,9 @@
 // ─────────────────────────────────────────────────────────────
-//  GET /api/admin/users
-//  Returns all registered users from Upstash Redis.
-//  Used by the admin panel to show users who registered from
-//  any device (not just the admin's browser localStorage).
+//  GET  /api/admin/users  — list all users from Redis
+//  DELETE /api/admin/users — permanently delete a user from Redis
 // ─────────────────────────────────────────────────────────────
-import { NextResponse } from "next/server";
-import redis, { AuthUser } from "@/lib/redis";
+import { NextRequest, NextResponse } from "next/server";
+import redis, { AuthUser, RK } from "@/lib/redis";
 import type { VaulteUser } from "@/lib/vaulteState";
 
 export async function GET() {
@@ -42,7 +40,36 @@ export async function GET() {
     return NextResponse.json({ success: true, users });
   } catch (err) {
     console.error("[GET /api/admin/users]", err);
-    // Return empty so admin panel degrades gracefully
     return NextResponse.json({ success: false, users: [] });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { userId, email } = await req.json();
+
+    if (!userId || !email) {
+      return NextResponse.json({ error: "userId and email are required." }, { status: 400 });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // ── Delete all Redis keys for this user ───────────────────
+    await redis.del(
+      RK.authUser(normalizedEmail),
+      RK.verifyOtp(normalizedEmail),
+      RK.loginOtp(normalizedEmail),
+      RK.rateLoginEmail(normalizedEmail),
+      RK.rateLoginIp(normalizedEmail),   // best-effort; real IP key may differ
+      RK.rateOtpVerify(normalizedEmail),
+      RK.rateResendOtp(normalizedEmail),
+      RK.rateForgot(normalizedEmail),
+      RK.loginHistory(userId),
+    );
+
+    return NextResponse.json({ success: true, message: "User deleted successfully." });
+  } catch (err) {
+    console.error("[DELETE /api/admin/users]", err);
+    return NextResponse.json({ error: "Failed to delete user." }, { status: 500 });
   }
 }

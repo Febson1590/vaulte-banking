@@ -61,21 +61,24 @@ function fmtUSD(n: number) {
 
 // ─── Manage Modal ─────────────────────────────────────────
 function ManageModal({
-  row, onClose, onUpdated,
+  row, onClose, onUpdated, onDeleted,
 }: {
   row: UserRow;
   onClose: () => void;
   onUpdated: (user: VaulteUser, state: VaulteState) => void;
+  onDeleted: (userId: string) => void;
 }) {
   const { user, state } = row;
 
-  const [localUser,  setLocalUser]  = useState<VaulteUser>({ ...user });
-  const [localState, setLocalState] = useState<VaulteState>({ ...state });
-  const [toast,      setToast]      = useState<string | null>(null);
-  const [balAmount,  setBalAmount]  = useState("");
-  const [balType,    setBalType]    = useState<"credit" | "debit">("credit");
-  const [docPreview, setDocPreview] = useState<string | null>(null);
-  const [showDoc,    setShowDoc]    = useState(false);
+  const [localUser,     setLocalUser]     = useState<VaulteUser>({ ...user });
+  const [localState,    setLocalState]    = useState<VaulteState>({ ...state });
+  const [toast,         setToast]         = useState<string | null>(null);
+  const [balAmount,     setBalAmount]     = useState("");
+  const [balType,       setBalType]       = useState<"credit" | "debit">("credit");
+  const [docPreview,    setDocPreview]    = useState<string | null>(null);
+  const [showDoc,       setShowDoc]       = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting,      setDeleting]      = useState(false);
 
   useEffect(() => {
     if (user.id) setDocPreview(getKycDoc(user.id));
@@ -158,6 +161,35 @@ function ManageModal({
     const u = { ...localUser };
     persist(u, localState);
     showToast("Notes saved");
+  };
+
+  // ── Delete user ──────────────────────────────────────
+  const deleteUser = async () => {
+    setDeleting(true);
+    try {
+      // 1. Delete from Redis via API
+      const res = await fetch("/api/admin/users", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: localUser.id, email: localUser.email }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Delete failed");
+
+      // 2. Clean up localStorage — user record, state, KYC doc, recipients
+      const remaining = getUsers().filter(u => u.id !== localUser.id);
+      saveUsers(remaining);
+      localStorage.removeItem(`vaulte_state_${localUser.id}`);
+      localStorage.removeItem(`vaulte_kyc_doc_${localUser.id}`);
+      localStorage.removeItem(`vaulte_recipients_${localUser.id}`);
+
+      onDeleted(localUser.id);
+    } catch (err) {
+      console.error("[deleteUser]", err);
+      showToast("Failed to delete user. Please try again.");
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
   };
 
   const acctStatus = localUser.accountStatus ?? "active";
@@ -341,6 +373,35 @@ function ManageModal({
             </button>
           </div>
 
+          {/* ── Danger zone ── */}
+          <div style={{ borderTop: "1.5px solid #FEE2E2", paddingTop: "18px" }}>
+            <p style={{ fontSize: "12px", fontWeight: 700, color: "#DC2626", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px" }}>Danger Zone</p>
+            {!confirmDelete ? (
+              <button onClick={() => setConfirmDelete(true)}
+                style={{ padding: "9px 18px", borderRadius: "8px", border: "1.5px solid #DC2626", background: "#fff", color: "#DC2626", fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                🗑 Delete User Account
+              </button>
+            ) : (
+              <div style={{ background: "#FEF2F2", border: "1.5px solid #FECACA", borderRadius: "12px", padding: "14px 16px" }}>
+                <p style={{ fontSize: "13.5px", fontWeight: 700, color: "#DC2626", marginBottom: "6px" }}>Are you sure?</p>
+                <p style={{ fontSize: "12.5px", color: "#6B7280", marginBottom: "14px" }}>
+                  This will permanently delete <strong>{localUser.firstName} {localUser.lastName}</strong> from Redis and all local data.
+                  They will be able to register again with the same email.
+                </p>
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button onClick={deleteUser} disabled={deleting}
+                    style={{ padding: "9px 20px", borderRadius: "8px", border: "none", background: "#DC2626", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: deleting ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: deleting ? 0.7 : 1 }}>
+                    {deleting ? "Deleting..." : "Yes, Delete Permanently"}
+                  </button>
+                  <button onClick={() => setConfirmDelete(false)} disabled={deleting}
+                    style={{ padding: "9px 18px", borderRadius: "8px", border: "1.5px solid #E5E7EB", background: "#fff", color: "#374151", fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* ── Recent transactions ── */}
           <div>
             <p style={{ fontSize: "12px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px" }}>
@@ -436,6 +497,11 @@ export default function AdminUsers() {
   const handleUpdated = (user: VaulteUser, state: VaulteState) => {
     setRows(prev => prev.map(r => r.user.id === user.id ? { user, state, totalBalance: getTotalBalance(state) } : r));
     if (managing) setManaging({ user, state, totalBalance: getTotalBalance(state) });
+  };
+
+  const handleDeleted = (userId: string) => {
+    setRows(prev => prev.filter(r => r.user.id !== userId));
+    setManaging(null);
   };
 
   return (
@@ -547,6 +613,7 @@ export default function AdminUsers() {
           row={managing}
           onClose={() => setManaging(null)}
           onUpdated={handleUpdated}
+          onDeleted={handleDeleted}
         />
       )}
     </AdminLayout>
