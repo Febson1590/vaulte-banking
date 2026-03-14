@@ -171,14 +171,14 @@ export default function CardsPage() {
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 24, alignItems: "start" }}>
+      <div className="cards-main-grid" style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 24, alignItems: "start" }}>
 
         {/* ═══ Left column ═══ */}
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
           {/* Card display + actions */}
           <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.border}`, boxShadow: C.shadow, padding: "28px 28px 24px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, alignItems: "center" }}>
+            <div className="cards-top-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, alignItems: "center" }}>
 
               {/* Virtual card visual */}
               <div style={{
@@ -404,7 +404,15 @@ export default function CardsPage() {
       </>)}
       {/* ─── End of issued-card UI ─── */}
 
-      <style>{`@keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }`}</style>
+      <style>{`
+        @keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+        @media (max-width: 900px) {
+          .cards-main-grid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 600px) {
+          .cards-top-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </DashboardLayout>
   );
 }

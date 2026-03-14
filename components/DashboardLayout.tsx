@@ -243,7 +243,7 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
       <div className="vaulte-main" style={{ flex: 1, marginLeft: 236, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
 
         {/* Topbar */}
-        <header style={{
+        <header className="vaulte-topbar" style={{
           background: "#fff", borderBottom: `1px solid ${C.border}`,
           padding: "0 32px", height: 72,
           display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -324,7 +324,7 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
         </header>
 
         {/* Page content */}
-        <main style={{ flex: 1, padding: "28px 32px 40px" }}>
+        <main className="vaulte-main-content" style={{ flex: 1, padding: "28px 32px 40px" }}>
           {children}
         </main>
       </div>
@@ -348,6 +348,8 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
           .vaulte-main { margin-left: 0 !important; }
           .vaulte-hamburger { display: flex !important; }
           .vaulte-overlay { display: block !important; }
+          .vaulte-topbar { padding: 0 16px !important; }
+          .vaulte-main-content { padding: 16px 16px 32px !important; }
         }
       `}</style>
     </div>

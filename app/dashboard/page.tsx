@@ -126,7 +126,7 @@ export default function Dashboard() {
       )}
 
       {/* Tab nav */}
-      <div style={{ background: "#fff", borderBottom: `1px solid ${C.border}`, display: "flex", margin: "-28px -32px 28px", paddingLeft: 32 }}>
+      <div className="dash-tabs" style={{ background: "#fff", borderBottom: `1px solid ${C.border}`, display: "flex", margin: "-28px -32px 28px", paddingLeft: 32, overflowX: "auto", WebkitOverflowScrolling: "touch" as React.CSSProperties["WebkitOverflowScrolling"] }}>
         {tabs.map(tab => (
           <button key={tab} onClick={() => handleTabClick(tab)} style={{
             padding: "13px 18px", background: "none", border: "none", cursor: "pointer",
@@ -140,7 +140,7 @@ export default function Dashboard() {
       </div>
 
       {/* Welcome banner */}
-      <div style={{
+      <div className="dash-welcome" style={{
         background: "linear-gradient(135deg,#EBF3FF 0%,#EEF6FF 60%,#ECF2FF 100%)",
         borderRadius: 20, padding: "26px 32px", marginBottom: 24,
         display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -168,7 +168,7 @@ export default function Dashboard() {
           </p>
         </div>
         {/* Phone mockup */}
-        <div style={{ position: "relative", flexShrink: 0 }}>
+        <div className="dash-phone-wrap" style={{ position: "relative", flexShrink: 0 }}>
           <div style={{ position: "absolute", top: -14, right: 124, fontSize: 26, filter: "drop-shadow(0 6px 12px rgba(245,158,11,0.35))", transform: "rotate(8deg)", pointerEvents: "none" }}>🪙</div>
           <div style={{ position: "absolute", bottom: -10, left: -38, width: 76, height: 48, background: "linear-gradient(135deg,#1A73E8,#0F172A)", borderRadius: 9, transform: "rotate(-6deg)", boxShadow: "0 6px 16px rgba(26,115,232,0.28)" }} />
           <div style={{ width: 110, height: 198, background: "#0F172A", borderRadius: 24, border: "5px solid #0F172A", boxShadow: "0 24px 48px rgba(15,23,42,0.28)", position: "relative", overflow: "hidden", zIndex: 1 }}>
@@ -230,7 +230,7 @@ export default function Dashboard() {
                   </div>
                 </div>
               ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+                <div className="dash-balance-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
                   {/* Action tiles */}
                   <div>
                     <p style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Quick Actions</p>
@@ -538,6 +538,16 @@ export default function Dashboard() {
       <style>{`
         input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
         @media (max-width: 900px) { .dash-grid { grid-template-columns: 1fr !important; } }
+        @media (max-width: 768px) {
+          .dash-tabs { margin: -16px -16px 20px !important; padding-left: 12px !important; }
+          .dash-tabs::-webkit-scrollbar { display: none; }
+          .dash-welcome { flex-direction: column !important; align-items: flex-start !important; gap: 0 !important; }
+          .dash-phone-wrap { display: none !important; }
+        }
+        @media (max-width: 600px) {
+          .dash-balance-grid { grid-template-columns: 1fr !important; }
+          .dash-balance-grid > div:nth-child(2) { border-left: none !important; padding-left: 0 !important; border-top: 1px solid rgba(15,23,42,0.07); padding-top: 16px; }
+        }
       `}</style>
     </DashboardLayout>
   );

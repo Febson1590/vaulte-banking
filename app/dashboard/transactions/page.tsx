@@ -144,7 +144,7 @@ export default function TransactionsPage() {
       <div style={{ background: C.card, borderRadius: 16, border: `1px solid ${C.border}`, boxShadow: C.shadow, overflow: "hidden" }}>
 
         {/* Table header */}
-        <div style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}`, display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 100px", gap: 12, background: "#FAFBFD" }}>
+        <div className="tx-table-header" style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}`, display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 100px", gap: 12, background: "#FAFBFD" }}>
           {["Transaction", "Date", "Account", "Status", "Amount"].map(h => (
             <p key={h} style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.07em" }}>{h}</p>
           ))}
@@ -162,7 +162,7 @@ export default function TransactionsPage() {
             const acc = state.accounts.find(a => a.id === tx.accountId);
             const isLast = i === paginated.length - 1;
             return (
-              <div key={tx.id} style={{ padding: "14px 20px", display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 100px", gap: 12, alignItems: "center", borderBottom: isLast ? "none" : `1px solid ${C.border}`, transition: "background 0.12s" }}
+              <div key={tx.id} className="tx-table-row" style={{ padding: "14px 20px", display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 100px", gap: 12, alignItems: "center", borderBottom: isLast ? "none" : `1px solid ${C.border}`, transition: "background 0.12s" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#FAFBFD"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
               >
@@ -234,6 +234,13 @@ export default function TransactionsPage() {
         }
         @media (max-width: 480px) {
           .tx-stats-grid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 640px) {
+          .tx-table-header { display: none !important; }
+          .tx-table-row { grid-template-columns: 1fr auto !important; padding: 12px 16px !important; }
+          .tx-table-row > *:nth-child(2),
+          .tx-table-row > *:nth-child(3),
+          .tx-table-row > *:nth-child(4) { display: none !important; }
         }
       `}</style>
     </DashboardLayout>

@@ -239,12 +239,12 @@ export default function AccountsPage() {
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: selected ? "1fr 360px" : "1fr", gap: 24, alignItems: "start" }}>
+      <div className="accounts-main-grid" style={{ display: "grid", gridTemplateColumns: selected ? "1fr 360px" : "1fr", gap: 24, alignItems: "start" }}>
 
         {/* ═══ Account cards grid ═══ */}
         <div>
           {/* Stats row */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 28 }}>
+          <div className="accounts-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 28 }}>
             {[
               { label: "Total Accounts", value: state.accounts.length.toString(), icon: "◫", color: C.blue },
               { label: "Active",         value: state.accounts.filter(a => !a.frozen).length.toString(), icon: "●", color: "#059669" },
@@ -261,7 +261,7 @@ export default function AccountsPage() {
           </div>
 
           {/* Account cards */}
-          <div style={{ display: "grid", gridTemplateColumns: selected ? "1fr 1fr" : "repeat(2, 1fr)", gap: 16 }}>
+          <div className="accounts-cards-grid" style={{ display: "grid", gridTemplateColumns: selected ? "1fr 1fr" : "repeat(2, 1fr)", gap: 16 }}>
             {state.accounts.map(acc => (
               <div key={acc.id}
                 onClick={() => setSelected(selected?.id === acc.id ? null : acc)}
@@ -441,6 +441,13 @@ export default function AccountsPage() {
         @keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
         @keyframes spin { to { transform: rotate(360deg); } }
         input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+        @media (max-width: 900px) {
+          .accounts-main-grid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 600px) {
+          .accounts-stats-grid { grid-template-columns: 1fr 1fr !important; }
+          .accounts-cards-grid { grid-template-columns: 1fr !important; }
+        }
       `}</style>
     </DashboardLayout>
   );
