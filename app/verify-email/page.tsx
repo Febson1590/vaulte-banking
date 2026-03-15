@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { createUser, saveCurrentUser, getUsers } from "@/lib/vaulteState";
+import { saveCurrentUser, saveUsers, getUsers, VaulteUser } from "@/lib/vaulteState";
 
 // ─── Shared styles (match login/register design) ─────────────
 const BG  = "linear-gradient(160deg,#BFDBFE 0%,#C7D9FD 25%,#DBEAFE 55%,#EFF6FF 80%,#DBEAFE 100%)";
@@ -99,26 +99,49 @@ function VerifyEmailInner() {
         return;
       }
 
-      // ── Success: create user in localStorage + redirect ───
+      // ── Success: reconcile localStorage to the server-authoritative ID ───
       setSuccess(true);
 
-      // Create or update the user in localStorage using the data from the API
-      const userId    = data.userId;
-      const nameFirst = data.firstName ?? firstName ?? "";
-      const nameLast  = data.lastName  ?? "";
-      const userEmail = data.email     ?? email;
+      const serverUserId = (data.userId ?? "") as string;
+      const nameFirst    = data.firstName ?? firstName ?? "";
+      const nameLast     = data.lastName  ?? "";
+      const userEmail    = data.email     ?? email;
 
-      // Check if user already in localStorage (created during registration preview)
-      const existingUsers = getUsers();
-      const existing = existingUsers.find(u => u.email === userEmail);
+      const allUsers    = getUsers();
+      const existingIdx = allUsers.findIndex(u => u.email === userEmail);
 
-      if (existing) {
-        saveCurrentUser(existing);
+      if (existingIdx !== -1) {
+        const existing = allUsers[existingIdx];
+        const oldId    = existing.id;
+        const newId    = serverUserId || oldId;
+
+        // Migrate the cached state blob if the locally-generated ID
+        // differs from the Redis-issued ID (same fix as login-verify).
+        if (oldId !== newId) {
+          const oldStateRaw = localStorage.getItem(`vaulte_state_${oldId}`);
+          if (oldStateRaw) {
+            localStorage.setItem(`vaulte_state_${newId}`, oldStateRaw);
+            localStorage.removeItem(`vaulte_state_${oldId}`);
+          }
+          allUsers[existingIdx] = { ...existing, id: newId };
+          saveUsers(allUsers);
+        }
+        saveCurrentUser({ ...existing, id: newId });
       } else {
-        // Create user in localStorage
-        const newUser = createUser(nameFirst, nameLast, userEmail, "_verified_via_api_");
-        // Override the ID to match the server-issued one
-        saveCurrentUser({ ...newUser, id: userId ?? newUser.id });
+        // New browser — add a placeholder entry.
+        // DashboardLayout will hydrate full state from the server.
+        const placeholder: VaulteUser = {
+          id:        serverUserId || `user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          firstName: nameFirst,
+          lastName:  nameLast,
+          email:     userEmail,
+          password:  "",
+          kycStatus: "unverified",
+          createdAt: new Date().toISOString(),
+        };
+        allUsers.push(placeholder);
+        saveUsers(allUsers);
+        saveCurrentUser(placeholder);
       }
 
       setTimeout(() => router.push("/dashboard"), 2000);

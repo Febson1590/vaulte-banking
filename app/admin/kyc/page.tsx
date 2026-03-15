@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
-import { getUsers, updateUser, getKycDoc } from "@/lib/vaulteState";
+import { updateUser, getKycDoc } from "@/lib/vaulteState";
+import type { VaulteUser } from "@/lib/vaulteState";
 
 // ─── KYC Entry Type ─────────────────────────────────────────
 interface KYCEntry {
@@ -41,6 +42,8 @@ export default function AdminKYC() {
   const [rejectReason, setRejectReason] = useState("");
   const [showReject, setShowReject]   = useState(false);
   const [docPreview, setDocPreview]   = useState<string | null>(null);
+  const [syncError,  setSyncError]    = useState("");
+  const [syncing,    setSyncing]      = useState(false);
 
   // ─── Load KYC document when modal opens ─────────────────
   useEffect(() => {
@@ -52,64 +55,71 @@ export default function AdminKYC() {
     }
   }, [selected]);
 
-  // ─── Load real registered users into KYC list ──────────
+  // ─── Load users from Redis via admin API (single source of truth) ─
   useEffect(() => {
-    const users = getUsers();
-    const entries: KYCEntry[] = users.map((u) => ({
-      id:         u.id,
-      user:       `${u.firstName} ${u.lastName}`,
-      email:      u.email,
-      doc:        u.kycDocType === "passport"        ? "Passport"
-                : u.kycDocType === "drivers_license" ? "Driver's License"
-                : u.kycDocType === "national_id"     ? "National ID"
-                : "Not uploaded",
-      docNumber:  "—",
-      submitted:  u.kycSubmittedAt
-                    ? new Date(u.kycSubmittedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })
-                    : `Joined ${new Date(u.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
-      status:     u.kycStatus === "verified" ? "Approved"
-                : u.kycStatus === "pending"  ? "Pending"
-                : "Pending",
-      country:    u.kycNationality ?? "Unknown",
-      isRealUser: true,
-      userId:     u.id,
-    }));
-
-    // Deduplicate by email — the user list may contain both a localStorage-generated
-    // entry and a Redis-synced entry for the same person (different IDs, same email).
-    // Keep whichever has the highest-priority KYC status so admins always act on the
-    // correct record: Approved (2) > Pending (1) > anything else (0).
-    const statusPriority: Record<string, number> = { Approved: 2, Pending: 1 };
-    const seen: Record<string, KYCEntry> = {};
-    for (const entry of entries) {
-      const existing = seen[entry.email];
-      if (!existing || (statusPriority[entry.status] ?? 0) > (statusPriority[existing.status] ?? 0)) {
-        seen[entry.email] = entry;
-      }
-    }
-    setKycs(Object.values(seen));
+    fetch("/api/admin/users")
+      .then(r => r.json())
+      .then(({ users }: { users: VaulteUser[] }) => {
+        if (!users?.length) { setKycs([]); return; }
+        const entries: KYCEntry[] = users.map(u => ({
+          id:         u.id,
+          user:       `${u.firstName} ${u.lastName}`,
+          email:      u.email,
+          doc:        u.kycDocType === "passport"        ? "Passport"
+                    : u.kycDocType === "drivers_license" ? "Driver's License"
+                    : u.kycDocType === "national_id"     ? "National ID"
+                    : "Not uploaded",
+          docNumber:  "—",
+          submitted:  u.kycSubmittedAt
+                        ? new Date(u.kycSubmittedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })
+                        : `Joined ${new Date(u.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
+          status:     u.kycStatus === "verified" ? "Approved"
+                    : u.kycStatus === "pending"  ? "Pending"
+                    : "Pending",
+          country:    u.kycNationality ?? "Unknown",
+          isRealUser: true,
+          userId:     u.id,
+        }));
+        // Redis has exactly one record per email — no deduplication needed
+        setKycs(entries);
+      })
+      .catch(err => console.error("[admin/kyc] Failed to load users from API:", err));
   }, []);
 
   const filtered = kycs.filter(k => filter === "All" || k.status === filter);
 
-  // ─── Update KYC status — writes to localStorage + Redis ─
-  const updateStatus = (id: string, status: string) => {
+  // ─── Update KYC status ─────────────────────────────────────
+  // Redis is written and confirmed FIRST. localStorage is only updated after the
+  // server write succeeds, ensuring the two stores never diverge due to a failed sync.
+  const updateStatus = async (id: string, status: string) => {
+    setSyncError("");
     const entry = kycs.find(k => k.id === id);
 
-    // If it's a real registered user, persist the KYC status
     if (entry?.isRealUser && entry.userId) {
       const kycStatus =
         status === "Approved" ? "verified"
         : status === "Rejected" ? "unverified"
         : "pending";
-      updateUser(entry.userId, { kycStatus });
 
-      // Also persist to Redis so other devices see the update immediately
-      fetch("/api/kyc/status", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: entry.email, kycStatus }),
-      }).catch(err => console.error("[admin/kyc] Redis sync failed:", err));
+      setSyncing(true);
+      try {
+        const res = await fetch("/api/kyc/status", {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ email: entry.email, kycStatus }),
+        });
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      } catch (err) {
+        console.error("[admin/kyc] Redis sync failed:", err);
+        setSyncError("⚠️ Failed to sync to server — please try again.");
+        setSyncing(false);
+        return; // Do NOT update localStorage or the list if Redis write failed
+      } finally {
+        setSyncing(false);
+      }
+
+      // Server write confirmed — now update localStorage
+      updateUser(entry.userId, { kycStatus });
     }
 
     setKycs(prev => prev.map(k => k.id === id ? { ...k, status } : k));
@@ -144,6 +154,14 @@ export default function AdminKYC() {
           ))}
         </div>
       </div>
+
+      {/* Sync error banner */}
+      {syncError && (
+        <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "10px", padding: "12px 16px", marginBottom: "16px", fontSize: "13px", color: "#DC2626", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          {syncError}
+          <button onClick={() => setSyncError("")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "16px", color: "#DC2626", lineHeight: 1 }}>×</button>
+        </div>
+      )}
 
       {/* Filter tabs */}
       <div style={{ background: "#fff", borderRadius: "14px", padding: "12px 16px", marginBottom: "20px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", display: "flex", gap: "8px", flexWrap: "wrap" }}>

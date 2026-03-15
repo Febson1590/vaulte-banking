@@ -25,16 +25,36 @@ export async function GET() {
       }
     } while (cursor !== 0);
 
-    // Map AuthUser (Redis) → VaulteUser-compatible shape for the admin panel
-    const users: VaulteUser[] = authUsers.map(u => ({
-      id:            u.id,
-      firstName:     u.firstName,
-      lastName:      u.lastName,
-      email:         u.email,
-      password:      "",            // never expose real hash
-      kycStatus:     "unverified",  // default; overridden by localStorage admin copy
-      createdAt:     u.createdAt,
-      accountStatus: "active",
+    if (authUsers.length === 0) {
+      return NextResponse.json({ success: true, users: [] });
+    }
+
+    // Batch-fetch KYC status and KYC submission data for all users in two
+    // parallel round-trips — avoids N+1 Redis calls.
+    const statusKeys = authUsers.map(u => RK.kycStatus(u.email)) as [string, ...string[]];
+    const dataKeys   = authUsers.map(u => RK.kycData(u.email))   as [string, ...string[]];
+
+    const [kycStatuses, kycDataArr] = await Promise.all([
+      redis.mget<(string | null)[]>(...statusKeys),
+      redis.mget<(Record<string, string> | null)[]>(...dataKeys),
+    ]);
+
+    // Map AuthUser (Redis) → VaulteUser-compatible shape for the admin panel.
+    // KYC status comes exclusively from Redis — no localStorage override needed.
+    const users: VaulteUser[] = authUsers.map((u, i) => ({
+      id:             u.id,
+      firstName:      u.firstName,
+      lastName:       u.lastName,
+      email:          u.email,
+      password:       "",                          // never expose real hash
+      kycStatus:      (kycStatuses[i] ?? "unverified") as VaulteUser["kycStatus"],
+      kycDocType:     kycDataArr[i]?.docType      ?? undefined,
+      kycSubmittedAt: kycDataArr[i]?.submittedAt  ?? undefined,
+      kycNationality: kycDataArr[i]?.nationality  ?? undefined,
+      kycAddress:     kycDataArr[i]?.address      ?? undefined,
+      kycCity:        kycDataArr[i]?.city         ?? undefined,
+      createdAt:      u.createdAt,
+      accountStatus:  "active" as const,
     }));
 
     return NextResponse.json({ success: true, users });

@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
-import { getState, getCurrentUser, getUsers, saveCurrentUser, VaulteState, DEMO_STATE, Transaction, fmtDate, VaulteUser, KycStatus } from "@/lib/vaulteState";
+import { getState, getCurrentUser, VaulteState, DEMO_STATE, Transaction, fmtDate, VaulteUser } from "@/lib/vaulteState";
 
 const C = {
   bg: "#F3F5FA", card: "#ffffff", navy: "#0F172A", blue: "#1A73E8",
@@ -38,38 +38,11 @@ export default function Dashboard() {
   const [transferAmount, setTransferAmount] = useState("100.00");
 
   useEffect(() => {
+    // DashboardLayout has already hydrated localStorage from Redis before this
+    // component mounts. getCurrentUser() returns the server-authoritative user
+    // (including the correct KYC status). No additional reconciliation needed.
     const user = getCurrentUser();
-    if (user) {
-      // ── Fast path: sync kycStatus from shared localStorage (same-browser) ──
-      const allUsers = getUsers();
-      const freshUser = allUsers.find(u => u.email === user.email);
-      // Status priority: verified > pending > unverified
-      const statusRank: Record<string, number> = { verified: 2, pending: 1, unverified: 0 };
-      const localStatus = (statusRank[freshUser?.kycStatus ?? ""] ?? -1) > (statusRank[user.kycStatus] ?? 0)
-        ? freshUser!.kycStatus
-        : user.kycStatus;
-      const initialUser = localStatus !== user.kycStatus ? { ...user, kycStatus: localStatus } : user;
-      if (localStatus !== user.kycStatus) saveCurrentUser(initialUser);
-      setUser(initialUser);
-
-      // ── Slow path: fetch from server for cross-device sync ──
-      // Uses the highest-priority status between server and local so that
-      // "pending" submitted on another device beats a local "unverified",
-      // and admin "verified" beats everything.
-      fetch(`/api/kyc/status?email=${encodeURIComponent(user.email)}`)
-        .then(r => r.json())
-        .then(({ kycStatus: serverStatus }: { kycStatus: string }) => {
-          if (!serverStatus) return;
-          const serverRank = statusRank[serverStatus] ?? 0;
-          const localRank  = statusRank[localStatus]  ?? 0;
-          if (serverRank > localRank) {
-            const updated = { ...initialUser, kycStatus: serverStatus as KycStatus };
-            saveCurrentUser(updated);
-            setUser(updated);
-          }
-        })
-        .catch(() => { /* offline — localStorage already applied */ });
-    }
+    if (user) setUser(user);
     setState(getState());
     setMounted(true);
   }, []);
