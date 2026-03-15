@@ -391,16 +391,16 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
           display: "flex", alignItems: "center", justifyContent: "space-between",
           position: "sticky", top: 0, zIndex: 50, boxShadow: "0 1px 0 rgba(15,23,42,0.06)",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0, flex: 1 }}>
             {/* Mobile hamburger */}
             <button className="vaulte-hamburger"
               onClick={() => setSidebarOpen(v => !v)}
               style={{ display: "none", width: 38, height: 38, borderRadius: 10, background: "transparent", border: `1px solid ${C.border}`, cursor: "pointer", fontSize: 18, alignItems: "center", justifyContent: "center", flexShrink: 0 }}
             >☰</button>
 
-            <div>
-              <p style={{ fontSize: 16, fontWeight: 700, color: C.text, letterSpacing: "-0.2px", lineHeight: 1.2 }}>{title}</p>
-              {subtitle && <p style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{subtitle}</p>}
+            <div style={{ minWidth: 0 }}>
+              <p style={{ fontSize: 16, fontWeight: 700, color: C.text, letterSpacing: "-0.2px", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</p>
+              {subtitle && <p className="vaulte-subtitle-inline" style={{ fontSize: 12, color: C.muted, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{subtitle}</p>}
             </div>
 
             {/* Search — hidden on small screens */}
@@ -422,8 +422,9 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
           </div>
 
           {/* Right */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {topRight}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, marginLeft: 8 }}>
+            {/* topRight hidden on mobile — moves to sticky action strip below */}
+            {topRight && <div className="vaulte-topright-desktop">{topRight}</div>}
 
             {/* Bell with badge */}
             <Link href="/dashboard/notifications" style={{
@@ -470,6 +471,30 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
           </div>
         </header>
 
+        {/* Mobile-only: subtitle + action strip (sticky below topbar) */}
+        {(subtitle || topRight) && (
+          <div className="vaulte-mobile-header-row2" style={{
+            display: "none",
+            background: "#fff",
+            borderBottom: `1px solid ${C.border}`,
+            padding: "10px 16px",
+            position: "sticky",
+            top: 60,
+            zIndex: 49,
+            alignItems: "center",
+            justifyContent: "flex-end",
+            gap: 10,
+            boxShadow: "0 2px 6px rgba(15,23,42,0.06)",
+          }}>
+            {subtitle && (
+              <p style={{ fontSize: 12.5, color: C.muted, fontWeight: 500, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {subtitle}
+              </p>
+            )}
+            {topRight && <div style={{ flexShrink: 0 }}>{topRight}</div>}
+          </div>
+        )}
+
         {/* Page content */}
         <main className="vaulte-main-content" style={{ flex: 1, padding: "28px 32px 40px" }}>
           {children}
@@ -495,8 +520,12 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
           .vaulte-main { margin-left: 0 !important; }
           .vaulte-hamburger { display: flex !important; }
           .vaulte-overlay { display: block !important; }
-          .vaulte-topbar { padding: 0 16px !important; }
+          .vaulte-topbar { padding: 0 16px !important; height: 60px !important; }
           .vaulte-main-content { padding: 16px 16px 32px !important; }
+          /* Header hierarchy fix: subtitle and button move to action strip */
+          .vaulte-subtitle-inline { display: none !important; }
+          .vaulte-topright-desktop { display: none !important; }
+          .vaulte-mobile-header-row2 { display: flex !important; }
         }
       `}</style>
     </div>
