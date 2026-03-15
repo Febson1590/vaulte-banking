@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createUser, saveCurrentUser, getUsers } from "@/lib/vaulteState";
+import { createUser, saveCurrentUser, getUsers, saveUsers } from "@/lib/vaulteState";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -29,10 +29,6 @@ export default function RegisterPage() {
     if (!form.password || form.password.length < 8) errs.password = "Min. 8 characters";
     if (form.password !== form.confirmPassword) errs.confirmPassword = "Passwords do not match";
 
-    // Check if email already taken in localStorage
-    const existingLocal = getUsers().find(u => u.email === form.email.toLowerCase().trim());
-    if (existingLocal) errs.email = "An account with this email already exists";
-
     if (Object.keys(errs).length) { setErrors(errs); return; }
 
     setLoading(true);
@@ -52,6 +48,16 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (res.ok && data.success) {
+        // Remove any stale localStorage entry for this email before creating fresh one
+        // (prevents duplicates when re-registering an email that existed in localStorage only)
+        const normalizedEmail = form.email.toLowerCase().trim();
+        const existingUsers = getUsers();
+        const staleEntry = existingUsers.find(u => u.email === normalizedEmail);
+        if (staleEntry) {
+          saveUsers(existingUsers.filter(u => u.email !== normalizedEmail));
+          try { localStorage.removeItem(`vaulte_state_${staleEntry.id}`); } catch { /* ignore */ }
+        }
+
         // Also store in localStorage so dashboard works even before OTP
         // (with a placeholder password since the real hash is in Redis)
         createUser(form.firstName, form.lastName, form.email, form.password);
