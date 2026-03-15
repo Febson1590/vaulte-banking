@@ -77,6 +77,9 @@ export interface AuthUser {
   accountLockedUntil:    string | null;
   lastLoginIp:           string | null;
   knownIps:              string[];
+  // Admin-managed fields (written via /api/admin/manage)
+  accountStatus?:        "active" | "suspended" | "frozen" | "closed";
+  adminNotes?:           string;
 }
 
 export interface OtpRecord {

@@ -6,6 +6,15 @@ import { NextRequest, NextResponse } from "next/server";
 import redis, { AuthUser, RK } from "@/lib/redis";
 import type { VaulteUser } from "@/lib/vaulteState";
 
+// USD conversion rates for total balance calculation
+const RATES: Record<string, number> = { USD: 1, EUR: 1.09, GBP: 1.27, BTC: 66000 };
+
+function totalBalanceUSD(state: Record<string, unknown> | null): number {
+  if (!state?.accounts) return 0;
+  const accounts = state.accounts as Array<{ balance: number; currency: string }>;
+  return accounts.reduce((sum, a) => sum + (a.balance ?? 0) * (RATES[a.currency] ?? 1), 0);
+}
+
 export async function GET() {
   try {
     const authUsers: AuthUser[] = [];
@@ -26,41 +35,49 @@ export async function GET() {
     } while (cursor !== 0);
 
     if (authUsers.length === 0) {
-      return NextResponse.json({ success: true, users: [] });
+      return NextResponse.json({ success: true, users: [], userCount: 0 });
     }
 
-    // Batch-fetch KYC status and KYC submission data for all users in two
-    // parallel round-trips — avoids N+1 Redis calls.
-    const statusKeys = authUsers.map(u => RK.kycStatus(u.email)) as [string, ...string[]];
-    const dataKeys   = authUsers.map(u => RK.kycData(u.email))   as [string, ...string[]];
+    // Batch-fetch KYC status, KYC data, and banking state for all users in
+    // three parallel round-trips — avoids N+1 Redis calls.
+    const statusKeys = authUsers.map(u => RK.kycStatus(u.email))  as [string, ...string[]];
+    const dataKeys   = authUsers.map(u => RK.kycData(u.email))    as [string, ...string[]];
+    const stateKeys  = authUsers.map(u => RK.userState(u.email))  as [string, ...string[]];
 
-    const [kycStatuses, kycDataArr] = await Promise.all([
+    const [kycStatuses, kycDataArr, userStates] = await Promise.all([
       redis.mget<(string | null)[]>(...statusKeys),
       redis.mget<(Record<string, string> | null)[]>(...dataKeys),
+      redis.mget<(Record<string, unknown> | null)[]>(...stateKeys),
     ]);
 
     // Map AuthUser (Redis) → VaulteUser-compatible shape for the admin panel.
-    // KYC status comes exclusively from Redis — no localStorage override needed.
-    const users: VaulteUser[] = authUsers.map((u, i) => ({
-      id:             u.id,
-      firstName:      u.firstName,
-      lastName:       u.lastName,
-      email:          u.email,
-      password:       "",                          // never expose real hash
-      kycStatus:      (kycStatuses[i] ?? "unverified") as VaulteUser["kycStatus"],
-      kycDocType:     kycDataArr[i]?.docType      ?? undefined,
-      kycSubmittedAt: kycDataArr[i]?.submittedAt  ?? undefined,
-      kycNationality: kycDataArr[i]?.nationality  ?? undefined,
-      kycAddress:     kycDataArr[i]?.address      ?? undefined,
-      kycCity:        kycDataArr[i]?.city         ?? undefined,
-      createdAt:      u.createdAt,
-      accountStatus:  "active" as const,
-    }));
+    // ALL fields come from Redis — no localStorage override.
+    const users: (VaulteUser & { totalBalanceUSD: number; bankingState: Record<string, unknown> | null })[] =
+      authUsers.map((u, i) => ({
+        id:             u.id,
+        firstName:      u.firstName,
+        lastName:       u.lastName,
+        email:          u.email,
+        password:       "",                          // never expose real hash
+        kycStatus:      (kycStatuses[i] ?? "unverified") as VaulteUser["kycStatus"],
+        kycDocType:     kycDataArr[i]?.docType      ?? undefined,
+        kycSubmittedAt: kycDataArr[i]?.submittedAt  ?? undefined,
+        kycNationality: kycDataArr[i]?.nationality  ?? undefined,
+        kycAddress:     kycDataArr[i]?.address      ?? undefined,
+        kycCity:        kycDataArr[i]?.city         ?? undefined,
+        createdAt:      u.createdAt,
+        // Admin-managed fields stored on the auth record itself
+        accountStatus:  (u.accountStatus ?? "active") as VaulteUser["accountStatus"],
+        adminNotes:     u.adminNotes ?? undefined,
+        // Banking state (full VaulteState from Redis — may be null for new users)
+        bankingState:   userStates[i] ?? null,
+        totalBalanceUSD: totalBalanceUSD(userStates[i] ?? null),
+      }));
 
-    return NextResponse.json({ success: true, users });
+    return NextResponse.json({ success: true, users, userCount: users.length });
   } catch (err) {
     console.error("[GET /api/admin/users]", err);
-    return NextResponse.json({ success: false, users: [] });
+    return NextResponse.json({ success: false, users: [], userCount: 0 });
   }
 }
 
