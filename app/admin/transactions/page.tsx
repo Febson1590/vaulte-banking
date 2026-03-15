@@ -124,7 +124,7 @@ export default function AdminTransactions() {
       </div>
 
       {/* Table */}
-      <div style={{ background: "#fff", borderRadius: "14px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "hidden" }}>
+      <div className="admin-table-scroll" style={{ background: "#fff", borderRadius: "14px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "hidden" }}>
         {!loaded ? (
           <div style={{ padding: "60px", textAlign: "center", color: "#9CA3AF" }}>Loading transactions...</div>
         ) : filtered.length === 0 ? (

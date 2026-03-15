@@ -114,7 +114,7 @@ export default function AdminApprovals() {
       </div>
 
       {/* Summary cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "24px" }}>
+      <div className="admin-approvals-cards-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "24px" }}>
         {[
           { label: "Pending",         count: pending,  color: "#D97706", bg: "#FFFBEB", icon: "⏳" },
           { label: "Approved",        count: approved, color: "#059669", bg: "#ECFDF5", icon: "✅" },
@@ -141,7 +141,7 @@ export default function AdminApprovals() {
       </div>
 
       {/* Table / Empty */}
-      <div style={{ background: "#fff", borderRadius: "14px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "hidden" }}>
+      <div className="admin-table-scroll" style={{ background: "#fff", borderRadius: "14px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "hidden" }}>
         {!loaded ? (
           <div style={{ padding: "60px", textAlign: "center", color: "#9CA3AF" }}>Loading approvals...</div>
         ) : filtered.length === 0 ? (

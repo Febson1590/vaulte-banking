@@ -56,7 +56,7 @@ export default function AdminReports() {
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: "20px", marginBottom: "20px" }}>
+      <div className="admin-reports-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: "20px", marginBottom: "20px" }}>
         {/* Bar Chart — Daily Transactions */}
         <div style={{ background: "#fff", borderRadius: "14px", padding: "24px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
@@ -95,7 +95,7 @@ export default function AdminReports() {
       {/* Fraud Report */}
       <div style={{ background: "#fff", borderRadius: "14px", padding: "24px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", marginBottom: "20px" }}>
         <h2 style={{ margin: "0 0 16px", fontSize: "16px", fontWeight: 700, color: "#0A1628" }}>🚩 Fraud & Suspicious Activity Report</h2>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div className="admin-table-scroll"><table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#FEF2F2" }}>
               {["Date", "User", "Activity Type", "Amount", "Action Taken"].map(h => (
@@ -116,11 +116,11 @@ export default function AdminReports() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       {/* Export options */}
-      <div style={{ background: "#0A1628", borderRadius: "14px", padding: "24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div className="admin-export-section" style={{ background: "#0A1628", borderRadius: "14px", padding: "24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
           <div style={{ fontSize: "16px", fontWeight: 700, color: "#fff", marginBottom: "4px" }}>Export Full Report</div>
           <div style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)" }}>Download all reports in PDF or CSV format</div>

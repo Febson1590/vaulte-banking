@@ -28,7 +28,7 @@ export default function AdminSettings() {
 
   return (
     <AdminLayout title="Settings">
-      <div style={{ marginBottom: "24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div className="admin-settings-header" style={{ marginBottom: "24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <h1 style={{ margin: 0, fontSize: "22px", fontWeight: 800, color: "#0A1628" }}>System Settings</h1>
           <p style={{ margin: "4px 0 0", color: "#6B7280", fontSize: "14px" }}>Configure platform-wide parameters and features</p>
@@ -39,7 +39,7 @@ export default function AdminSettings() {
         </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+      <div className="admin-settings-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
         {/* Transaction Limits */}
         <div style={{ background: "#fff", borderRadius: "14px", padding: "24px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
           <h2 style={{ margin: "0 0 20px", fontSize: "16px", fontWeight: 700, color: "#0A1628" }}>💸 Transaction Limits</h2>
@@ -100,7 +100,7 @@ export default function AdminSettings() {
         {/* Supported Currencies */}
         <div style={{ background: "#fff", borderRadius: "14px", padding: "24px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
           <h2 style={{ margin: "0 0 20px", fontSize: "16px", fontWeight: 700, color: "#0A1628" }}>🌍 Supported Currencies</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+          <div className="admin-settings-currency-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
             {Object.entries(currencies).map(([currency, enabled]) => (
               <div key={currency} onClick={() => toggleCurrency(currency as keyof typeof currencies)}
                 style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 14px", border: `1.5px solid ${enabled ? "#1A73E8" : "#E5E7EB"}`, borderRadius: "10px", cursor: "pointer", background: enabled ? "#EEF4FF" : "#fff" }}>

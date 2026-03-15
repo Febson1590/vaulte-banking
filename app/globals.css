@@ -61,3 +61,106 @@ body {
 @media (max-width: 480px) {
   .register-name-grid { grid-template-columns: 1fr !important; }
 }
+
+/* ─── Admin Panel ─── */
+@media (max-width: 768px) {
+  /* Sidebar becomes a fixed overlay on mobile */
+  .admin-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    width: 240px !important;
+    z-index: 100 !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.3s !important;
+  }
+  .admin-sidebar.open {
+    transform: translateX(0) !important;
+  }
+  /* Semi-transparent backdrop behind the sidebar */
+  .admin-sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 99;
+  }
+  .admin-sidebar-backdrop.open {
+    display: block;
+  }
+  /* Header */
+  .admin-header {
+    padding: 0 12px !important;
+  }
+  .admin-header-user {
+    display: none !important;
+  }
+  /* Main content */
+  .admin-content {
+    padding: 16px 12px !important;
+  }
+  /* All data tables — allow horizontal scroll */
+  .admin-table-scroll {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Dashboard: two-col → single col */
+  .admin-dash-two-col {
+    grid-template-columns: 1fr !important;
+  }
+  /* Reports: two-col → single col */
+  .admin-reports-two-col {
+    grid-template-columns: 1fr !important;
+  }
+  /* Reports: export section → stack vertically */
+  .admin-export-section {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+  }
+  /* Settings: header row → stack */
+  .admin-settings-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  /* Settings: 2-col grid → single col */
+  .admin-settings-grid {
+    grid-template-columns: 1fr !important;
+  }
+  /* Approvals: 3-col summary cards → single col */
+  .admin-approvals-cards-grid {
+    grid-template-columns: 1fr !important;
+  }
+  /* Users modal: 2-col profile grid → single col */
+  .admin-user-profile-grid {
+    grid-template-columns: 1fr !important;
+  }
+  /* Users modal: 4-col account status → 2 × 2 */
+  .admin-user-acct-status-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  /* KYC modal: 2-col info grid → single col */
+  .admin-kyc-modal-grid {
+    grid-template-columns: 1fr !important;
+  }
+  /* Audit logs: hide log ID chip to save space */
+  .admin-audit-log-id {
+    display: none !important;
+  }
+  /* TX Generator: 2-col form → single col */
+  .admin-txgen-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+  /* TX Generator: preview header → stack */
+  .admin-txgen-preview-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  /* TX Generator: 4-col summary → 2 × 2 */
+  .admin-txgen-summary-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}

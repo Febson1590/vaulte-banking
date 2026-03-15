@@ -220,7 +220,7 @@ export default function AdminTxGenerator() {
         <div>
           {/* Preview header */}
           <div style={{ background: "#fff", borderRadius: "14px", padding: "20px", marginBottom: "16px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+            <div className="admin-txgen-preview-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 700, color: "#0A1628" }}>Preview — {preview.length} Transactions Generated</h2>
                 <p style={{ margin: "4px 0 0", fontSize: "13px", color: "#6B7280" }}>Review the transactions below before confirming</p>
@@ -242,7 +242,7 @@ export default function AdminTxGenerator() {
             </div>
 
             {/* Summary */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px" }}>
+            <div className="admin-txgen-summary-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px" }}>
               {[
                 { label: "Opening Balance", value: `$${form.openingBalance}`, color: "#1A73E8" },
                 { label: "Total Credits", value: `+$${form.totalCredits}`, color: "#059669" },
@@ -293,7 +293,7 @@ export default function AdminTxGenerator() {
         </div>
       ) : (
         /* Input form */
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+        <div className="admin-txgen-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
           {/* Left column */}
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             <div style={{ background: "#fff", borderRadius: "14px", padding: "24px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>

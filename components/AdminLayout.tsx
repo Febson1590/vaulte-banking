@@ -29,8 +29,10 @@ export default function AdminLayout({ children, title }: { children: React.React
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", fontFamily: "Inter, sans-serif", background: "#F1F5F9" }}>
+      {/* Mobile sidebar backdrop */}
+      <div className={`admin-sidebar-backdrop${sidebarOpen ? " open" : ""}`} onClick={() => setSidebarOpen(false)} />
       {/* Sidebar */}
-      <aside style={{
+      <aside className={`admin-sidebar${sidebarOpen ? " open" : ""}`} style={{
         width: sidebarOpen ? "240px" : "64px",
         background: "#0A1628",
         display: "flex",
@@ -82,15 +84,15 @@ export default function AdminLayout({ children, title }: { children: React.React
 
       {/* Main */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <header style={{ background: "#fff", borderBottom: "1px solid #E5E7EB", padding: "0 24px", height: "64px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 10 }}>
+        <header className="admin-header" style={{ background: "#fff", borderBottom: "1px solid #E5E7EB", padding: "0 24px", height: "64px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <button onClick={() => setSidebarOpen(!sidebarOpen)}
               style={{ background: "none", border: "none", cursor: "pointer", fontSize: "20px", color: "#6B7280" }}>☰</button>
             <span style={{ fontSize: "18px", fontWeight: 700, color: "#0A1628" }}>{title}</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div className="admin-header-right" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <div style={{ background: "#FEF2F2", color: "#DC2626", borderRadius: "20px", padding: "4px 12px", fontSize: "12px", fontWeight: 600 }}>🔴 3 Alerts</div>
-            <div style={{ background: "#EEF4FF", borderRadius: "8px", padding: "6px 12px", display: "flex", alignItems: "center", gap: "8px" }}>
+            <div className="admin-header-user" style={{ background: "#EEF4FF", borderRadius: "8px", padding: "6px 12px", display: "flex", alignItems: "center", gap: "8px" }}>
               <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "#1A73E8", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "12px", fontWeight: 700 }}>SA</div>
               <div>
                 <div style={{ fontSize: "13px", fontWeight: 600, color: "#0A1628" }}>Super Admin</div>
@@ -100,7 +102,7 @@ export default function AdminLayout({ children, title }: { children: React.React
           </div>
         </header>
 
-        <main style={{ flex: 1, padding: "28px 24px", overflowY: "auto" }}>
+        <main className="admin-content" style={{ flex: 1, padding: "28px 24px", overflowY: "auto" }}>
           {children}
         </main>
       </div>

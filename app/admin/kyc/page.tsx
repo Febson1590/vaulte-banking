@@ -136,7 +136,7 @@ export default function AdminKYC() {
       </div>
 
       {/* Table */}
-      <div style={{ background: "#fff", borderRadius: "14px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "hidden" }}>
+      <div className="admin-table-scroll" style={{ background: "#fff", borderRadius: "14px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead style={{ background: "#F8FAFC" }}>
             <tr>
@@ -214,7 +214,7 @@ export default function AdminKYC() {
             <div style={{ background: "#F8FAFC", borderRadius: "12px", padding: "16px", marginBottom: "20px" }}>
               <div style={{ fontSize: "16px", fontWeight: 700, color: "#0A1628", marginBottom: "4px" }}>{selected.user}</div>
               <div style={{ fontSize: "13px", color: "#6B7280", marginBottom: "12px" }}>{selected.email} · {selected.country}</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              <div className="admin-kyc-modal-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
                 {[
                   { label: "Document Type",    value: selected.doc },
                   { label: "Document Number",  value: selected.docNumber },

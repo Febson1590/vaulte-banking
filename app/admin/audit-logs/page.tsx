@@ -93,7 +93,7 @@ export default function AdminAuditLogs() {
                 </div>
               </div>
               {/* Log ID */}
-              <div style={{ fontSize: "11px", color: "#9CA3AF", fontFamily: "monospace", flexShrink: 0 }}>{log.id}</div>
+              <div className="admin-audit-log-id" style={{ fontSize: "11px", color: "#9CA3AF", fontFamily: "monospace", flexShrink: 0 }}>{log.id}</div>
             </div>
           );
         })}

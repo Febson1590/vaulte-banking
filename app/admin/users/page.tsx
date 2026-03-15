@@ -234,7 +234,7 @@ function ManageModal({
           {/* ── Profile info ── */}
           <div>
             <p style={{ fontSize: "12px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px" }}>Profile</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+            <div className="admin-user-profile-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
               {[
                 { label: "User ID",       value: localUser.id.slice(0, 20) + "..." },
                 { label: "Joined",        value: new Date(localUser.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) },
@@ -252,7 +252,7 @@ function ManageModal({
           {/* ── Account status ── */}
           <div>
             <p style={{ fontSize: "12px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px" }}>Account Status</p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" }}>
+            <div className="admin-user-acct-status-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" }}>
               {(["active", "frozen", "suspended", "closed"] as const).map(s => (
                 <button key={s} onClick={() => setAccStatus(s)}
                   style={{ padding: "9px 6px", borderRadius: "10px", border: `2px solid ${acctStatus === s ? "#1A73E8" : "#E5E7EB"}`, background: acctStatus === s ? "#EEF4FF" : "#fff", color: acctStatus === s ? "#1A73E8" : "#6B7280", fontSize: "12px", fontWeight: 600, cursor: "pointer", textTransform: "capitalize", fontFamily: "inherit" }}>
@@ -284,7 +284,7 @@ function ManageModal({
                 No document uploaded by user yet.
               </div>
             )}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
+            <div className="admin-user-kyc-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
               {(["unverified", "pending", "verified"] as const).map(k => (
                 <button key={k} onClick={() => setKycStatus(k)}
                   style={{ padding: "9px 6px", borderRadius: "10px", border: `2px solid ${localUser.kycStatus === k ? "#1A73E8" : "#E5E7EB"}`, background: localUser.kycStatus === k ? "#EEF4FF" : "#fff", color: localUser.kycStatus === k ? "#1A73E8" : "#6B7280", fontSize: "12px", fontWeight: 600, cursor: "pointer", textTransform: "capitalize", fontFamily: "inherit" }}>
@@ -547,7 +547,7 @@ export default function AdminUsers() {
       </div>
 
       {/* Table */}
-      <div style={{ background: "#fff", borderRadius: "14px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "hidden" }}>
+      <div className="admin-table-scroll" style={{ background: "#fff", borderRadius: "14px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "hidden" }}>
         {!loaded ? (
           <div style={{ padding: "60px", textAlign: "center", color: "#9CA3AF" }}>Loading users...</div>
         ) : filtered.length === 0 ? (
