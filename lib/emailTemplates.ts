@@ -45,7 +45,7 @@ function baseLayout(opts: {
     @media only screen and (max-width: 620px) {
       .email-container { width: 100% !important; max-width: 100% !important; }
       .content-pad { padding: 28px 20px !important; }
-      .code-box { font-size: 32px !important; letter-spacing: 10px !important; padding: 20px 16px !important; }
+      .code-box { font-size: 32px !important; letter-spacing: 8px !important; padding: 20px 16px !important; }
       .btn { padding: 14px 24px !important; font-size: 15px !important; }
     }
   </style>
@@ -152,18 +152,18 @@ function codeBox(code: string): string {
     <td align="center">
       <div class="code-box" style="
         display:inline-block;
-        background:linear-gradient(135deg,#EEF4FF 0%,#DBEAFE 100%);
-        border:2px solid #BFDBFE;
-        border-radius:14px;
-        padding:24px 32px;
-        font-size:38px;
+        background:#1c1c1c;
+        border:2px solid #d4af37;
+        border-radius:12px;
+        padding:24px 40px;
+        font-size:34px;
         font-weight:900;
-        color:${BRAND_NAVY};
-        letter-spacing:14px;
+        color:#ffffff;
+        letter-spacing:10px;
         font-family:'Courier New',Courier,monospace;
         min-width:220px;
         text-align:center;
-        box-shadow:0 4px 14px rgba(26,115,232,0.12);
+        box-shadow:0 4px 18px rgba(212,175,55,0.20);
       ">${code}</div>
     </td>
   </tr>
