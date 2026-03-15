@@ -137,21 +137,13 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
           setMounted(true);
           setServerHydrated(true);
         } else {
-          // ── No server session: fall back to localStorage ─────────────────
-          // Covers the demo user and any temporary network issues.
-          const localUser = getCurrentUser();
-          if (!localUser) {
-            router.push("/login");
-            return;
-          }
-          // Read cached photo
-          const cachedPhoto = localStorage.getItem(`vaulte_photo_${localUser.email}`);
-          setProfilePhoto(cachedPhoto);
-          serverHydratedRef.current = true;
-          setCurrentUser(localUser);
-          setState(getState());
-          setMounted(true);
-          setServerHydrated(true);
+          // ── Server explicitly returned no session ────────────────────────
+          // The token is missing, expired, or invalid. Clear stale data and
+          // send the user to login — never serve a dashboard from cached state
+          // when the server has rejected the session.
+          localStorage.removeItem("vaulte_user");
+          router.push("/login");
+          return;
         }
       } catch {
         // Network failure — fall back to localStorage so the app stays usable offline

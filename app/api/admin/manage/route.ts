@@ -13,7 +13,7 @@ export async function PATCH(req: NextRequest) {
     const { email, accountStatus, kycStatus, adminNotes } = body as {
       email?: string;
       accountStatus?: "active" | "suspended" | "frozen" | "closed";
-      kycStatus?: "unverified" | "pending" | "verified";
+      kycStatus?: "unverified" | "pending" | "verified" | "rejected";
       adminNotes?: string;
     };
 

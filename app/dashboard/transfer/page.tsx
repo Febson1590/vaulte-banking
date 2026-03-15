@@ -12,6 +12,7 @@ import {
   lookupBank, searchBanks, maskAccountNumber, getTransferFees,
   simulateVerification, VerificationResult,
 } from "@/lib/transferData";
+import { normalizeKyc, KYC_UI } from "@/lib/kycUtils";
 
 // ─── Design Tokens ───────────────────────────────────────────
 const C = {
@@ -74,7 +75,7 @@ export default function TransferPage() {
   const router = useRouter();
   const [state, setState]             = useState<VaulteState>(DEFAULT_STATE);
   const [savedRecipients, setSaved]   = useState<Recipient[]>([]);
-  const [kycStatus, setKycStatus]     = useState<"verified"|"pending"|"none">("none");
+  const [kycStatus, setKycStatus]     = useState<string>("unverified");
   const [userId, setUserId]           = useState<string>("");
 
   // ── Step 1: Transfer type ──────────────────────────────────
@@ -122,7 +123,7 @@ export default function TransferPage() {
     setFromAccountId(first?.id ?? s.accounts[0]?.id ?? "");
     const user = getCurrentUser();
     if (user) {
-      setKycStatus(user.kycStatus as "verified" | "pending" | "none");
+      setKycStatus(user.kycStatus ?? "unverified");
       setUserId(user.id);
       setSaved(getRecipients(user.id));
     }
@@ -406,29 +407,40 @@ export default function TransferPage() {
     setFromAccountId(first?.id ?? "");
   };
 
-  // ─── KYC Gate ───────────────────────────────────────────
-  if (kycStatus !== "verified") {
+  // ─── KYC Gate ────────────────────────────────────────────
+  const nKyc = normalizeKyc(kycStatus);
+  if (nKyc !== "approved") {
+    const kyc = KYC_UI[nKyc];
+    const isPending  = nKyc === "pending";
+    const isRejected = nKyc === "rejected";
     return (
       <DashboardLayout title="Send Money" subtitle="U.S. bank transfers · ACH · Wire">
         <div style={{ maxWidth: 480, margin: "48px auto", textAlign: "center" }}>
           <div style={{ background: C.card, borderRadius: 24, padding: "48px 40px", border: `1px solid ${C.border}`, boxShadow: C.shadow }}>
-            <div style={{ width: 80, height: 80, borderRadius: "50%", background: kycStatus === "pending" ? "#FEF3C7" : "#FEF2F2", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, margin: "0 auto 24px" }}>
-              {kycStatus === "pending" ? "⏳" : "🔒"}
+            <div style={{
+              width: 80, height: 80, borderRadius: "50%",
+              background: isPending ? "#FEF3C7" : isRejected ? "#FEF2F2" : "#F0F7FF",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 36, margin: "0 auto 24px",
+            }}>
+              {isPending ? "⏳" : isRejected ? "✗" : "🔒"}
             </div>
             <h2 style={{ fontSize: 21, fontWeight: 800, color: C.text, marginBottom: 10 }}>
-              {kycStatus === "pending" ? "Verification In Progress" : "Identity Verification Required"}
+              {isPending ? "Verification In Progress" : isRejected ? "Verification Rejected" : "Identity Verification Required"}
             </h2>
             <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.75, marginBottom: 28 }}>
-              {kycStatus === "pending"
+              {isPending
                 ? "Your KYC submission is under review. Transfers will be unlocked once approved, usually within 24 hours."
-                : "Complete KYC verification to unlock transfers. This protects you and ensures regulatory compliance."}
+                : isRejected
+                  ? "Your verification was rejected. Please resubmit your documents to unlock transfers."
+                  : "Complete KYC verification to unlock transfers. This protects you and ensures regulatory compliance."}
             </p>
-            {kycStatus !== "pending" && (
-              <a href="/dashboard/settings" style={{ display: "inline-block", padding: "13px 32px", borderRadius: 14, background: "linear-gradient(135deg,#1A73E8,#1558b0)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>
-                Complete Verification →
+            {!isPending && (
+              <a href="/dashboard/kyc" style={{ display: "inline-block", padding: "13px 32px", borderRadius: 14, background: isRejected ? "linear-gradient(135deg,#EF4444,#b91c1c)" : "linear-gradient(135deg,#1A73E8,#1558b0)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>
+                {kyc.balanceCtaLabel ?? "Complete Verification →"}
               </a>
             )}
-            {kycStatus === "pending" && (
+            {isPending && (
               <div style={{ padding: "14px 18px", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, fontSize: 13, color: "#92400E", fontWeight: 500 }}>
                 ⏳ Estimated approval: within 24 hours
               </div>

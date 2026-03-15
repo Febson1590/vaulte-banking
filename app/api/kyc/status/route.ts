@@ -4,15 +4,13 @@
 //       Used by the dashboard to sync across devices.
 //
 //  POST /api/kyc/status
-//       Body: { email, kycStatus }
-//       Writes the kycStatus to Redis (called on KYC submission
-//       to store "pending", and on admin approval to store
-//       "verified" / "unverified").
+//       Authenticated. Body: { email, kycStatus: "pending" }
+//       Only allows setting "pending" (KYC submission).
+//       Only the authenticated user can update their own email.
+//       Admin writes (verified/rejected) go through /api/admin/manage.
 // ─────────────────────────────────────────────────────────────
 import { NextRequest, NextResponse } from "next/server";
-import redis, { RK } from "@/lib/redis";
-
-const VALID_STATUSES = ["unverified", "pending", "verified"] as const;
+import redis, { RK, SessionRecord } from "@/lib/redis";
 
 export async function GET(req: NextRequest) {
   try {
@@ -27,25 +25,44 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ kycStatus: kycStatus ?? "unverified" });
   } catch (err) {
     console.error("[GET /api/kyc/status]", err);
-    // Fail gracefully — caller will use localStorage fallback
     return NextResponse.json({ kycStatus: "unverified" });
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, kycStatus } = await req.json();
+    // ── Require a valid session ──────────────────────────────
+    const sessionToken = req.cookies.get("vaulte_session")?.value;
+    if (!sessionToken) {
+      return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+    }
+    const session = await redis.get<SessionRecord>(RK.session(sessionToken));
+    if (!session) {
+      return NextResponse.json({ error: "Session expired. Please sign in again." }, { status: 401 });
+    }
 
+    const { email, kycStatus } = await req.json();
     if (!email || !kycStatus) {
       return NextResponse.json({ error: "email and kycStatus are required" }, { status: 400 });
     }
-    if (!(VALID_STATUSES as readonly string[]).includes(kycStatus)) {
-      return NextResponse.json({ error: "Invalid kycStatus value" }, { status: 400 });
-    }
 
     const normalizedEmail = email.toLowerCase().trim();
-    await redis.set(RK.kycStatus(normalizedEmail), kycStatus);
 
+    // ── Users can only update their own KYC record ───────────
+    if (session.email !== normalizedEmail) {
+      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    }
+
+    // ── Users can only set their status to "pending" ─────────
+    // "verified" and "rejected" are admin-only — written via /api/admin/manage.
+    if (kycStatus !== "pending") {
+      return NextResponse.json(
+        { error: "Invalid status. Users may only submit a pending KYC request." },
+        { status: 403 }
+      );
+    }
+
+    await redis.set(RK.kycStatus(normalizedEmail), kycStatus);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[POST /api/kyc/status]", err);

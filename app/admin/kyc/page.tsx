@@ -104,8 +104,8 @@ export default function AdminKYC() {
 
       setSyncing(true);
       try {
-        const res = await fetch("/api/kyc/status", {
-          method:  "POST",
+        const res = await fetch("/api/admin/manage", {
+          method:  "PATCH",
           headers: { "Content-Type": "application/json" },
           body:    JSON.stringify({ email: entry.email, kycStatus }),
         });
