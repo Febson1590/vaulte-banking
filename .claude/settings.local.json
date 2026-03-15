@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc --noEmit)",
+      "Bash(git add app/globals.css components/DashboardLayout.tsx app/dashboard/page.tsx app/dashboard/cards/page.tsx app/dashboard/transactions/page.tsx app/dashboard/accounts/page.tsx)",
+      "Bash(git commit:*)",
+      "Bash(git push origin main)",
+      "Bash(nslookup vaulteapp.com)",
+      "Bash(nslookup www.vaulteapp.com)",
+      "Bash(nslookup vaulteapp.com 8.8.8.8)",
+      "Bash(curl -v --max-time 10 https://vaulteapp.com)",
+      "Bash(curl -v --max-time 10 http://vaulteapp.com)",
+      "Bash(curl -v --max-time 10 https://www.vaulteapp.com)",
+      "Bash(curl -I --max-time 10 https://vaulteapp.com)",
+      "Bash(git add app/dashboard/transfer/page.tsx app/globals.css)",
+      "Bash(git add app/globals.css app/dashboard/settings/page.tsx app/dashboard/kyc/page.tsx app/dashboard/security/page.tsx app/contact/page.tsx app/login-verify/page.tsx app/verify-email/page.tsx app/register/page.tsx)",
+      "Bash(git add app/api/admin/users/route.ts)",
+      "Bash(git add app/register/page.tsx)",
+      "Bash(git add app/admin/accounts/page.tsx app/admin/approvals/page.tsx app/admin/audit-logs/page.tsx app/admin/dashboard/page.tsx app/admin/kyc/page.tsx app/admin/reports/page.tsx app/admin/settings/page.tsx app/admin/transaction-generator/page.tsx app/admin/transactions/page.tsx app/admin/users/page.tsx app/globals.css components/AdminLayout.tsx)",
+      "Bash(git add app/admin/kyc/page.tsx app/dashboard/page.tsx lib/vaulteState.ts)",
+      "Bash(git push)",
+      "Bash(git add app/admin/kyc/page.tsx app/dashboard/kyc/page.tsx app/dashboard/page.tsx lib/redis.ts app/api/kyc/status/route.ts)",
+      "Bash(git add app/api/admin/users/route.ts app/api/auth/verify-email/route.ts app/api/auth/verify-login-otp/route.ts app/dashboard/page.tsx app/login-verify/page.tsx components/DashboardLayout.tsx lib/redis.ts lib/vaulteState.ts app/api/auth/session/ app/api/user/)",
+      "Bash(git add app/dashboard/page.tsx app/verify-email/page.tsx app/admin/kyc/page.tsx app/api/admin/users/route.ts)",
+      "Bash(node --version)",
+      "Bash(git add app/api/admin/flush-data/route.ts)",
+      "Bash(npx vercel --version)",
+      "Bash(npx vercel ls)",
+      "Bash(npx vercel login)"
+    ]
+  }
+}
