@@ -54,22 +54,36 @@ export async function DELETE(req: NextRequest) {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // ── Delete all Redis keys for this user ───────────────────
-    await redis.del(
-      RK.authUser(normalizedEmail),
-      RK.verifyOtp(normalizedEmail),
-      RK.loginOtp(normalizedEmail),
-      RK.rateLoginEmail(normalizedEmail),
-      RK.rateLoginIp(normalizedEmail),   // best-effort; real IP key may differ
-      RK.rateOtpVerify(normalizedEmail),
-      RK.rateResendOtp(normalizedEmail),
-      RK.rateForgot(normalizedEmail),
-      RK.loginHistory(userId),
-    );
+    // ── Delete all Redis keys for this user (one by one for reliability) ──
+    await redis.del(RK.authUser(normalizedEmail));
+    await redis.del(RK.verifyOtp(normalizedEmail));
+    await redis.del(RK.loginOtp(normalizedEmail));
+    await redis.del(RK.rateLoginEmail(normalizedEmail));
+    await redis.del(RK.rateOtpVerify(normalizedEmail));
+    await redis.del(RK.rateResendOtp(normalizedEmail));
+    await redis.del(RK.rateForgot(normalizedEmail));
+    await redis.del(RK.loginHistory(userId));
+    // Note: rateLoginIp and rateForgotIp are keyed by IP address (unknown here),
+    // so they expire naturally via their own TTL.
+
+    // ── Verify the primary auth record is gone ────────────────
+    const stillExists = await redis.exists(RK.authUser(normalizedEmail));
+    if (stillExists) {
+      console.error("[DELETE /api/admin/users] auth:user key still exists after del:", normalizedEmail);
+      // Retry deletion of the primary key
+      await redis.del(RK.authUser(normalizedEmail));
+      const retryCheck = await redis.exists(RK.authUser(normalizedEmail));
+      if (retryCheck) {
+        return NextResponse.json(
+          { error: "Failed to fully delete user from Redis. Please try again or delete manually from Upstash dashboard." },
+          { status: 500 }
+        );
+      }
+    }
 
     return NextResponse.json({ success: true, message: "User deleted successfully." });
   } catch (err) {
     console.error("[DELETE /api/admin/users]", err);
-    return NextResponse.json({ error: "Failed to delete user." }, { status: 500 });
+    return NextResponse.json({ error: "Failed to delete user. Check that UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are set in Vercel environment variables." }, { status: 500 });
   }
 }
