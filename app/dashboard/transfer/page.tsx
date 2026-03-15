@@ -446,7 +446,7 @@ export default function TransferPage() {
   const StepIndicator = () => {
     const currentStep = typeof step === "number" ? step : 5;
     return (
-      <div style={{ padding: "22px 28px 18px", borderBottom: `1px solid ${C.border}` }}>
+      <div className="transfer-stepper" style={{ padding: "22px 28px 18px", borderBottom: `1px solid ${C.border}` }}>
         <div style={{ display: "flex", alignItems: "center" }}>
           {STEP_LABELS.map((label, i) => {
             const n = i + 1;
@@ -484,7 +484,7 @@ export default function TransferPage() {
   // ─── Main UI ────────────────────────────────────────────
   return (
     <DashboardLayout title="Send Money" subtitle="U.S. bank transfers · ACH · Wire · Vaulte">
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 308px", gap: 24, alignItems: "start" }}>
+      <div className="transfer-main-grid" style={{ display: "grid", gridTemplateColumns: "1fr 308px", gap: 24, alignItems: "start" }}>
 
         {/* ══════════════ MAIN PANEL ══════════════ */}
         <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.border}`, boxShadow: C.shadow, overflow: "hidden" }}>
@@ -492,7 +492,7 @@ export default function TransferPage() {
           {/* Stepper (shown on steps 1-4) */}
           {typeof step === "number" && <StepIndicator />}
 
-          <div style={{ padding: "28px 28px 32px" }}>
+          <div className="transfer-panel-body" style={{ padding: "28px 28px 32px" }}>
 
             {/* ══════ STEP 1: Transfer Type ══════ */}
             {step === 1 && (
@@ -1018,7 +1018,7 @@ export default function TransferPage() {
         </div>
 
         {/* ══════════════ SIDEBAR ══════════════ */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        <div className="transfer-sidebar" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
 
           {/* Transfer info */}
           <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.border}`, boxShadow: C.shadow, padding: "20px 20px" }}>
