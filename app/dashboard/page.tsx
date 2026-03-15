@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import { getState, getCurrentUser, VaulteState, DEMO_STATE, Transaction, fmtDate, VaulteUser } from "@/lib/vaulteState";
+import { normalizeKyc, KYC_UI } from "@/lib/kycUtils";
 
 const C = {
   bg: "#F3F5FA", card: "#ffffff", navy: "#0F172A", blue: "#1A73E8",
@@ -61,6 +62,12 @@ export default function Dashboard() {
   const lastName    = currentUser?.lastName  ?? state.profile.lastName;
   const isVerified  = kycStatus === "verified";
 
+  // ── Centralized KYC state — single source of truth for all UI ────────────
+  // nKyc is "not_started" until mounted (prevents stale state flash before
+  // DashboardLayout hydration writes the real user to localStorage).
+  const nKyc = mounted ? normalizeKyc(kycStatus) : "not_started";
+  const kyc  = KYC_UI[nKyc];
+
   // Chart data: real transactions grouped by day for the last 7 days
   const chartData = (() => {
     const now = new Date();
@@ -89,52 +96,34 @@ export default function Dashboard() {
       title="Dashboard"
       subtitle={mounted ? new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" }) : ""}
     >
-      {/* ── KYC Banner ── */}
-      {mounted && kycStatus !== "verified" && (() => {
-        const isPending  = kycStatus === "pending";
-        const isRejected = kycStatus === "rejected";
-        const bg     = isPending ? "linear-gradient(135deg,#FFFBEB,#FEF3C7)" : "linear-gradient(135deg,#FEF2F2,#FEE2E2)";
-        const border = isPending ? "#FDE68A" : "#FECACA";
-        const iconBg = isPending ? "#FDE68A" : "#FECACA";
-        const icon   = isPending ? "⏳" : isRejected ? "❌" : "🔒";
-        const titleColor = isPending ? "#92400E" : "#991B1B";
-        const bodyColor  = isPending ? "#B45309"  : "#B91C1C";
-        const title  = isPending  ? "Verification Under Review"
-                      : isRejected ? "Verification Rejected"
-                      : "Identity Verification Required";
-        const body   = isPending  ? "Your documents are being reviewed. This usually takes 1-2 business days."
-                      : isRejected ? "Your verification was rejected. Please resubmit your documents to continue."
-                      : "Complete your KYC verification to unlock transfers, cards, and full account access.";
-        const ctaLabel = isRejected ? "Resubmit →" : "Verify Now →";
-        return (
-          <div style={{
-            background: bg, border: `1px solid ${border}`,
-            borderRadius: 16, padding: "16px 20px", marginBottom: 20,
-            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 13, background: iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
-                {icon}
-              </div>
-              <div>
-                <p style={{ fontSize: 14, fontWeight: 700, color: titleColor, marginBottom: 3 }}>{title}</p>
-                <p style={{ fontSize: 13, color: bodyColor }}>{body}</p>
-              </div>
+      {/* ── KYC Banner — driven entirely by KYC_UI[nKyc] ── */}
+      {mounted && nKyc !== "approved" && kyc.bannerTitle && (
+        <div style={{
+          background: kyc.bannerBg, border: `1px solid ${kyc.bannerBorder}`,
+          borderRadius: 16, padding: "16px 20px", marginBottom: 20,
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 13, background: kyc.bannerIconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
+              {kyc.bannerIcon}
             </div>
-            {(kycStatus === "unverified" || isRejected) && (
-              <Link href="/dashboard/kyc" style={{
-                padding: "9px 20px", borderRadius: 10,
-                background: isRejected ? "#B91C1C" : "#DC2626",
-                color: "#fff", fontSize: 13.5, fontWeight: 700, textDecoration: "none",
-                flexShrink: 0, transition: "background 0.15s",
-              }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#991B1B"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = isRejected ? "#B91C1C" : "#DC2626"; }}
-              >{ctaLabel}</Link>
-            )}
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 700, color: kyc.bannerTitleC, marginBottom: 3 }}>{kyc.bannerTitle}</p>
+              <p style={{ fontSize: 13, color: kyc.bannerBodyC }}>{kyc.bannerBody}</p>
+            </div>
           </div>
-        );
-      })()}
+          {kyc.ctaLabel && kyc.ctaHref && (
+            <Link href={kyc.ctaHref} style={{
+              padding: "9px 20px", borderRadius: 10, background: kyc.ctaBg,
+              color: "#fff", fontSize: 13.5, fontWeight: 700, textDecoration: "none",
+              flexShrink: 0, transition: "background 0.15s",
+            }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = kyc.ctaBgHover; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = kyc.ctaBg; }}
+            >{kyc.ctaLabel}</Link>
+          )}
+        </div>
+      )}
 
       {/* Tab nav */}
       <div className="dash-tabs" style={{ background: "#fff", borderBottom: `1px solid ${C.border}`, display: "flex", margin: "-28px -32px 28px", paddingLeft: 32, overflowX: "auto", WebkitOverflowScrolling: "touch" as React.CSSProperties["WebkitOverflowScrolling"] }}>
@@ -161,27 +150,23 @@ export default function Dashboard() {
       }}>
         <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "55%", background: "radial-gradient(ellipse at 75% 50%,rgba(26,115,232,0.07) 0%,transparent 70%)", pointerEvents: "none" }} />
         <div style={{ position: "relative" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
-            <div style={{
-              width: 7, height: 7, borderRadius: "50%",
-              background: isVerified ? "#22C55E" : kycStatus === "rejected" ? "#EF4444" : "#F59E0B",
-              boxShadow: `0 0 0 3px ${isVerified ? "rgba(34,197,94,0.18)" : kycStatus === "rejected" ? "rgba(239,68,68,0.18)" : "rgba(245,158,11,0.18)"}`,
-            }} />
-            <span style={{ fontSize: 12, color: C.sub, fontWeight: 500 }}>
-              {isVerified       ? "Account Active"
-              : kycStatus === "pending"  ? "Verification Pending"
-              : kycStatus === "rejected" ? "Verification Rejected"
-              : "Unverified Account"}
-            </span>
-          </div>
+          {/* Status chip — only rendered after mount so we never show stale state */}
+          {mounted && (
+            <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
+              <div style={{
+                width: 7, height: 7, borderRadius: "50%",
+                background: kyc.dotColor,
+                boxShadow: `0 0 0 3px ${kyc.dotRing}`,
+              }} />
+              <span style={{ fontSize: 12, color: C.sub, fontWeight: 500 }}>{kyc.chipLabel}</span>
+            </div>
+          )}
           <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, marginBottom: 6, letterSpacing: "-0.5px" }}>
             Welcome back, {firstName} {lastName} 👋
           </h1>
+          {/* Subtitle — gated by mounted to avoid "unverified" flash before hydration */}
           <p style={{ fontSize: 13.5, color: C.sub }}>
-            {isVerified           ? "Here's an overview of your account."
-            : kycStatus === "pending"  ? "Your verification is under review."
-            : kycStatus === "rejected" ? "Your verification was rejected. Please resubmit."
-            : "Complete verification to start banking."}
+            {mounted ? kyc.subtitle : ""}
           </p>
         </div>
         {/* Phone mockup */}
@@ -231,19 +216,23 @@ export default function Dashboard() {
                 )}
               </div>
 
-              {!isVerified && totalUSD === 0 ? (
-                /* Empty state for unverified/new user */
-                <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 14, padding: "20px 22px", display: "flex", alignItems: "flex-start", gap: 14 }}>
-                  <span style={{ fontSize: 24 }}>🏦</span>
+              {/* Balance card lower section:
+                  - Before mounted: render nothing (avoids flash with wrong kycStatus)
+                  - After mounted, not approved, $0 balance: show kycStatus-aware prompt
+                  - Otherwise: show Quick Actions + Holdings grid */}
+              {!mounted ? null : nKyc !== "approved" && totalUSD === 0 ? (
+                /* KYC-aware empty state — copy driven by KYC_UI[nKyc] */
+                <div style={{ background: kyc.balanceBg, border: `1px solid ${kyc.balanceBorder}`, borderRadius: 14, padding: "20px 22px", display: "flex", alignItems: "flex-start", gap: 14 }}>
+                  <span style={{ fontSize: 24, flexShrink: 0 }}>{kyc.balanceIcon}</span>
                   <div>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: "#92400E", marginBottom: 4 }}>Your account balance is $0.00</p>
-                    <p style={{ fontSize: 13, color: "#B45309", lineHeight: 1.6 }}>
-                      Complete identity verification to unlock deposits, transfers, and the full Vaulte experience.
-                    </p>
-                    <Link href="/dashboard/kyc" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 12, padding: "8px 16px", borderRadius: 9, background: "#F59E0B", color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none", transition: "background 0.15s" }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#D97706"; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#F59E0B"; }}
-                    >Complete KYC →</Link>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: kyc.balanceTitleC, marginBottom: 4 }}>{kyc.balanceTitle}</p>
+                    <p style={{ fontSize: 13, color: kyc.balanceBodyC, lineHeight: 1.6 }}>{kyc.balanceBody}</p>
+                    {kyc.balanceCtaLabel && kyc.balanceCtaHref && (
+                      <Link href={kyc.balanceCtaHref} style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 12, padding: "8px 16px", borderRadius: 9, background: kyc.balanceCtaBg, color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none", transition: "background 0.15s" }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = kyc.balanceCtaHv; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = kyc.balanceCtaBg; }}
+                      >{kyc.balanceCtaLabel}</Link>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -497,16 +486,20 @@ export default function Dashboard() {
               </div>
             </Link>
           ) : (
-            /* No card issued state */
+            /* No card issued state — message driven by KYC_UI[nKyc] */
             <div style={card({ padding: "22px 20px" })}>
               <p style={{ fontSize: 14.5, fontWeight: 700, color: C.text, letterSpacing: "-0.2px", marginBottom: 4 }}>Virtual Card</p>
               <div style={{ padding: "28px 16px", textAlign: "center" }}>
                 <div style={{ width: 64, height: 44, borderRadius: 10, background: C.bg, border: `2px dashed ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px", fontSize: 22 }}>💳</div>
                 <p style={{ fontSize: 13.5, fontWeight: 600, color: C.text, marginBottom: 6 }}>No Card Issued Yet</p>
-                <p style={{ fontSize: 12.5, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>Complete identity verification to request your Vaulte virtual card.</p>
-                <Link href="/dashboard/cards" style={{ display: "inline-block", padding: "9px 18px", borderRadius: 10, background: C.blue, color: "#fff", fontSize: 12.5, fontWeight: 600, textDecoration: "none" }}>
-                  Request Card →
-                </Link>
+                <p style={{ fontSize: 12.5, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                  {mounted ? kyc.cardMsg : ""}
+                </p>
+                {mounted && kyc.cardCtaHref && kyc.cardCtaLabel && (
+                  <Link href={kyc.cardCtaHref} style={{ display: "inline-block", padding: "9px 18px", borderRadius: 10, background: nKyc === "approved" ? C.blue : "#F59E0B", color: "#fff", fontSize: 12.5, fontWeight: 600, textDecoration: "none" }}>
+                    {kyc.cardCtaLabel} →
+                  </Link>
+                )}
               </div>
             </div>
           )}
@@ -516,12 +509,12 @@ export default function Dashboard() {
             <p style={{ fontSize: 14.5, fontWeight: 700, color: C.text, letterSpacing: "-0.2px", marginBottom: 16 }}>Account Status</p>
             {[
               {
-                label: "KYC Verification",
-                status: kycStatus === "verified" ? "Verified" : kycStatus === "pending" ? "Pending Review" : "Not Verified",
-                color: kycStatus === "verified" ? "#059669" : kycStatus === "pending" ? "#D97706" : "#EF4444",
-                bg:    kycStatus === "verified" ? "#ECFDF5" : kycStatus === "pending" ? "#FFFBEB" : "#FEF2F2",
-                dot:   kycStatus === "verified" ? "#22C55E" : kycStatus === "pending" ? "#F59E0B" : "#EF4444",
-                dotRing: kycStatus === "verified" ? "rgba(34,197,94,0.2)" : kycStatus === "pending" ? "rgba(245,158,11,0.2)" : "rgba(239,68,68,0.2)",
+                label:   "KYC Verification",
+                status:  kyc.statusLabel,
+                color:   kyc.statusColor,
+                bg:      kyc.statusBg,
+                dot:     kyc.statusDot,
+                dotRing: kyc.statusDotRing,
               },
               {
                 label: "2FA Security",

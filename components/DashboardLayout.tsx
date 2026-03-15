@@ -6,6 +6,7 @@ import {
   getState, getCurrentUser, saveCurrentUser, saveUsers, getUsers, createEmptyUserState,
   VaulteState, DEMO_STATE, getTotalBalanceUSD, fmtAmount, VaulteUser,
 } from "@/lib/vaulteState";
+import { normalizeKyc, KYC_UI } from "@/lib/kycUtils";
 
 const C = {
   bg: "#F3F5FA", card: "#ffffff", navy: "#0F172A", blue: "#1A73E8",
@@ -210,7 +211,11 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
   const lastName    = user?.lastName  ?? "";
   const initials    = `${firstName[0] ?? "U"}${lastName[0] ?? ""}`.toUpperCase();
   const kycStatus   = user?.kycStatus ?? "unverified";
-  const kycBadge    = KYC_BADGE[kycStatus];
+  // KYC_BADGE uses raw kycStatus for the topbar pill (safe: badge exists for all 4 values)
+  const kycBadge    = KYC_BADGE[kycStatus] ?? KYC_BADGE["unverified"];
+  // Centralized normalized state used for sidebar messaging
+  const nKyc        = normalizeKyc(kycStatus);
+  const sidebarKyc  = KYC_UI[nKyc];
   const unreadCount = mounted ? state.notifications.filter(n => !n.read).length : 0;
 
   const SidebarContent = () => (
@@ -329,7 +334,9 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
             ))}
           </div>
         ) : (
-          <p style={{ fontSize: 11.5, color: "rgba(255,255,255,0.35)", marginTop: 10 }}>Complete KYC to activate your account</p>
+          sidebarKyc.sidebarNote && (
+            <p style={{ fontSize: 11.5, color: "rgba(255,255,255,0.35)", marginTop: 10 }}>{sidebarKyc.sidebarNote}</p>
+          )
         )}
       </div>
 
