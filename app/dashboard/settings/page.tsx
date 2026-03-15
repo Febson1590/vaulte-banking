@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { getState, saveState, VaulteState, DEFAULT_STATE, getCurrentUser } from "@/lib/vaulteState";
+import { getState, saveState, VaulteState, DEFAULT_STATE, getCurrentUser, VaulteUser } from "@/lib/vaulteState";
 
 const C = {
   bg: "#F3F5FA", card: "#ffffff", navy: "#0F172A", blue: "#1A73E8",
@@ -37,6 +37,11 @@ export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>("profile");
   const [toast, setToast] = useState<string | null>(null);
 
+  // Current user + photo
+  const [currentUser,  setCurrentUser]  = useState<VaulteUser | null>(null);
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [photoLoading, setPhotoLoading] = useState(false);
+
   // Profile form state
   const [firstName, setFirstName] = useState("");
   const [lastName,  setLastName]  = useState("");
@@ -65,11 +70,92 @@ export default function SettingsPage() {
     setAddress(s.profile.address);
     setCity(s.profile.city);
     setCountry(s.profile.country);
+
+    // Load current user (for kycStatus) and cached profile photo
+    const user = getCurrentUser();
+    setCurrentUser(user);
+    if (user?.email) {
+      const cachedPhoto = localStorage.getItem(`vaulte_photo_${user.email}`);
+      setProfilePhoto(cachedPhoto);
+    }
   }, []);
+
+  const kycStatus = currentUser?.kycStatus ?? "unverified";
 
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2800);
+  };
+
+  // ── Profile photo helpers ──────────────────────────────────
+  function compressImage(file: File, maxSize = 256, quality = 0.75): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+          canvas.width  = Math.round(img.width  * scale);
+          canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { reject(new Error("Canvas not supported")); return; }
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = reject;
+        img.src = e.target!.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoLoading(true);
+    try {
+      const compressed = await compressImage(file, 256, 0.75);
+      const res = await fetch("/api/user/photo", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ photo: compressed }),
+      });
+      if (res.ok) {
+        setProfilePhoto(compressed);
+        if (currentUser?.email) {
+          localStorage.setItem(`vaulte_photo_${currentUser.email}`, compressed);
+        }
+        showToast("Profile photo updated.");
+      } else {
+        const data = await res.json();
+        showToast(data.error ?? "Failed to save photo. Please try again.");
+      }
+    } catch {
+      showToast("Failed to process image. Please try a different file.");
+    } finally {
+      setPhotoLoading(false);
+      e.target.value = ""; // reset input so same file can be re-selected
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    setPhotoLoading(true);
+    try {
+      const res = await fetch("/api/user/photo", { method: "DELETE" });
+      if (res.ok) {
+        setProfilePhoto(null);
+        if (currentUser?.email) {
+          localStorage.removeItem(`vaulte_photo_${currentUser.email}`);
+        }
+        showToast("Profile photo removed.");
+      }
+    } catch {
+      showToast("Failed to remove photo. Please try again.");
+    } finally {
+      setPhotoLoading(false);
+    }
   };
 
   const saveProfile = () => {
@@ -180,19 +266,58 @@ export default function SettingsPage() {
               <p style={{ fontSize: 17, fontWeight: 700, color: C.text, letterSpacing: "-0.3px", marginBottom: 4 }}>Personal Information</p>
               <p style={{ fontSize: 13, color: C.muted, marginBottom: 28 }}>Update your name, contact details, and address.</p>
 
-              {/* Avatar */}
-              <div style={{ display: "flex", alignItems: "center", gap: 18, marginBottom: 30, padding: "18px 20px", background: C.bg, borderRadius: 16, border: `1px solid ${C.border}` }}>
-                <div style={{ width: 64, height: 64, borderRadius: "50%", background: "linear-gradient(135deg,#1A73E8,#1558b0)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 700, color: "#fff", flexShrink: 0, boxShadow: "0 4px 16px rgba(26,115,232,0.28)" }}>
-                  {firstName[0] ?? "J"}{lastName[0] ?? "D"}
+              {/* Avatar with photo upload */}
+              <div style={{ display: "flex", alignItems: "center", gap: 18, marginBottom: 30, padding: "18px 20px", background: C.bg, borderRadius: 16, border: `1px solid ${C.border}`, flexWrap: "wrap" }}>
+                {/* Avatar circle + edit button */}
+                <div style={{ position: "relative", flexShrink: 0 }}>
+                  {profilePhoto ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={profilePhoto} alt="Profile photo"
+                      style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", display: "block", boxShadow: "0 4px 16px rgba(26,115,232,0.28)" }} />
+                  ) : (
+                    <div style={{ width: 64, height: 64, borderRadius: "50%", background: "linear-gradient(135deg,#1A73E8,#1558b0)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 700, color: "#fff", boxShadow: "0 4px 16px rgba(26,115,232,0.28)" }}>
+                      {(firstName[0] ?? "U").toUpperCase()}{(lastName[0] ?? "").toUpperCase()}
+                    </div>
+                  )}
+                  {/* Edit button overlay */}
+                  <label htmlFor="photo-upload" title="Upload photo" style={{
+                    position: "absolute", bottom: -2, right: -2,
+                    width: 24, height: 24, borderRadius: "50%",
+                    background: photoLoading ? "#94A3B8" : C.blue,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    cursor: photoLoading ? "not-allowed" : "pointer",
+                    boxShadow: "0 2px 8px rgba(26,115,232,0.4)", border: "2.5px solid #fff",
+                    transition: "background 0.18s",
+                  }}>
+                    <span style={{ fontSize: 11, color: "#fff", lineHeight: 1 }}>{photoLoading ? "…" : "✎"}</span>
+                  </label>
+                  <input id="photo-upload" type="file" accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={handlePhotoChange}
+                    disabled={photoLoading}
+                  />
                 </div>
-                <div>
+
+                {/* Name + email + KYC badge */}
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{firstName} {lastName}</p>
                   <p style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>{email}</p>
-                  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "#059669", background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 20, padding: "2px 10px" }}>✓ ID Verified</span>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "#1A73E8", background: "#EEF4FF", border: "1px solid #BFDBFE", borderRadius: 20, padding: "2px 10px" }}>Premium</span>
+                  <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                    {kycStatus === "verified"   && <span style={{ fontSize: 11, fontWeight: 600, color: "#059669", background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 20, padding: "2px 10px" }}>✓ ID Verified</span>}
+                    {kycStatus === "pending"    && <span style={{ fontSize: 11, fontWeight: 600, color: "#D97706", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 20, padding: "2px 10px" }}>⏳ Verification Pending</span>}
+                    {kycStatus === "rejected"   && <span style={{ fontSize: 11, fontWeight: 600, color: "#DC2626", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 20, padding: "2px 10px" }}>✗ Verification Rejected</span>}
+                    {kycStatus === "unverified" && <span style={{ fontSize: 11, fontWeight: 600, color: "#6B7280", background: "#F3F4F6", border: "1px solid #E5E7EB", borderRadius: 20, padding: "2px 10px" }}>◎ Not Verified</span>}
                   </div>
                 </div>
+
+                {/* Remove photo button — only shown when photo exists */}
+                {profilePhoto && (
+                  <button onClick={handleRemovePhoto} disabled={photoLoading}
+                    style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #FECACA", background: "transparent", color: "#DC2626", fontSize: 12.5, fontWeight: 600, cursor: photoLoading ? "not-allowed" : "pointer", fontFamily: "inherit", flexShrink: 0, transition: "background 0.15s" }}
+                    onMouseEnter={e => { if (!photoLoading) (e.currentTarget as HTMLElement).style.background = "#FEF2F2"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                  >Remove Photo</button>
+                )}
               </div>
 
               <div className="settings-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>

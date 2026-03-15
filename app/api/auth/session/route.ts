@@ -26,8 +26,11 @@ export async function GET(req: NextRequest) {
     // Fetch KYC status (stored separately for cross-device consistency)
     const kycStatus = await redis.get<string>(RK.kycStatus(session.email)) ?? "unverified";
 
-    // Fetch full KYC submission data if available
-    const kycData = await redis.get<Record<string, string>>(RK.kycData(session.email));
+    // Fetch full KYC submission data, profile photo in parallel
+    const [kycData, profilePhoto] = await Promise.all([
+      redis.get<Record<string, string>>(RK.kycData(session.email)),
+      redis.get<string>(RK.userPhoto(session.email)),
+    ]);
 
     return NextResponse.json({
       user: {
@@ -44,7 +47,8 @@ export async function GET(req: NextRequest) {
         kycSubmittedAt: kycData?.submittedAt ?? null,
         createdAt:      authUser.createdAt,
         emailVerified:  authUser.emailVerified,
-        accountStatus:  "active" as const,
+        accountStatus:  authUser.accountStatus ?? "active",
+        profilePhoto:   profilePhoto ?? null,
       },
     });
   } catch (err) {

@@ -54,6 +54,8 @@ export const RK = {
   session:        (token: string) => `session:${token}`,
   // User banking state (accounts, transactions, card, preferences, etc.)
   userState:      (email: string) => `user:state:${email.toLowerCase()}`,
+  // User profile photo (stored as base64 data URL)
+  userPhoto:      (email: string) => `user:photo:${email.toLowerCase()}`,
 } as const;
 
 // ─── Session Record ───────────────────────────────────────────
@@ -80,6 +82,7 @@ export interface AuthUser {
   // Admin-managed fields (written via /api/admin/manage)
   accountStatus?:        "active" | "suspended" | "frozen" | "closed";
   adminNotes?:           string;
+  profilePhoto?:         string;
 }
 
 export interface OtpRecord {

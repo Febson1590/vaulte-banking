@@ -59,7 +59,6 @@ export default function Dashboard() {
   const kycStatus   = currentUser?.kycStatus ?? "unverified";
   const firstName   = currentUser?.firstName ?? state.profile.firstName;
   const lastName    = currentUser?.lastName  ?? state.profile.lastName;
-  const isNewUser   = totalUSD === 0 && state.transactions.length === 0;
   const isVerified  = kycStatus === "verified";
 
   // Chart data: real transactions grouped by day for the last 7 days
@@ -91,42 +90,51 @@ export default function Dashboard() {
       subtitle={mounted ? new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" }) : ""}
     >
       {/* ── KYC Banner ── */}
-      {mounted && kycStatus !== "verified" && (
-        <div style={{
-          background: kycStatus === "pending"
-            ? "linear-gradient(135deg,#FFFBEB,#FEF3C7)"
-            : "linear-gradient(135deg,#FEF2F2,#FEE2E2)",
-          border: `1px solid ${kycStatus === "pending" ? "#FDE68A" : "#FECACA"}`,
-          borderRadius: 16, padding: "16px 20px", marginBottom: 20,
-          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 13, background: kycStatus === "pending" ? "#FDE68A" : "#FECACA", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
-              {kycStatus === "pending" ? "⏳" : "🔒"}
+      {mounted && kycStatus !== "verified" && (() => {
+        const isPending  = kycStatus === "pending";
+        const isRejected = kycStatus === "rejected";
+        const bg     = isPending ? "linear-gradient(135deg,#FFFBEB,#FEF3C7)" : "linear-gradient(135deg,#FEF2F2,#FEE2E2)";
+        const border = isPending ? "#FDE68A" : "#FECACA";
+        const iconBg = isPending ? "#FDE68A" : "#FECACA";
+        const icon   = isPending ? "⏳" : isRejected ? "❌" : "🔒";
+        const titleColor = isPending ? "#92400E" : "#991B1B";
+        const bodyColor  = isPending ? "#B45309"  : "#B91C1C";
+        const title  = isPending  ? "Verification Under Review"
+                      : isRejected ? "Verification Rejected"
+                      : "Identity Verification Required";
+        const body   = isPending  ? "Your documents are being reviewed. This usually takes 1-2 business days."
+                      : isRejected ? "Your verification was rejected. Please resubmit your documents to continue."
+                      : "Complete your KYC verification to unlock transfers, cards, and full account access.";
+        const ctaLabel = isRejected ? "Resubmit →" : "Verify Now →";
+        return (
+          <div style={{
+            background: bg, border: `1px solid ${border}`,
+            borderRadius: 16, padding: "16px 20px", marginBottom: 20,
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 13, background: iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
+                {icon}
+              </div>
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 700, color: titleColor, marginBottom: 3 }}>{title}</p>
+                <p style={{ fontSize: 13, color: bodyColor }}>{body}</p>
+              </div>
             </div>
-            <div>
-              <p style={{ fontSize: 14, fontWeight: 700, color: kycStatus === "pending" ? "#92400E" : "#991B1B", marginBottom: 3 }}>
-                {kycStatus === "pending" ? "Verification Under Review" : "Identity Verification Required"}
-              </p>
-              <p style={{ fontSize: 13, color: kycStatus === "pending" ? "#B45309" : "#B91C1C" }}>
-                {kycStatus === "pending"
-                  ? "Your documents are being reviewed. This usually takes 1-2 business days."
-                  : "Complete your KYC verification to unlock transfers, cards, and full account access."}
-              </p>
-            </div>
+            {(kycStatus === "unverified" || isRejected) && (
+              <Link href="/dashboard/kyc" style={{
+                padding: "9px 20px", borderRadius: 10,
+                background: isRejected ? "#B91C1C" : "#DC2626",
+                color: "#fff", fontSize: 13.5, fontWeight: 700, textDecoration: "none",
+                flexShrink: 0, transition: "background 0.15s",
+              }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#991B1B"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = isRejected ? "#B91C1C" : "#DC2626"; }}
+              >{ctaLabel}</Link>
+            )}
           </div>
-          {kycStatus === "unverified" && (
-            <Link href="/dashboard/kyc" style={{
-              padding: "9px 20px", borderRadius: 10, background: "#DC2626", color: "#fff",
-              fontSize: 13.5, fontWeight: 700, textDecoration: "none", flexShrink: 0,
-              transition: "background 0.15s",
-            }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#B91C1C"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#DC2626"; }}
-            >Verify Now →</Link>
-          )}
-        </div>
-      )}
+        );
+      })()}
 
       {/* Tab nav */}
       <div className="dash-tabs" style={{ background: "#fff", borderBottom: `1px solid ${C.border}`, display: "flex", margin: "-28px -32px 28px", paddingLeft: 32, overflowX: "auto", WebkitOverflowScrolling: "touch" as React.CSSProperties["WebkitOverflowScrolling"] }}>
@@ -156,18 +164,24 @@ export default function Dashboard() {
           <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
             <div style={{
               width: 7, height: 7, borderRadius: "50%",
-              background: isVerified ? "#22C55E" : "#F59E0B",
-              boxShadow: `0 0 0 3px ${isVerified ? "rgba(34,197,94,0.18)" : "rgba(245,158,11,0.18)"}`,
+              background: isVerified ? "#22C55E" : kycStatus === "rejected" ? "#EF4444" : "#F59E0B",
+              boxShadow: `0 0 0 3px ${isVerified ? "rgba(34,197,94,0.18)" : kycStatus === "rejected" ? "rgba(239,68,68,0.18)" : "rgba(245,158,11,0.18)"}`,
             }} />
             <span style={{ fontSize: 12, color: C.sub, fontWeight: 500 }}>
-              {isVerified ? "Account Active" : kycStatus === "pending" ? "Verification Pending" : "Unverified Account"}
+              {isVerified       ? "Account Active"
+              : kycStatus === "pending"  ? "Verification Pending"
+              : kycStatus === "rejected" ? "Verification Rejected"
+              : "Unverified Account"}
             </span>
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, marginBottom: 6, letterSpacing: "-0.5px" }}>
             Welcome back, {firstName} {lastName} 👋
           </h1>
           <p style={{ fontSize: 13.5, color: C.sub }}>
-            {isNewUser ? "Your account is ready. Complete verification to start banking." : "Here's an overview of your account."}
+            {isVerified           ? "Here's an overview of your account."
+            : kycStatus === "pending"  ? "Your verification is under review."
+            : kycStatus === "rejected" ? "Your verification was rejected. Please resubmit."
+            : "Complete verification to start banking."}
           </p>
         </div>
         {/* Phone mockup */}

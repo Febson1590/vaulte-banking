@@ -75,6 +75,7 @@ export default function AdminKYC() {
                         : `Joined ${new Date(u.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
           status:     u.kycStatus === "verified" ? "Approved"
                     : u.kycStatus === "pending"  ? "Pending"
+                    : u.kycStatus === "rejected" ? "Rejected"
                     : "Pending",
           country:    u.kycNationality ?? "Unknown",
           isRealUser: true,
@@ -97,8 +98,8 @@ export default function AdminKYC() {
 
     if (entry?.isRealUser && entry.userId) {
       const kycStatus =
-        status === "Approved" ? "verified"
-        : status === "Rejected" ? "unverified"
+        status === "Approved"  ? "verified"
+        : status === "Rejected" ? "rejected"
         : "pending";
 
       setSyncing(true);

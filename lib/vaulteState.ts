@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────
 
 // ─── User Types ────────────────────────────────────────────
-export type KycStatus = "unverified" | "pending" | "verified";
+export type KycStatus = "unverified" | "pending" | "verified" | "rejected";
 
 export interface VaulteUser {
   id: string;
@@ -23,6 +23,7 @@ export interface VaulteUser {
   kycCity?: string;
   accountStatus?: "active" | "suspended" | "frozen" | "closed";
   adminNotes?: string;
+  profilePhoto?: string;
 }
 
 // ─── Account ────────────────────────────────────────────────

@@ -28,6 +28,7 @@ const KYC_BADGE: Record<string, { label: string; color: string; bg: string }> = 
   verified:   { label: "✓ Verified",   color: "#059669", bg: "rgba(5,150,105,0.12)" },
   pending:    { label: "⏳ Pending",    color: "#D97706", bg: "rgba(217,119,6,0.12)" },
   unverified: { label: "◎ Unverified", color: "#EF4444", bg: "rgba(239,68,68,0.12)" },
+  rejected:   { label: "✗ Rejected",   color: "#DC2626", bg: "rgba(220,38,38,0.12)" },
 };
 
 interface Props {
@@ -42,6 +43,7 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
   const pathname = usePathname();
   const [state,          setState]          = useState<VaulteState>(DEMO_STATE);
   const [currentUser,    setCurrentUser]    = useState<VaulteUser | null>(null);
+  const [profilePhoto,   setProfilePhoto]   = useState<string | null>(null);
   const [mounted,        setMounted]        = useState(false);
   const [sidebarOpen,    setSidebarOpen]    = useState(false);
   const [serverHydrated, setServerHydrated] = useState(false);
@@ -97,6 +99,18 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
           saveUsers(allUsers);
           saveCurrentUser(serverUser);
 
+          // Sync profile photo from server → localStorage
+          const photoKey = `vaulte_photo_${serverUser.email}`;
+          if ((serverUser as VaulteUser & { profilePhoto?: string | null }).profilePhoto) {
+            const photo = (serverUser as VaulteUser & { profilePhoto?: string | null }).profilePhoto!;
+            setProfilePhoto(photo);
+            localStorage.setItem(photoKey, photo);
+          } else {
+            // Prefer localStorage cached photo (updated by settings page)
+            const cachedPhoto = localStorage.getItem(photoKey);
+            setProfilePhoto(cachedPhoto);
+          }
+
           // Populate banking state from Redis, or seed it if this is the first login
           if (stateData.state) {
             localStorage.setItem(
@@ -129,6 +143,9 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
             router.push("/login");
             return;
           }
+          // Read cached photo
+          const cachedPhoto = localStorage.getItem(`vaulte_photo_${localUser.email}`);
+          setProfilePhoto(cachedPhoto);
           serverHydratedRef.current = true;
           setCurrentUser(localUser);
           setState(getState());
@@ -152,7 +169,16 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
   }, [router]);
 
   useEffect(() => {
-    if (mounted) { setState(getState()); setCurrentUser(getCurrentUser()); }
+    if (mounted) {
+      setState(getState());
+      const user = getCurrentUser();
+      setCurrentUser(user);
+      // Re-read photo so settings page updates are reflected immediately
+      if (user?.email) {
+        const photo = localStorage.getItem(`vaulte_photo_${user.email}`);
+        setProfilePhoto(photo);
+      }
+    }
   }, [pathname, mounted]);
 
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
@@ -239,7 +265,7 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
           >
             <span style={{ fontSize: 14, color: "#EF4444", lineHeight: 1 }}>🪪</span>
             <span style={{ fontSize: 13.5, fontWeight: 600, color: kycStatus === "pending" ? "#F59E0B" : "#EF4444", letterSpacing: "0.01em" }}>
-              {kycStatus === "pending" ? "KYC Pending" : "Verify Identity"}
+              {kycStatus === "pending" ? "KYC Pending" : kycStatus === "rejected" ? "KYC Rejected" : "Verify Identity"}
             </span>
             <span style={{ marginLeft: "auto", width: 7, height: 7, borderRadius: "50%", background: kycStatus === "pending" ? "#F59E0B" : "#EF4444", flexShrink: 0 }} />
           </Link>
@@ -430,7 +456,12 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = C.bg; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
             >
-              <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#1A73E8,#1558b0)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff", boxShadow: "0 0 0 2px rgba(26,115,232,0.18)", flexShrink: 0 }}>{initials}</div>
+              {profilePhoto ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={profilePhoto} alt={`${firstName} ${lastName}`} style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0, boxShadow: "0 0 0 2px rgba(26,115,232,0.18)", display: "block" }} />
+              ) : (
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#1A73E8,#1558b0)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff", boxShadow: "0 0 0 2px rgba(26,115,232,0.18)", flexShrink: 0 }}>{initials}</div>
+              )}
               <div className="vaulte-profile-name" style={{ lineHeight: 1 }}>
                 <p style={{ fontSize: 13, fontWeight: 600, color: C.text, letterSpacing: "-0.1px" }}>{firstName} {lastName}</p>
                 <p style={{ fontSize: 11, fontWeight: 600, marginTop: 2, color: kycBadge.color }}>{kycBadge.label}</p>
