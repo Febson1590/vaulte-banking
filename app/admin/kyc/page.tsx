@@ -92,7 +92,7 @@ export default function AdminKYC() {
 
   const filtered = kycs.filter(k => filter === "All" || k.status === filter);
 
-  // ─── Update KYC status — also writes to real user store ─
+  // ─── Update KYC status — writes to localStorage + Redis ─
   const updateStatus = (id: string, status: string) => {
     const entry = kycs.find(k => k.id === id);
 
@@ -103,6 +103,13 @@ export default function AdminKYC() {
         : status === "Rejected" ? "unverified"
         : "pending";
       updateUser(entry.userId, { kycStatus });
+
+      // Also persist to Redis so other devices see the update immediately
+      fetch("/api/kyc/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: entry.email, kycStatus }),
+      }).catch(err => console.error("[admin/kyc] Redis sync failed:", err));
     }
 
     setKycs(prev => prev.map(k => k.id === id ? { ...k, status } : k));

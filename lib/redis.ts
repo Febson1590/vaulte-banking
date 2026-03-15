@@ -46,6 +46,8 @@ export const RK = {
   rateForgot:     (email: string) => `rate:forgot:${email.toLowerCase()}`,
   rateForgotIp:   (ip: string)    => `rate:forgot:ip:${ip}`,
   loginHistory:   (userId: string) => `login:history:${userId}`,
+  // KYC status stored separately from auth record for cross-device sync
+  kycStatus:      (email: string) => `kyc:status:${email.toLowerCase()}`,
 } as const;
 
 // ─── Auth User Record Interface ──────────────────────────────

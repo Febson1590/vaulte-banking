@@ -152,6 +152,12 @@ export default function KYCPage() {
         dob: form.dob, nationality: form.nationality,
         address: form.address, city: form.city,
       });
+      // Also write "pending" to Redis so other devices see the submission
+      fetch("/api/kyc/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email, kycStatus: "pending" }),
+      }).catch(err => console.error("[kyc/submit] Redis sync failed:", err));
       setSubmitting(false);
       setStep(3);
     }, 1800);
