@@ -8,7 +8,7 @@ import {
   RecipientType, getCurrentUser,
 } from "@/lib/vaulteState";
 import {
-  US_BANKS, BankEntry, validateRoutingNumber, validateAccountNumber,
+  BankEntry, validateRoutingNumber, validateAccountNumber,
   lookupBank, searchBanks, maskAccountNumber, getTransferFees,
   simulateVerification, VerificationResult,
 } from "@/lib/transferData";
@@ -54,7 +54,7 @@ interface InternalForm {
 // ─── ACH / Wire Form ────────────────────────────────────────
 interface BankForm {
   recipientName:   string;
-  routingNumber:   string;
+  routingNumber:   string;  // ABA (US) or SWIFT/BIC (international)
   accountNumber:   string;
   confirmAccount:  string;
   accountType:     "checking" | "savings";
@@ -63,12 +63,15 @@ interface BankForm {
   bankState:       string;
   bankAddress:     string; // wire only (optional)
   memo:            string;
+  isInternational: boolean; // true when a non-US bank is selected
+  bankCountry:     string;  // country name for display
 }
 
 const emptyBankForm = (): BankForm => ({
   recipientName: "", routingNumber: "", accountNumber: "",
   confirmAccount: "", accountType: "checking", bankName: "",
   bankCity: "", bankState: "", bankAddress: "", memo: "",
+  isInternational: false, bankCountry: "",
 });
 
 export default function TransferPage() {
@@ -178,7 +181,9 @@ export default function TransferPage() {
     }
     if (transferType === "ach" || transferType === "wire") {
       const f = bankForm;
-      const rOk = validateRoutingNumber(f.routingNumber).valid;
+      const rOk = f.isInternational
+        ? f.routingNumber.trim().length >= 8          // SWIFT/BIC: 8–11 chars
+        : validateRoutingNumber(f.routingNumber).valid; // ABA checksum
       const aOk = validateAccountNumber(f.accountNumber).valid;
       const match = f.accountNumber.replace(/\D/g,"") === f.confirmAccount.replace(/\D/g,"");
       return f.recipientName.trim() !== "" && rOk && aOk && match;
@@ -190,8 +195,19 @@ export default function TransferPage() {
 
   // ── Handlers ─────────────────────────────────────────────
 
-  // Routing number change: validate + auto-fill bank
+  // Routing number / SWIFT change: validate + auto-fill bank
   const handleRoutingChange = (val: string) => {
+    if (bankForm.isInternational) {
+      // SWIFT / BIC: letters + digits only, max 11 chars, uppercase
+      const clean = val.replace(/[^A-Za-z0-9]/g, "").slice(0, 11).toUpperCase();
+      setBankForm(f => ({ ...f, routingNumber: clean }));
+      setRoutingErr("");
+      setRoutingInfo(null);
+      setVerification(null);
+      return;
+    }
+
+    // ABA routing number: digits only, max 9 chars
     const digits = val.replace(/\D/g, "").slice(0, 9);
     setBankForm(f => ({ ...f, routingNumber: digits }));
     setRoutingErr("");
@@ -207,7 +223,7 @@ export default function TransferPage() {
       const bank = lookupBank(digits);
       if (bank) {
         setRoutingInfo(bank);
-        setBankForm(f => ({ ...f, bankName: bank.name, bankCity: bank.city, bankState: bank.state }));
+        setBankForm(f => ({ ...f, bankName: bank.name, bankCity: bank.city, bankState: bank.state ?? "" }));
         setBankSearch(bank.name);
       } else {
         setRoutingErr("Routing number not found in directory. Please enter bank name manually.");
@@ -253,14 +269,17 @@ export default function TransferPage() {
   };
 
   const selectBankFromDropdown = (bank: BankEntry) => {
+    const isIntl = !bank.routingNumber;
     setRoutingInfo(bank);
     setBankSearch(bank.name);
     setBankForm(f => ({
       ...f,
-      bankName:     bank.name,
-      bankCity:     bank.city,
-      bankState:    bank.state,
-      routingNumber: bank.routingNumber,
+      bankName:        bank.name,
+      bankCity:        bank.city,
+      bankState:       bank.state ?? "",
+      bankCountry:     bank.country,
+      isInternational: isIntl,
+      routingNumber:   bank.routingNumber ?? bank.swiftCode ?? "",
     }));
     setRoutingErr("");
     setShowBankDrop(false);
@@ -495,7 +514,7 @@ export default function TransferPage() {
 
   // ─── Main UI ────────────────────────────────────────────
   return (
-    <DashboardLayout title="Send Money" subtitle="U.S. bank transfers · ACH · Wire · Vaulte">
+    <DashboardLayout title="Send Money" subtitle="Global bank transfers · ACH · Wire · Vaulte">
       <div className="transfer-main-grid" style={{ display: "grid", gridTemplateColumns: "1fr 308px", gap: 24, alignItems: "start" }}>
 
         {/* ══════════════ MAIN PANEL ══════════════ */}
@@ -684,26 +703,29 @@ export default function TransferPage() {
                       />
                     </div>
 
-                    {/* Routing Number */}
+                    {/* Routing Number (ABA) or SWIFT/BIC (international) */}
                     <div>
-                      <label style={labelStyle}>Routing Number (ABA)</label>
+                      <label style={labelStyle}>
+                        {bankForm.isInternational ? "SWIFT / BIC Code" : "Routing Number (ABA)"}
+                      </label>
                       <div style={{ position: "relative" }}>
                         <input value={bankForm.routingNumber} onChange={e => handleRoutingChange(e.target.value)}
-                          placeholder="9-digit routing number"
-                          maxLength={9}
+                          placeholder={bankForm.isInternational ? "e.g. BARCGB22XXX" : "9-digit routing number"}
+                          maxLength={bankForm.isInternational ? 11 : 9}
                           style={inputStyle(routingErr)}
                           onFocus={e => { e.target.style.borderColor = routingErr ? "#EF4444" : C.blue; e.target.style.boxShadow = `0 0 0 3px ${routingErr ? "rgba(239,68,68,0.08)" : "rgba(26,115,232,0.08)"}`; e.target.style.background = "#fff"; }}
                           onBlur={e => { e.target.style.borderColor = routingErr ? "#EF4444" : C.border; e.target.style.boxShadow = "none"; e.target.style.background = C.bg; }}
                         />
-                        {bankForm.routingNumber.length === 9 && !routingErr && routingInfo && (
+                        {((bankForm.isInternational && bankForm.routingNumber.length >= 8) ||
+                          (!bankForm.isInternational && bankForm.routingNumber.length === 9)) && !routingErr && routingInfo && (
                           <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "#059669", fontWeight: 600 }}>✓ Validated</span>
                         )}
                       </div>
                       {routingErr && <p style={{ fontSize: 11.5, color: "#EF4444", marginTop: 5 }}>⚠ {routingErr}</p>}
                       {routingInfo && !routingErr && (
                         <div style={{ marginTop: 8, padding: "8px 12px", background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, fontSize: 12.5, color: "#059669", display: "flex", alignItems: "center", gap: 6 }}>
-                          <span>🏦</span>
-                          <span><strong>{routingInfo.name}</strong> · {routingInfo.city}, {routingInfo.state}</span>
+                          <span>{bankForm.isInternational ? routingInfo.countryFlag : "🏦"}</span>
+                          <span><strong>{routingInfo.name}</strong> · {routingInfo.city}, {bankForm.isInternational ? routingInfo.country : routingInfo.state}</span>
                         </div>
                       )}
                     </div>
@@ -721,14 +743,14 @@ export default function TransferPage() {
                       {showBankDrop && bankDropdown.length > 0 && (
                         <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#fff", border: `1px solid ${C.border}`, borderRadius: 12, boxShadow: "0 8px 32px rgba(15,23,42,0.12)", zIndex: 100, overflow: "hidden" }}>
                           {bankDropdown.map(bank => (
-                            <div key={bank.routingNumber} onMouseDown={() => selectBankFromDropdown(bank)}
+                            <div key={bank.swiftCode ?? bank.routingNumber ?? bank.name} onMouseDown={() => selectBankFromDropdown(bank)}
                               style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", cursor: "pointer", borderBottom: `1px solid ${C.border}`, transition: "background 0.15s" }}
                               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = C.bg; }}
                               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#fff"; }}>
-                              <span style={{ fontSize: 18 }}>{bank.logo}</span>
+                              <span style={{ fontSize: 18 }}>{bank.countryFlag}</span>
                               <div>
                                 <p style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{bank.name}</p>
-                                <p style={{ fontSize: 11, color: C.muted }}>{bank.city}, {bank.state} · {bank.routingNumber}</p>
+                                <p style={{ fontSize: 11, color: C.muted }}>{bank.city}, {bank.country} · {bank.routingNumber ?? bank.swiftCode}</p>
                               </div>
                             </div>
                           ))}
