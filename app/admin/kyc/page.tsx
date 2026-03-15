@@ -74,7 +74,20 @@ export default function AdminKYC() {
       isRealUser: true,
       userId:     u.id,
     }));
-    setKycs(entries);
+
+    // Deduplicate by email — the user list may contain both a localStorage-generated
+    // entry and a Redis-synced entry for the same person (different IDs, same email).
+    // Keep whichever has the highest-priority KYC status so admins always act on the
+    // correct record: Approved (2) > Pending (1) > anything else (0).
+    const statusPriority: Record<string, number> = { Approved: 2, Pending: 1 };
+    const seen: Record<string, KYCEntry> = {};
+    for (const entry of entries) {
+      const existing = seen[entry.email];
+      if (!existing || (statusPriority[entry.status] ?? 0) > (statusPriority[existing.status] ?? 0)) {
+        seen[entry.email] = entry;
+      }
+    }
+    setKycs(Object.values(seen));
   }, []);
 
   const filtered = kycs.filter(k => filter === "All" || k.status === filter);

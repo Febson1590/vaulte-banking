@@ -317,8 +317,13 @@ export function updateUser(userId: string, updates: Partial<VaulteUser>): void {
   if (idx === -1) return;
   users[idx] = { ...users[idx], ...updates };
   saveUsers(users);
+  // Match by ID *or* email — handles the case where the localStorage-generated
+  // user ID differs from the Redis-issued ID (they share the same email address,
+  // so matching by email ensures the current session is always updated).
   const current = getCurrentUser();
-  if (current?.id === userId) saveCurrentUser(users[idx]);
+  if (current && (current.id === userId || current.email === users[idx].email)) {
+    saveCurrentUser({ ...current, ...updates });
+  }
 }
 
 export function getUserState(userId: string): VaulteState {

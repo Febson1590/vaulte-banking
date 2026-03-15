@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
-import { getState, getCurrentUser, VaulteState, DEMO_STATE, Transaction, fmtDate, VaulteUser } from "@/lib/vaulteState";
+import { getState, getCurrentUser, getUsers, saveCurrentUser, VaulteState, DEMO_STATE, Transaction, fmtDate, VaulteUser } from "@/lib/vaulteState";
 
 const C = {
   bg: "#F3F5FA", card: "#ffffff", navy: "#0F172A", blue: "#1A73E8",
@@ -39,7 +39,20 @@ export default function Dashboard() {
 
   useEffect(() => {
     const user = getCurrentUser();
-    if (user) { setUser(user); }
+    if (user) {
+      // Re-sync kycStatus from the shared users list so that admin approvals made
+      // while this session was open are reflected immediately without requiring a
+      // re-login. Match by email to handle ID mismatches (localStorage vs Redis).
+      const allUsers = getUsers();
+      const freshUser = allUsers.find(u => u.email === user.email);
+      if (freshUser && freshUser.kycStatus !== user.kycStatus) {
+        const updated = { ...user, kycStatus: freshUser.kycStatus };
+        saveCurrentUser(updated);
+        setUser(updated);
+      } else {
+        setUser(user);
+      }
+    }
     setState(getState());
     setMounted(true);
   }, []);
