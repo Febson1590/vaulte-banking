@@ -117,7 +117,7 @@ export default function RegisterPage() {
 
           <form onSubmit={handleSubmit}>
             {/* Name row */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 15 }}>
+            <div className="register-name-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 15 }}>
               <div>
                 <label style={{ fontSize: 13.5, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>First Name</label>
                 <input type="text" value={form.firstName} onChange={e => update("firstName", e.target.value)} placeholder="John"

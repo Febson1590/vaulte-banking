@@ -221,7 +221,7 @@ function LoginVerifyInner() {
                 </p>
 
                 {/* 6-digit inputs */}
-                <div style={{ display: "flex", gap: 10, justifyContent: "center", marginBottom: 28 }} onPaste={handlePaste}>
+                <div className="otp-row" style={{ display: "flex", gap: 10, justifyContent: "center", marginBottom: 28 }} onPaste={handlePaste}>
                   {digits.map((d, i) => (
                     <input
                       key={i}

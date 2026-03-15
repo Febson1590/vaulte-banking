@@ -214,7 +214,7 @@ function VerifyEmailInner() {
 
               <form onSubmit={handleSubmit}>
                 {/* 6-digit input */}
-                <div style={{ display: "flex", gap: 10, justifyContent: "center", marginBottom: 28 }} onPaste={handlePaste}>
+                <div className="otp-row" style={{ display: "flex", gap: 10, justifyContent: "center", marginBottom: 28 }} onPaste={handlePaste}>
                   {digits.map((d, i) => (
                     <input
                       key={i}

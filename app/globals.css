@@ -21,3 +21,43 @@ body {
   .transfer-panel-body { padding: 20px 16px 24px !important; }
   .transfer-sidebar { display: none !important; }
 }
+
+/* ─── Settings Page ─── */
+@media (max-width: 768px) {
+  .settings-main-grid { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 600px) {
+  .settings-form-grid { grid-template-columns: 1fr !important; }
+  .settings-pref-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ─── KYC Page ─── */
+@media (max-width: 600px) {
+  .kyc-form-grid { grid-template-columns: 1fr !important; }
+  .kyc-doc-grid { grid-template-columns: 1fr 1fr !important; }
+}
+
+/* ─── Security Page ─── */
+@media (max-width: 600px) {
+  .security-stats-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
+  .security-detail-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ─── Contact Page ─── */
+@media (max-width: 768px) {
+  .contact-main-grid { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 480px) {
+  .contact-form-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ─── OTP Input Row (login-verify & verify-email) ─── */
+@media (max-width: 430px) {
+  .otp-row { gap: 6px !important; }
+  .otp-row input { width: 42px !important; height: 50px !important; font-size: 20px !important; }
+}
+
+/* ─── Register Page ─── */
+@media (max-width: 480px) {
+  .register-name-grid { grid-template-columns: 1fr !important; }
+}

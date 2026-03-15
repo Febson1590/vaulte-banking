@@ -49,7 +49,7 @@ export default function ContactPage() {
         <p style={{ fontSize: 16, color: "rgba(255,255,255,0.6)" }}>We&apos;re here to help — 24 hours a day, 7 days a week.</p>
       </div>
 
-      <div style={{ maxWidth: 1000, margin: "40px auto 60px", padding: "0 5%", display: "grid", gridTemplateColumns: "1fr 380px", gap: 28, alignItems: "start" }}>
+      <div className="contact-main-grid" style={{ maxWidth: 1000, margin: "40px auto 60px", padding: "0 5%", display: "grid", gridTemplateColumns: "1fr 380px", gap: 28, alignItems: "start" }}>
 
         {/* Form */}
         <div style={{ background: "#fff", borderRadius: 16, padding: "36px", boxShadow: "0 4px 20px rgba(0,0,0,0.06)", border: "1px solid #E5E7EB" }}>
@@ -67,7 +67,7 @@ export default function ContactPage() {
             <>
               <h2 style={{ fontSize: 20, fontWeight: 800, color: "#0F172A", marginBottom: 24, letterSpacing: "-0.3px" }}>Send us a message</h2>
               <form onSubmit={handleSubmit}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+                <div className="contact-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
                   <div>
                     <label style={{ fontSize: 13.5, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Full Name</label>
                     <input value={form.name} onChange={e => update("name", e.target.value)} placeholder="John Doe" style={inputStyle("name")}

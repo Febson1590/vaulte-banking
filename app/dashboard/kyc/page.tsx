@@ -198,7 +198,7 @@ export default function KYCPage() {
               Please provide your personal information exactly as it appears on your government-issued ID.
             </p>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px 20px" }}>
+            <div className="kyc-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px 20px" }}>
 
               {/* Full name — read-only */}
               <div>
@@ -265,7 +265,7 @@ export default function KYCPage() {
                 <label style={{ fontSize: 13, fontWeight: 600, color: C.sub, display: "block", marginBottom: 10 }}>
                   Document Type <span style={{ color: "#DC2626" }}>*</span>
                 </label>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+                <div className="kyc-doc-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
                   {DOC_TYPES.map(dt => (
                     <button key={dt.value} onClick={() => set("docType", dt.value)}
                       style={{

@@ -149,7 +149,7 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 24, alignItems: "start" }}>
+      <div className="settings-main-grid" style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 24, alignItems: "start" }}>
 
         {/* Tabs sidebar */}
         <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.border}`, boxShadow: C.shadow, padding: "12px 10px", position: "sticky", top: 96 }}>
@@ -195,7 +195,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>
+              <div className="settings-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>
                 <Field label="First Name"    value={firstName} onChange={setFirstName} />
                 <Field label="Last Name"     value={lastName}  onChange={setLastName} />
                 <Field label="Email Address" value={email}     onChange={setEmail} type="email" />
@@ -306,7 +306,7 @@ export default function SettingsPage() {
               <p style={{ fontSize: 17, fontWeight: 700, color: C.text, letterSpacing: "-0.3px", marginBottom: 4 }}>App Preferences</p>
               <p style={{ fontSize: 13, color: C.muted, marginBottom: 28 }}>Customize your Vaulte experience.</p>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28 }}>
+              <div className="settings-pref-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28 }}>
                 {[
                   { label: "Default Currency", key: "defaultCurrency", options: ["USD", "EUR", "GBP", "BTC", "NGN", "JPY"] },
                   { label: "Language",          key: "language",        options: ["English", "French", "Spanish", "German", "Portuguese", "Arabic"] },

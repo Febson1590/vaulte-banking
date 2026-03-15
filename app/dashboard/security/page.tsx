@@ -75,7 +75,7 @@ export default function SecurityActivityPage() {
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
 
         {/* Stats row */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
+        <div className="security-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
           {[
             { icon: "🔐", label: "Total Logins", value: loading ? "—" : String(history.filter(h => h.status === "success").length), color: "#1A73E8", bg: "#EEF4FF" },
             { icon: "⚠️", label: "New IP Logins", value: loading ? "—" : String(newIpCount), color: newIpCount > 0 ? "#D97706" : "#059669", bg: newIpCount > 0 ? "#FFFBEB" : "#F0FDF4" },
@@ -206,7 +206,7 @@ export default function SecurityActivityPage() {
                   {/* Expanded detail */}
                   {selected === record && (
                     <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                      <div className="security-detail-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                         {[
                           ["Timestamp",   new Date(record.timestamp).toLocaleString("en-US", { dateStyle: "full", timeStyle: "short" })],
                           ["IP Address",  record.ip],
