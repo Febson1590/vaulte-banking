@@ -12,6 +12,12 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Vaulte — Global Digital Banking",
   description: "Borderless banking for everyone. Send, save, and manage money worldwide with Vaulte.",
+  icons: {
+    icon:     [{ url: "/icon.png",       type: "image/png", sizes: "32x32"   }],
+    apple:    [{ url: "/apple-icon.png", type: "image/png", sizes: "180x180" }],
+    shortcut: [{ url: "/favicon.ico" }],
+    other:    [{ rel: "icon",            url: "/icon-192.png", sizes: "192x192" }],
+  },
 };
 
 export default function RootLayout({
