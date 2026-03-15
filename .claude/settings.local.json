@@ -26,7 +26,17 @@
       "Bash(git add app/api/admin/flush-data/route.ts)",
       "Bash(npx vercel --version)",
       "Bash(npx vercel ls)",
-      "Bash(npx vercel login)"
+      "Bash(npx vercel login)",
+      "Bash(git add lib/redis.ts app/api/admin/users/route.ts app/api/admin/manage/route.ts app/api/admin/balance/route.ts app/api/admin/card/route.ts app/api/admin/stats/route.ts app/admin/dashboard/page.tsx app/admin/users/page.tsx)",
+      "Bash(git add lib/vaulteState.ts lib/redis.ts app/api/auth/session/route.ts app/api/user/photo/route.ts app/admin/kyc/page.tsx app/dashboard/page.tsx components/DashboardLayout.tsx app/dashboard/settings/page.tsx)",
+      "Bash(git add lib/kycUtils.ts app/dashboard/page.tsx components/DashboardLayout.tsx)",
+      "Bash(verification to start banking.\" on the same page as \"Verification Under)",
+      "Bash(review / balance will be unlocked once approved\" \\(no CTA\\);:*)",
+      "Bash(git -C /c/Users/samso/projects/vaulte-banking log --oneline -5)",
+      "Bash(git -C /c/Users/samso/projects/vaulte-banking remote -v)",
+      "Bash(git -C /c/Users/samso/projects/vaulte-banking status)",
+      "Bash(curl -s -X POST https://www.vaulteapp.com/api/admin/flush-data -H \"Content-Type: application/json\")",
+      "Bash(git add -A)"
     ]
   }
 }
