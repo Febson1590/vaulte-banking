@@ -438,7 +438,17 @@ export function saveState(state: VaulteState): void {
   try {
     const user = getCurrentUser();
     if (!user) return;
-    localStorage.setItem(stateKey(user.id), JSON.stringify({ ...state, lastUpdated: new Date().toISOString() }));
+    const withTs = { ...state, lastUpdated: new Date().toISOString() };
+    localStorage.setItem(stateKey(user.id), JSON.stringify(withTs));
+    // Fire-and-forget server sync so Redis stays up-to-date across all devices.
+    // Skipped for the demo user (no real session cookie).
+    if (user.id !== DEMO_USER_ID) {
+      fetch("/api/user/state", {
+        method:  "PUT",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ state: withTs }),
+      }).catch(() => { /* offline — localStorage is the fallback */ });
+    }
   } catch { /* silently fail */ }
 }
 

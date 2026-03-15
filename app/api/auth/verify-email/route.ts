@@ -4,8 +4,10 @@
 //  Marks email_verified = true and activates the account.
 // ─────────────────────────────────────────────────────────────
 import { NextRequest, NextResponse } from "next/server";
-import redis, { RK, AuthUser, OtpRecord } from "@/lib/redis";
-import { OTP_ATTEMPT_CONFIG, msToSeconds } from "@/lib/authHelpers";
+import redis, { RK, AuthUser, OtpRecord, SessionRecord } from "@/lib/redis";
+import { OTP_ATTEMPT_CONFIG, msToSeconds, generateSecureToken } from "@/lib/authHelpers";
+
+const SESSION_TTL_SEC = 30 * 24 * 60 * 60; // 30 days
 import { sendWelcomeEmail } from "@/lib/emailService";
 
 export async function POST(req: NextRequest) {
@@ -82,7 +84,16 @@ export async function POST(req: NextRequest) {
       email:     normalizedEmail,
     }).catch(e => console.error("[verify-email] Welcome email failed:", e));
 
-    return NextResponse.json({
+    // ── Create session cookie so user lands on dashboard logged-in ──
+    const sessionToken = generateSecureToken(32);
+    const sessionRecord: SessionRecord = {
+      email:     normalizedEmail,
+      userId:    authUser.id,
+      createdAt: new Date().toISOString(),
+    };
+    await redis.set(RK.session(sessionToken), sessionRecord, { ex: SESSION_TTL_SEC });
+
+    const response = NextResponse.json({
       success:   true,
       message:   "Email verified successfully. Your account is now active.",
       userId:    authUser.id,
@@ -90,6 +101,14 @@ export async function POST(req: NextRequest) {
       lastName:  authUser.lastName,
       email:     normalizedEmail,
     });
+    response.cookies.set("vaulte_session", sessionToken, {
+      httpOnly: true,
+      secure:   process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge:   SESSION_TTL_SEC,
+      path:     "/",
+    });
+    return response;
   } catch (err) {
     console.error("[POST /api/auth/verify-email]", err);
     return NextResponse.json({ error: "Verification failed. Please try again." }, { status: 500 });

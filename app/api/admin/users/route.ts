@@ -54,7 +54,8 @@ export async function DELETE(req: NextRequest) {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // ── Delete all Redis keys for this user (one by one for reliability) ──
+    // ── Delete all Redis keys for this user ──────────────────────
+    // Auth + OTP + rate limiting keys
     await redis.del(RK.authUser(normalizedEmail));
     await redis.del(RK.verifyOtp(normalizedEmail));
     await redis.del(RK.loginOtp(normalizedEmail));
@@ -63,6 +64,25 @@ export async function DELETE(req: NextRequest) {
     await redis.del(RK.rateResendOtp(normalizedEmail));
     await redis.del(RK.rateForgot(normalizedEmail));
     await redis.del(RK.loginHistory(userId));
+    // KYC, banking state, and user profile data
+    await redis.del(RK.kycStatus(normalizedEmail));
+    await redis.del(RK.kycData(normalizedEmail));
+    await redis.del(RK.userState(normalizedEmail));
+    // Invalidate all active session tokens for this user by scanning
+    // session:* keys and deleting any whose email matches this user.
+    // This forces logout on all devices immediately after deletion.
+    let cursor = 0;
+    do {
+      const [nextCursor, keys] = await redis.scan(cursor, { match: "session:*", count: 50 });
+      cursor = Number(nextCursor);
+      if (keys.length > 0) {
+        const values = await redis.mget<({ email: string } | null)[]>(...(keys as [string, ...string[]]));
+        const toDelete = keys.filter((_, i) => (values[i] as { email?: string } | null)?.email === normalizedEmail);
+        if (toDelete.length > 0) {
+          await Promise.all(toDelete.map(k => redis.del(k)));
+        }
+      }
+    } while (cursor !== 0);
     // Note: rateLoginIp and rateForgotIp are keyed by IP address (unknown here),
     // so they expire naturally via their own TTL.
 

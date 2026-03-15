@@ -4,13 +4,16 @@
 //  On success, tracks login activity and returns user data.
 // ─────────────────────────────────────────────────────────────
 import { NextRequest, NextResponse } from "next/server";
-import redis, { RK, AuthUser, OtpRecord, LoginRecord } from "@/lib/redis";
+import redis, { RK, AuthUser, OtpRecord, LoginRecord, SessionRecord } from "@/lib/redis";
 import {
   OTP_ATTEMPT_CONFIG,
   getClientIP,
   parseUserAgent,
   msToSeconds,
+  generateSecureToken,
 } from "@/lib/authHelpers";
+
+const SESSION_TTL_SEC = 30 * 24 * 60 * 60; // 30 days
 import { sendLoginAlert } from "@/lib/emailService";
 
 export async function POST(req: NextRequest) {
@@ -116,7 +119,16 @@ export async function POST(req: NextRequest) {
       }).catch(e => console.error("[verify-login-otp] Alert email failed:", e));
     }
 
-    return NextResponse.json({
+    // ── Create session cookie ─────────────────────────────────
+    const sessionToken = generateSecureToken(32); // 64 hex chars
+    const sessionRecord: SessionRecord = {
+      email:     normalizedEmail,
+      userId:    authUser.id,
+      createdAt: new Date().toISOString(),
+    };
+    await redis.set(RK.session(sessionToken), sessionRecord, { ex: SESSION_TTL_SEC });
+
+    const response = NextResponse.json({
       success:   true,
       message:   "Login successful.",
       userId:    authUser.id,
@@ -124,6 +136,14 @@ export async function POST(req: NextRequest) {
       lastName:  authUser.lastName,
       email:     normalizedEmail,
     });
+    response.cookies.set("vaulte_session", sessionToken, {
+      httpOnly: true,
+      secure:   process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge:   SESSION_TTL_SEC,
+      path:     "/",
+    });
+    return response;
   } catch (err) {
     console.error("[POST /api/auth/verify-login-otp]", err);
     return NextResponse.json({ error: "Verification failed. Please try again." }, { status: 500 });

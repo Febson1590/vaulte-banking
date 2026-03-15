@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { saveCurrentUser, createUser, getUsers } from "@/lib/vaulteState";
+import { saveCurrentUser, saveUsers, getUsers, VaulteUser } from "@/lib/vaulteState";
 
 const BG  = "linear-gradient(160deg,#BFDBFE 0%,#C7D9FD 25%,#DBEAFE 55%,#EFF6FF 80%,#DBEAFE 100%)";
 const BLUE = "#1A73E8";
@@ -99,20 +99,48 @@ function LoginVerifyInner() {
         return;
       }
 
-      // ── Session created — store in localStorage ───────────
+      // ── Session created — reconcile to server-authoritative ID ──
       setSuccess(true);
-      const userEmail = data.email ?? email;
-      const nameLast  = data.lastName ?? "";
-      const nameFirst = data.firstName ?? firstName ?? "";
+      const userEmail    = data.email    ?? email;
+      const nameLast     = data.lastName  ?? "";
+      const nameFirst    = data.firstName ?? firstName ?? "";
+      const serverUserId = (data.userId ?? "") as string;
 
-      const existingUsers = getUsers();
-      const existing = existingUsers.find(u => u.email === userEmail);
+      const allUsers    = getUsers();
+      const existingIdx = allUsers.findIndex(u => u.email === userEmail);
 
-      if (existing) {
-        saveCurrentUser(existing);
+      if (existingIdx !== -1) {
+        const existing = allUsers[existingIdx];
+        const oldId    = existing.id;
+        const newId    = serverUserId || oldId;
+
+        // If the localStorage-generated ID differs from the Redis-issued ID,
+        // migrate the cached state blob so the write-through cache stays intact.
+        if (oldId !== newId) {
+          const oldStateRaw = localStorage.getItem(`vaulte_state_${oldId}`);
+          if (oldStateRaw) {
+            localStorage.setItem(`vaulte_state_${newId}`, oldStateRaw);
+            localStorage.removeItem(`vaulte_state_${oldId}`);
+          }
+          allUsers[existingIdx] = { ...existing, id: newId };
+          saveUsers(allUsers);
+        }
+        saveCurrentUser({ ...existing, id: newId });
       } else {
-        const newUser = createUser(nameFirst, nameLast, userEmail, "_oauth_session_");
-        saveCurrentUser({ ...newUser, id: data.userId ?? newUser.id });
+        // First login on this browser — add a placeholder entry.
+        // DashboardLayout will hydrate full state from the server.
+        const placeholder: VaulteUser = {
+          id:        serverUserId || `user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          firstName: nameFirst,
+          lastName:  nameLast,
+          email:     userEmail,
+          password:  "",
+          kycStatus: "unverified",
+          createdAt: new Date().toISOString(),
+        };
+        allUsers.push(placeholder);
+        saveUsers(allUsers);
+        saveCurrentUser(placeholder);
       }
 
       // Track login in Redis (async — don't block UI)

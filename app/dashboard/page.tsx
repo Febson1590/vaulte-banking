@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
-import { getState, getCurrentUser, getUsers, saveCurrentUser, VaulteState, DEMO_STATE, Transaction, fmtDate, VaulteUser } from "@/lib/vaulteState";
+import { getState, getCurrentUser, getUsers, saveCurrentUser, VaulteState, DEMO_STATE, Transaction, fmtDate, VaulteUser, KycStatus } from "@/lib/vaulteState";
 
 const C = {
   bg: "#F3F5FA", card: "#ffffff", navy: "#0F172A", blue: "#1A73E8",
@@ -63,7 +63,7 @@ export default function Dashboard() {
           const serverRank = statusRank[serverStatus] ?? 0;
           const localRank  = statusRank[localStatus]  ?? 0;
           if (serverRank > localRank) {
-            const updated = { ...initialUser, kycStatus: serverStatus };
+            const updated = { ...initialUser, kycStatus: serverStatus as KycStatus };
             saveCurrentUser(updated);
             setUser(updated);
           }

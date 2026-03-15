@@ -1,8 +1,11 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { getState, getCurrentUser, VaulteState, DEMO_STATE, getTotalBalanceUSD, fmtAmount, VaulteUser } from "@/lib/vaulteState";
+import {
+  getState, getCurrentUser, saveCurrentUser, saveUsers, getUsers, createEmptyUserState,
+  VaulteState, DEMO_STATE, getTotalBalanceUSD, fmtAmount, VaulteUser,
+} from "@/lib/vaulteState";
 
 const C = {
   bg: "#F3F5FA", card: "#ffffff", navy: "#0F172A", blue: "#1A73E8",
@@ -37,17 +40,115 @@ interface Props {
 export default function DashboardLayout({ children, title, subtitle, topRight }: Props) {
   const router   = useRouter();
   const pathname = usePathname();
-  const [state,       setState]       = useState<VaulteState>(DEMO_STATE);
-  const [currentUser, setCurrentUser] = useState<VaulteUser | null>(null);
-  const [mounted,     setMounted]     = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [state,          setState]          = useState<VaulteState>(DEMO_STATE);
+  const [currentUser,    setCurrentUser]    = useState<VaulteUser | null>(null);
+  const [mounted,        setMounted]        = useState(false);
+  const [sidebarOpen,    setSidebarOpen]    = useState(false);
+  const [serverHydrated, setServerHydrated] = useState(false);
+  // Persists across client-side navigations (layout never unmounts).
+  // Reset to false only on logout so the next login re-fetches from the server.
+  const serverHydratedRef = useRef(false);
 
   useEffect(() => {
-    const user = getCurrentUser();
-    if (!user) { router.push("/login"); return; }
-    setCurrentUser(user);
-    setState(getState());
-    setMounted(true);
+    // ── Already hydrated this browser session → read from localStorage cache ──
+    if (serverHydratedRef.current) {
+      const user = getCurrentUser();
+      if (!user) { router.push("/login"); return; }
+      setCurrentUser(user);
+      setState(getState());
+      setMounted(true);
+      setServerHydrated(true);
+      return;
+    }
+
+    // ── First visit (or page refresh): fetch from Redis via session cookie ────
+    async function hydrateFromServer() {
+      try {
+        const [sessionRes, stateRes] = await Promise.all([
+          fetch("/api/auth/session"),
+          fetch("/api/user/state"),
+        ]);
+        const sessionData = await sessionRes.json();
+        const stateData   = await stateRes.json();
+
+        if (sessionData.user) {
+          // ── Server returned a valid session ─────────────────────────────
+          const serverUser = sessionData.user as VaulteUser;
+
+          // Reconcile localStorage with the server-authoritative user record
+          const allUsers    = getUsers();
+          const existingIdx = allUsers.findIndex(u => u.email === serverUser.email);
+
+          if (existingIdx !== -1) {
+            const oldId = allUsers[existingIdx].id;
+            const newId = serverUser.id;
+            // Migrate cached state blob if the local ID differs from the Redis ID
+            if (oldId !== newId) {
+              const oldStateRaw = localStorage.getItem(`vaulte_state_${oldId}`);
+              if (oldStateRaw && !localStorage.getItem(`vaulte_state_${newId}`)) {
+                localStorage.setItem(`vaulte_state_${newId}`, oldStateRaw);
+              }
+              localStorage.removeItem(`vaulte_state_${oldId}`);
+            }
+            allUsers[existingIdx] = { ...allUsers[existingIdx], ...serverUser };
+          } else {
+            allUsers.push(serverUser);
+          }
+          saveUsers(allUsers);
+          saveCurrentUser(serverUser);
+
+          // Populate banking state from Redis, or seed it if this is the first login
+          if (stateData.state) {
+            localStorage.setItem(
+              `vaulte_state_${serverUser.id}`,
+              JSON.stringify(stateData.state),
+            );
+          } else {
+            const emptyState = createEmptyUserState(serverUser);
+            localStorage.setItem(
+              `vaulte_state_${serverUser.id}`,
+              JSON.stringify(emptyState),
+            );
+            fetch("/api/user/state", {
+              method:  "PUT",
+              headers: { "Content-Type": "application/json" },
+              body:    JSON.stringify({ state: emptyState }),
+            }).catch(() => {});
+          }
+
+          serverHydratedRef.current = true;
+          setCurrentUser(serverUser);
+          setState(getState());
+          setMounted(true);
+          setServerHydrated(true);
+        } else {
+          // ── No server session: fall back to localStorage ─────────────────
+          // Covers the demo user and any temporary network issues.
+          const localUser = getCurrentUser();
+          if (!localUser) {
+            router.push("/login");
+            return;
+          }
+          serverHydratedRef.current = true;
+          setCurrentUser(localUser);
+          setState(getState());
+          setMounted(true);
+          setServerHydrated(true);
+        }
+      } catch {
+        // Network failure — fall back to localStorage so the app stays usable offline
+        const user = getCurrentUser();
+        if (!user) { router.push("/login"); return; }
+        serverHydratedRef.current = true;
+        setCurrentUser(user);
+        setState(getState());
+        setMounted(true);
+        setServerHydrated(true);
+      }
+    }
+
+    hydrateFromServer();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   useEffect(() => {
@@ -56,10 +157,26 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
 
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Invalidate the httpOnly session token in Redis
+    try { await fetch("/api/auth/session", { method: "DELETE" }); } catch { /* ignore */ }
     localStorage.removeItem("vaulte_user");
+    serverHydratedRef.current = false; // Force re-hydration on next login
     router.push("/login");
   };
+
+  // ── Loading spinner shown on first visit / refresh until server hydrates ──
+  if (!serverHydrated) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ width: 44, height: 44, border: "3.5px solid #1A73E8", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 14px" }} />
+          <style>{"@keyframes spin { to { transform: rotate(360deg); } }"}</style>
+          <p style={{ color: C.sub, fontSize: 14, fontWeight: 500 }}>Loading your account…</p>
+        </div>
+      </div>
+    );
+  }
 
   const totalUSD    = getTotalBalanceUSD(state);
   const user        = currentUser;

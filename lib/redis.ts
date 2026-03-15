@@ -46,9 +46,22 @@ export const RK = {
   rateForgot:     (email: string) => `rate:forgot:${email.toLowerCase()}`,
   rateForgotIp:   (ip: string)    => `rate:forgot:ip:${ip}`,
   loginHistory:   (userId: string) => `login:history:${userId}`,
-  // KYC status stored separately from auth record for cross-device sync
+  // KYC status — cross-device sync
   kycStatus:      (email: string) => `kyc:status:${email.toLowerCase()}`,
+  // Full KYC submission data (doc type, nationality, dob, etc.)
+  kycData:        (email: string) => `kyc:data:${email.toLowerCase()}`,
+  // httpOnly session token → { email, userId, createdAt }
+  session:        (token: string) => `session:${token}`,
+  // User banking state (accounts, transactions, card, preferences, etc.)
+  userState:      (email: string) => `user:state:${email.toLowerCase()}`,
 } as const;
+
+// ─── Session Record ───────────────────────────────────────────
+export interface SessionRecord {
+  email:     string;
+  userId:    string;
+  createdAt: string;
+}
 
 // ─── Auth User Record Interface ──────────────────────────────
 export interface AuthUser {
