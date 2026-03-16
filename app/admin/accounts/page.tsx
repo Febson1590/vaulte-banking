@@ -37,6 +37,9 @@ export default function AdminAccounts() {
   const [loadErr,       setLoadErr]       = useState<string | null>(null);
   const [adjustAmt,     setAdjustAmt]     = useState("");
   const [adjType,       setAdjType]       = useState<"credit" | "debit">("credit");
+  const [adjDesc,       setAdjDesc]       = useState("");
+  const [adjNote,       setAdjNote]       = useState("");
+  const [adjDate,       setAdjDate]       = useState("");
   const [adjDone,       setAdjDone]       = useState(false);
   const [adjLoading,    setAdjLoading]    = useState(false);
   const [freezeLoading, setFreezeLoading] = useState(false);
@@ -130,15 +133,19 @@ export default function AdminAccounts() {
     setAdjLoading(true);
     setOpError(null);
     try {
+      const body: Record<string, unknown> = {
+        email:    selected.ownerEmail,
+        amount:   amt,
+        type:     adjType,
+        currency: selected.currency,
+      };
+      if (adjDesc.trim())        body.description  = adjDesc.trim();
+      if (adjNote.trim())        body.internalNote = adjNote.trim();
+      if (adjDate.trim())        body.txDate       = adjDate.trim();
       const res  = await fetch("/api/admin/balance", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({
-          email:    selected.ownerEmail,
-          amount:   amt,
-          type:     adjType,
-          currency: selected.currency,   // ← key fix: funds the correct wallet
-        }),
+        body:    JSON.stringify(body),
       });
       const data = await res.json() as { success: boolean; error?: string };
       if (!data.success) throw new Error(data.error ?? "Failed to adjust balance");
@@ -146,6 +153,9 @@ export default function AdminAccounts() {
       setTimeout(async () => {
         setAdjDone(false);
         setAdjustAmt("");
+        setAdjDesc("");
+        setAdjNote("");
+        setAdjDate("");
         setSelected(null);
         await loadAccounts();
       }, 1600);
@@ -261,7 +271,7 @@ export default function AdminAccounts() {
                     <StatusBadge status={acc.frozen ? "Frozen" : "Active"} />
                   </td>
                   <td style={{ padding: "14px 16px" }}>
-                    <button onClick={() => { setSelected(acc); setAdjustAmt(""); setAdjDone(false); setOpError(null); }}
+                    <button onClick={() => { setSelected(acc); setAdjustAmt(""); setAdjDesc(""); setAdjNote(""); setAdjDate(""); setAdjDone(false); setOpError(null); }}
                       style={{ background: "#EEF4FF", color: "#1A73E8", border: "none", borderRadius: "8px", padding: "6px 12px", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
                       Manage
                     </button>
@@ -316,7 +326,8 @@ export default function AdminAccounts() {
                 <p style={{ fontSize: "13px", fontWeight: 600, color: "#374151", marginBottom: "12px" }}>
                   Manual Balance Adjustment ({selected.currency})
                 </p>
-                <div style={{ display: "flex", gap: "8px", marginBottom: "10px" }}>
+                {/* Credit / Debit toggle */}
+                <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
                   {(["credit", "debit"] as const).map(t => (
                     <button key={t} onClick={() => setAdjType(t)}
                       style={{ flex: 1, padding: "10px", border: `2px solid ${adjType === t ? (t === "credit" ? "#059669" : "#DC2626") : "#E5E7EB"}`, borderRadius: "10px", background: adjType === t ? (t === "credit" ? "#ECFDF5" : "#FEF2F2") : "#fff", color: adjType === t ? (t === "credit" ? "#059669" : "#DC2626") : "#6B7280", fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
@@ -324,15 +335,33 @@ export default function AdminAccounts() {
                     </button>
                   ))}
                 </div>
-                <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
-                  <input type="number" value={adjustAmt} onChange={e => setAdjustAmt(e.target.value)}
-                    placeholder={`Amount (${selected.currency})`}
-                    style={{ flex: 1, padding: "11px 14px", border: "1.5px solid #E5E7EB", borderRadius: "10px", fontSize: "14px", outline: "none", fontFamily: "inherit" }} />
-                  <button onClick={handleAdjust} disabled={adjLoading}
-                    style={{ padding: "11px 20px", borderRadius: "10px", border: "none", background: adjLoading ? "#9CA3AF" : "#1A73E8", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: adjLoading ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
-                    {adjLoading ? "Saving…" : "Apply"}
-                  </button>
-                </div>
+                {/* Amount */}
+                <input type="number" value={adjustAmt} onChange={e => setAdjustAmt(e.target.value)}
+                  placeholder={`Amount (${selected.currency})`}
+                  style={{ width: "100%", padding: "11px 14px", border: "1.5px solid #E5E7EB", borderRadius: "10px", fontSize: "14px", outline: "none", fontFamily: "inherit", boxSizing: "border-box", marginBottom: "10px" }} />
+                {/* Visible description — what the USER sees on their statement */}
+                <input type="text" value={adjDesc} onChange={e => setAdjDesc(e.target.value)}
+                  placeholder={adjType === "credit"
+                    ? "e.g. Timber Supply Payment – Weyerhaeuser"
+                    : "e.g. Netflix  /  AT&T Wireless  /  Equipment Maintenance"}
+                  style={{ width: "100%", padding: "10px 14px", border: "1.5px solid #E5E7EB", borderRadius: "10px", fontSize: "13px", outline: "none", fontFamily: "inherit", boxSizing: "border-box", marginBottom: "8px" }} />
+                <p style={{ fontSize: "11px", color: "#9CA3AF", margin: "0 0 10px" }}>
+                  ↑ Visible description shown on user's statement (leave blank for auto-label)
+                </p>
+                {/* Transaction date */}
+                <input type="datetime-local" value={adjDate} onChange={e => setAdjDate(e.target.value)}
+                  style={{ width: "100%", padding: "10px 14px", border: "1.5px solid #E5E7EB", borderRadius: "10px", fontSize: "13px", outline: "none", fontFamily: "inherit", boxSizing: "border-box", marginBottom: "10px" }} />
+                <p style={{ fontSize: "11px", color: "#9CA3AF", margin: "0 0 10px" }}>
+                  ↑ Transaction date (optional — defaults to now)
+                </p>
+                {/* Internal note — admin only, never shown to user */}
+                <input type="text" value={adjNote} onChange={e => setAdjNote(e.target.value)}
+                  placeholder="Internal note (admin only — never shown to user)"
+                  style={{ width: "100%", padding: "10px 14px", border: "1.5px solid #FDE68A", borderRadius: "10px", fontSize: "12px", outline: "none", fontFamily: "inherit", boxSizing: "border-box", background: "#FFFBEB", marginBottom: "16px" }} />
+                <button onClick={handleAdjust} disabled={adjLoading}
+                  style={{ width: "100%", padding: "12px", borderRadius: "10px", border: "none", background: adjLoading ? "#9CA3AF" : "#1A73E8", color: "#fff", fontSize: "14px", fontWeight: 700, cursor: adjLoading ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+                  {adjLoading ? "Saving to Redis…" : "Apply & Save"}
+                </button>
               </>
             ) : (
               <div style={{ background: "#ECFDF5", borderRadius: "12px", padding: "16px", marginBottom: "20px", textAlign: "center", color: "#059669", fontWeight: 700 }}>

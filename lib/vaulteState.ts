@@ -76,6 +76,10 @@ export interface Transaction {
   note?: string;
   recipientName?: string;
   recipientBank?: string;
+  // ── Audit / internal fields (never shown to user) ─────────
+  source?: "historical_generator" | "admin_manual" | "user_action" | "transfer" | "fee";
+  createdBy?: string;                  // "admin", userId, or "system"
+  internalNote?: string;              // admin-only note for audit trail
 }
 
 // ─── Recipient / Payee ──────────────────────────────────────
