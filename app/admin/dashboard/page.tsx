@@ -221,19 +221,35 @@ export default function AdminDashboard() {
           {!loading && (
             <>
               {/* Stats Grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "16px", marginBottom: "28px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "28px" }}>
                 {stats.map(stat => (
-                  <div key={stat.label} style={{ background: "#fff", borderRadius: "14px", padding: "20px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", borderTop: `3px solid ${stat.color}` }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-                      <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: stat.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px" }}>{stat.icon}</div>
-                      <span style={{ fontSize: "11px", color: stat.color, fontWeight: 600, background: stat.bg, borderRadius: "20px", padding: "2px 8px" }}>LIVE</span>
+                  <div key={stat.label} style={{
+                    background: "#fff", borderRadius: "16px", padding: "20px 22px",
+                    boxShadow: "0 1px 3px rgba(10,22,40,0.06), 0 4px 16px rgba(10,22,40,0.06)",
+                    border: "1px solid rgba(10,22,40,0.06)",
+                    borderLeft: `4px solid ${stat.color}`,
+                    transition: "transform 0.18s, box-shadow 0.18s",
+                    cursor: "default",
+                  }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 8px rgba(10,22,40,0.08), 0 12px 28px rgba(10,22,40,0.10)"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 3px rgba(10,22,40,0.06), 0 4px 16px rgba(10,22,40,0.06)"; }}
+                  >
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "14px" }}>
+                      <div style={{ width: "44px", height: "44px", borderRadius: "12px", background: stat.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", boxShadow: `0 2px 8px ${stat.color}22` }}>{stat.icon}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, background: stat.bg, border: `1px solid ${stat.color}33`, borderRadius: "20px", padding: "3px 10px" }}>
+                        <div style={{ width: 6, height: 6, borderRadius: "50%", background: stat.color, animation: "livePulse 2s ease-in-out infinite" }} />
+                        <span style={{ fontSize: "10.5px", color: stat.color, fontWeight: 700, letterSpacing: "0.04em" }}>LIVE</span>
+                      </div>
                     </div>
-                    <div style={{ fontSize: "24px", fontWeight: 800, color: "#0A1628", marginBottom: "4px" }}>{stat.value}</div>
-                    <div style={{ fontSize: "12px", color: "#6B7280" }}>{stat.label}</div>
-                    <div style={{ fontSize: "11px", color: stat.color, marginTop: "4px", fontWeight: 600 }}>{stat.change}</div>
+                    <div style={{ fontSize: "28px", fontWeight: 800, color: "#0A1628", marginBottom: "2px", letterSpacing: "-0.5px", lineHeight: 1 }}>{loading ? "—" : stat.value}</div>
+                    <div style={{ fontSize: "12.5px", fontWeight: 600, color: "#374151", marginTop: "6px" }}>{stat.label}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: "6px" }}>
+                      <span style={{ fontSize: "11px", color: stat.color, fontWeight: 600, background: stat.bg, borderRadius: 6, padding: "2px 7px" }}>{stat.change}</span>
+                    </div>
                   </div>
                 ))}
               </div>
+              <style>{`@keyframes livePulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }`}</style>
 
               {/* Two column layout */}
               <div className="admin-dash-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "20px", marginBottom: "20px" }}>
@@ -270,23 +286,59 @@ export default function AdminDashboard() {
 
                 {/* Right column */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                  {/* Pending KYC */}
-                  <div style={{ background: "#fff", borderRadius: "14px", padding: "20px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
-                      <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#0A1628" }}>🪪 Pending KYC</h2>
-                      <Link href="/admin/kyc" style={{ fontSize: "12px", color: "#1A73E8", textDecoration: "none" }}>View All</Link>
-                    </div>
-                    {recentKYC.length === 0 ? (
-                      <div style={{ padding: "16px 0", textAlign: "center", color: "#9CA3AF", fontSize: "12.5px" }}>No pending KYC submissions</div>
-                    ) : recentKYC.map((k, i) => (
-                      <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: i < recentKYC.length - 1 ? "1px solid #F3F4F6" : "none" }}>
-                        <div>
-                          <div style={{ fontSize: "13px", fontWeight: 600, color: "#0A1628" }}>{k.user}</div>
-                          <div style={{ fontSize: "11px", color: "#9CA3AF" }}>{k.doc} · {k.submitted}</div>
+                  {/* Pending Overview */}
+                  <div style={{ background: "#fff", borderRadius: "16px", padding: "0", boxShadow: "0 1px 3px rgba(10,22,40,0.06), 0 4px 16px rgba(10,22,40,0.06)", border: "1px solid rgba(10,22,40,0.06)", overflow: "hidden" }}>
+                    {/* Header */}
+                    <div style={{ padding: "18px 20px 14px", borderBottom: "1px solid #F3F4F6" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                          <div style={{ width: 34, height: 34, borderRadius: 10, background: "#FEF2F2", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🪪</div>
+                          <div>
+                            <h2 style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "#0A1628", lineHeight: 1.2 }}>Pending Overview</h2>
+                            <p style={{ margin: 0, fontSize: "11px", color: "#9CA3AF", marginTop: 2 }}>KYC verification queue</p>
+                          </div>
                         </div>
-                        <StatusBadge status={k.status} />
+                        <Link href="/admin/kyc" style={{ fontSize: "12px", color: "#1A73E8", textDecoration: "none", fontWeight: 600, background: "#EEF4FF", padding: "4px 10px", borderRadius: 8 }}>View All →</Link>
                       </div>
-                    ))}
+                      {/* KYC status breakdown */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        {[
+                          { label: "Pending Review", value: liveStats.pendingKYC, color: "#D97706", bg: "#FFFBEB", border: "#FDE68A", icon: "⏳" },
+                          { label: "Unverified",     value: liveStats.unverifiedUsers, color: "#EA580C", bg: "#FFF7ED", border: "#FED7AA", icon: "◎" },
+                          { label: "Total Users",    value: liveStats.totalUsers,   color: "#1A73E8", bg: "#EEF4FF", border: "#BFDBFE", icon: "👥" },
+                          { label: "Verified",       value: Math.max(0, liveStats.totalUsers - liveStats.pendingKYC - liveStats.unverifiedUsers), color: "#059669", bg: "#ECFDF5", border: "#A7F3D0", icon: "✓" },
+                        ].map(item => (
+                          <div key={item.label} style={{ background: item.bg, border: `1px solid ${item.border}`, borderRadius: 10, padding: "10px 12px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
+                              <span style={{ fontSize: 12 }}>{item.icon}</span>
+                              <span style={{ fontSize: 10.5, color: item.color, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>{item.label}</span>
+                            </div>
+                            <div style={{ fontSize: "22px", fontWeight: 800, color: "#0A1628", letterSpacing: "-0.5px", lineHeight: 1 }}>{loading ? "—" : item.value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Recent KYC submissions */}
+                    <div style={{ padding: "14px 20px 16px" }}>
+                      <p style={{ fontSize: "11px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 10 }}>Recent Submissions</p>
+                      {recentKYC.length === 0 ? (
+                        <div style={{ padding: "16px", textAlign: "center", background: "#F8FAFC", borderRadius: 10, border: "1px dashed #E2E8F0" }}>
+                          <div style={{ fontSize: 24, marginBottom: 6 }}>✅</div>
+                          <div style={{ fontSize: "13px", fontWeight: 600, color: "#374151", marginBottom: 3 }}>All clear</div>
+                          <div style={{ fontSize: "11.5px", color: "#9CA3AF" }}>No pending KYC submissions</div>
+                        </div>
+                      ) : recentKYC.map((k, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: i < recentKYC.length - 1 ? "1px solid #F3F4F6" : "none" }}>
+                          <div style={{ width: 30, height: 30, borderRadius: 8, background: "#EEF4FF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>🪪</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: "13px", fontWeight: 600, color: "#0A1628", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{k.user}</div>
+                            <div style={{ fontSize: "11px", color: "#9CA3AF", marginTop: 1 }}>{k.doc} · {k.submitted}</div>
+                          </div>
+                          <StatusBadge status={k.status} />
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Audit Log */}

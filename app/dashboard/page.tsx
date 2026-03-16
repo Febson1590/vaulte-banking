@@ -313,18 +313,49 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <>
-                  <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
-                    {[
-                      { label: "Total Spent",  value: `$${state.transactions.filter(t=>t.type==="debit").reduce((s,t)=>s+t.amount,0).toFixed(0)}`,  color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
-                      { label: "Total Income", value: `+$${state.transactions.filter(t=>t.type==="credit").reduce((s,t)=>s+t.amount,0).toFixed(0)}`, color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
-                      { label: "Net Change",   value: `$${(state.transactions.filter(t=>t.type==="credit").reduce((s,t)=>s+t.amount,0) - state.transactions.filter(t=>t.type==="debit").reduce((s,t)=>s+t.amount,0)).toFixed(0)}`, color: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
-                    ].map(m => (
-                      <div key={m.label} style={{ flex: 1, background: m.bg, border: `1px solid ${m.border}`, borderRadius: 14, padding: "13px 16px" }}>
-                        <p style={{ fontSize: 10.5, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>{m.label}</p>
-                        <p style={{ fontSize: 20, fontWeight: 800, color: m.color, letterSpacing: "-0.5px" }}>{m.value}</p>
+                  {/* ── Spending metric cards ─────────────────────── */}
+                  {(() => {
+                    const totalSpent  = state.transactions.filter(t=>t.type==="debit").reduce((s,t)=>s+t.amount,0);
+                    const totalIncome = state.transactions.filter(t=>t.type==="credit").reduce((s,t)=>s+t.amount,0);
+                    const netChange   = totalIncome - totalSpent;
+                    const netPos      = netChange >= 0;
+                    // Compact formatter: 1,234 → "1.2k", 12,345 → "12.3k"
+                    const fmt = (n: number) => {
+                      const abs = Math.abs(n);
+                      if (abs >= 1_000_000) return `${(abs/1_000_000).toFixed(1)}M`;
+                      if (abs >= 10_000)    return `${(abs/1_000).toFixed(1)}k`;
+                      return abs.toLocaleString("en-US", { maximumFractionDigits: 0 });
+                    };
+                    const metrics = [
+                      { label: "Total Spent",  raw: totalSpent,  display: `$${fmt(totalSpent)}`,                             color: "#DC2626", bg: "#FEF2F2", border: "#FECACA", trend: "↓" },
+                      { label: "Total Income", raw: totalIncome, display: `+$${fmt(totalIncome)}`,                           color: "#059669", bg: "#ECFDF5", border: "#A7F3D0", trend: "↑" },
+                      { label: "Net Change",   raw: netChange,   display: `${netPos ? "+" : "−"}$${fmt(Math.abs(netChange))}`, color: netPos ? "#059669" : "#D97706", bg: netPos ? "#ECFDF5" : "#FFFBEB", border: netPos ? "#A7F3D0" : "#FDE68A", trend: netPos ? "▲" : "▼" },
+                    ];
+                    return (
+                      <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
+                        {metrics.map(m => (
+                          <div key={m.label} style={{
+                            flex: "1 1 0", minWidth: 0,
+                            background: m.bg, border: `1px solid ${m.border}`,
+                            borderRadius: 14, padding: "12px 14px",
+                            display: "flex", flexDirection: "column", gap: 4,
+                          }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
+                              <p style={{ fontSize: 10, color: C.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.07em", whiteSpace: "nowrap" as const }}>{m.label}</p>
+                              <span style={{ fontSize: 10, color: m.color, fontWeight: 700 }}>{m.trend}</span>
+                            </div>
+                            <p style={{
+                              fontSize: "clamp(14px, 2.5vw, 20px)",
+                              fontWeight: 800, color: m.color,
+                              letterSpacing: "-0.5px", lineHeight: 1.1,
+                              whiteSpace: "nowrap" as const,
+                              overflow: "hidden", textOverflow: "ellipsis",
+                            }}>{m.display}</p>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })()}
 
                   <div style={{ position: "relative", height: 160, paddingLeft: 36 }}>
                     {[0,250,500,750,1000].map(v => (
