@@ -7,6 +7,7 @@ import {
   VaulteState, DEMO_STATE, getTotalBalanceUSD, fmtAmount, VaulteUser,
 } from "@/lib/vaulteState";
 import { normalizeKyc, KYC_UI } from "@/lib/kycUtils";
+import LanguageSelector from "@/components/LanguageSelector";
 
 const C = {
   bg: "#F3F5FA", card: "#ffffff", navy: "#0F172A", blue: "#1A73E8",
@@ -453,6 +454,9 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
             >⚙️</Link>
 
+            {/* Language selector */}
+            <LanguageSelector />
+
             <div style={{ width: 1, height: 28, background: C.border, margin: "0 2px" }} />
 
             {/* Profile pill */}
@@ -518,6 +522,12 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
         @media (max-width: 900px) {
           .vaulte-search { display: none !important; }
           .vaulte-profile-name { display: none !important; }
+          /* Language selector: hide full name, show 2-letter code instead */
+          .vaulte-lang-name { display: none !important; }
+        }
+        @media (min-width: 901px) {
+          /* On desktop show full name, hide the compact code */
+          .vaulte-lang-code { display: none !important; }
         }
         @media (max-width: 768px) {
           .vaulte-sidebar { display: none !important; }

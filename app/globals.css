@@ -1,6 +1,21 @@
 @import "tailwindcss";
 
 * { margin: 0; padding: 0; box-sizing: border-box; max-width: 100%; }
+
+/* ─── Google Translate — hide default toolbar & prevent body offset ───────── */
+/* The injected toolbar frame */
+.goog-te-banner-frame,
+iframe.goog-te-banner-frame            { display: none !important; }
+/* Wrapper Google Translate adds around everything */
+.skiptranslate                         { display: none !important; }
+/* Prevent Google Translate from pushing body down by 40 px */
+body                                   { top: 0 !important; }
+/* Tooltip balloon */
+#goog-gt-tt,
+.goog-te-balloon-frame,
+.goog-te-spinner-pos                   { display: none !important; }
+/* Fix vertical-align glitch on translated inline elements */
+font[style*="top: auto"]              { vertical-align: inherit !important; }
 html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   background-color: #F8FAFC;
