@@ -16,6 +16,19 @@ body                                   { top: 0 !important; }
 .goog-te-spinner-pos                   { display: none !important; }
 /* Fix vertical-align glitch on translated inline elements */
 font[style*="top: auto"]              { vertical-align: inherit !important; }
+/* GT wraps translated text in inline <font> elements — keep them inline */
+font                                   { display: inline !important; }
+/* Remove GT highlight box-shadow that can bleed outside clipped containers */
+.goog-text-highlight                   { background: none !important; box-shadow: none !important; }
+/* Allow long translated words to break inside flex/grid children */
+.translated-ltr p,
+.translated-ltr span,
+.translated-ltr button,
+.translated-ltr a,
+.translated-rtl p,
+.translated-rtl span,
+.translated-rtl button,
+.translated-rtl a                      { overflow-wrap: break-word; word-break: break-word; }
 html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   background-color: #F8FAFC;

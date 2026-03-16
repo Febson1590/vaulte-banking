@@ -245,8 +245,8 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
               onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)"; }}
               onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
             >
-              <span style={{ fontSize: 14, color: isActive ? "#fff" : "rgba(255,255,255,0.35)", lineHeight: 1 }}>{item.icon}</span>
-              <span style={{ fontSize: 13.5, fontWeight: isActive ? 600 : 400, color: isActive ? "#fff" : "rgba(255,255,255,0.45)", letterSpacing: "0.01em" }}>{item.label}</span>
+              <span style={{ fontSize: 14, color: isActive ? "#fff" : "rgba(255,255,255,0.35)", lineHeight: 1, flexShrink: 0 }}>{item.icon}</span>
+              <span style={{ fontSize: 13.5, fontWeight: isActive ? 600 : 400, color: isActive ? "#fff" : "rgba(255,255,255,0.45)", letterSpacing: "0.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>{item.label}</span>
             </Link>
           );
         })}
@@ -265,8 +265,8 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.12)"; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = pathname === "/dashboard/kyc" ? "rgba(26,115,232,0.14)" : "rgba(239,68,68,0.07)"; }}
           >
-            <span style={{ fontSize: 14, color: "#EF4444", lineHeight: 1 }}>🪪</span>
-            <span style={{ fontSize: 13.5, fontWeight: 600, color: kycStatus === "pending" ? "#F59E0B" : "#EF4444", letterSpacing: "0.01em" }}>
+            <span style={{ fontSize: 14, color: "#EF4444", lineHeight: 1, flexShrink: 0 }}>🪪</span>
+            <span style={{ fontSize: 13.5, fontWeight: 600, color: kycStatus === "pending" ? "#F59E0B" : "#EF4444", letterSpacing: "0.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>
               {kycStatus === "pending" ? "KYC Pending" : kycStatus === "rejected" ? "KYC Rejected" : "Verify Identity"}
             </span>
             <span style={{ marginLeft: "auto", width: 7, height: 7, borderRadius: "50%", background: kycStatus === "pending" ? "#F59E0B" : "#EF4444", flexShrink: 0 }} />
@@ -470,9 +470,9 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
               ) : (
                 <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#1A73E8,#1558b0)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff", boxShadow: "0 0 0 2px rgba(26,115,232,0.18)", flexShrink: 0 }}>{initials}</div>
               )}
-              <div className="vaulte-profile-name" style={{ lineHeight: 1 }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: C.text, letterSpacing: "-0.1px" }}>{firstName} {lastName}</p>
-                <p style={{ fontSize: 11, fontWeight: 600, marginTop: 2, color: kycBadge.color }}>{kycBadge.label}</p>
+              <div className="vaulte-profile-name" style={{ lineHeight: 1, minWidth: 0, overflow: "hidden" }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: C.text, letterSpacing: "-0.1px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{firstName} {lastName}</p>
+                <p style={{ fontSize: 11, fontWeight: 600, marginTop: 2, color: kycBadge.color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{kycBadge.label}</p>
               </div>
               <span className="vaulte-profile-name" style={{ fontSize: 10, color: C.muted, marginLeft: 2 }}>▾</span>
             </div>

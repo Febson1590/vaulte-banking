@@ -275,7 +275,7 @@ export default function Dashboard() {
                           onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "#FAFBFC"; el.style.borderColor = C.border; el.style.transform = "translateY(0)"; el.style.boxShadow = "none"; }}
                         >
                           <div style={{ width: 40, height: 40, borderRadius: 13, background: a.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: a.color, fontWeight: 700, boxShadow: `0 2px 8px ${a.shadowC}` }}>{a.icon}</div>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: C.sub, letterSpacing: "0.01em" }}>{a.label}</span>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: C.sub, letterSpacing: "0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{a.label}</span>
                         </Link>
                       ))}
                     </div>
@@ -452,8 +452,8 @@ export default function Dashboard() {
                     <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                       <div style={{ width: 44, height: 44, borderRadius: 14, background: tx.iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: tx.iconColor, flexShrink: 0, boxShadow: "0 2px 8px rgba(15,23,42,0.07)" }}>{tx.icon}</div>
                       <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
-                          <p style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{tx.name}</p>
+                        <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4, minWidth: 0 }}>
+                          <p style={{ fontSize: 14, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200 }}>{tx.name}</p>
                           <span style={{ fontSize: 10.5, fontWeight: 600, color: tx.badgeColor, background: tx.badgeBg, border: `1px solid ${tx.badgeBorder}`, borderRadius: 6, padding: "2px 7px" }}>{tx.badge}</span>
                         </div>
                         <p style={{ fontSize: 12, color: C.muted }}>{tx.sub} · {fmtDate(tx.date)}</p>
@@ -559,8 +559,8 @@ export default function Dashboard() {
                 dotRing: !state.card.issued ? "rgba(203,213,225,0.2)" : state.card.frozen ? "rgba(148,163,184,0.2)" : "rgba(34,197,94,0.2)",
               },
             ].map((item, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 0", borderBottom: i < 2 ? `1px solid ${C.border}` : "none" }}>
-                <span style={{ fontSize: 13, color: C.sub, fontWeight: 400 }}>{item.label}</span>
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 0", borderBottom: i < 2 ? `1px solid ${C.border}` : "none", gap: 8 }}>
+                <span style={{ fontSize: 13, color: C.sub, fontWeight: 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>{item.label}</span>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, background: item.bg, borderRadius: 20, padding: "4px 11px" }}>
                   <div style={{ width: 6, height: 6, borderRadius: "50%", background: item.dot, boxShadow: `0 0 0 3px ${item.dotRing}` }} />
                   <span style={{ fontSize: 12, fontWeight: 600, color: item.color }}>{item.status}</span>
