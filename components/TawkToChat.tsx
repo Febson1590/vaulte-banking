@@ -36,20 +36,25 @@ function clamp(pos: { x: number; y: number }, btn: number): { x: number; y: numb
 
 export default function TawkToChat() {
   // ── Tawk.to state ──────────────────────────────────────────────────────────
-  const [chatOpen,    setChatOpen]    = useState(false);
-  const [tawkReady,   setTawkReady]   = useState(false);
-  const [unread,      setUnread]      = useState(0);
-  const [btnSize,     setBtnSize]     = useState(BTN_DESKTOP);
+  const [chatOpen,  setChatOpen]  = useState(false);
+  const [tawkReady, setTawkReady] = useState(false);
+  const [unread,    setUnread]    = useState(0);
+  const [btnSize,   setBtnSize]   = useState(BTN_DESKTOP);
 
-  // ── Draggable state ────────────────────────────────────────────────────────
-  const btnRef       = useRef<HTMLDivElement>(null);
-  const dragging     = useRef(false);
-  const dragOffset   = useRef({ x: 0, y: 0 });
-  const didDrag      = useRef(false);          // distinguish click vs drag
+  // ── UI interaction state ───────────────────────────────────────────────────
+  // isDragging drives cursor visual (refs don't re-render, so we need state)
+  // hovered controls tooltip visibility via React — more reliable than CSS attr selector
+  const [isDragging, setIsDragging] = useState(false);
+  const [hovered,    setHovered]    = useState(false);
+
+  // ── Draggable internal refs ────────────────────────────────────────────────
+  const btnRef     = useRef<HTMLDivElement>(null);
+  const dragging   = useRef(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
+  const didDrag    = useRef(false);          // distinguish click vs drag
 
   // ── Default position:
-  //   • Mobile  (≤ 520 px wide): bottom-LEFT — avoids covering right-aligned
-  //     transaction amounts which are the most tapped content area
+  //   • Mobile  (≤ 520 px wide): bottom-LEFT — avoids covering right-aligned amounts
   //   • Desktop: bottom-RIGHT (traditional chat position)
   const defaultPos = useCallback((): { x: number; y: number } => {
     const btn = getBtn();
@@ -131,8 +136,10 @@ export default function TawkToChat() {
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!btnRef.current) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    dragging.current = true;
-    didDrag.current  = false;
+    dragging.current   = true;
+    didDrag.current    = false;
+    setIsDragging(true);
+    setHovered(false);   // hide tooltip while dragging
     dragOffset.current = {
       x: e.clientX - pos.x,
       y: e.clientY - pos.y,
@@ -149,6 +156,7 @@ export default function TawkToChat() {
   const onPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragging.current) return;
     dragging.current = false;
+    setIsDragging(false);
     e.currentTarget.releasePointerCapture(e.pointerId);
 
     // Save final position
@@ -179,7 +187,10 @@ export default function TawkToChat() {
   // Don't render until position is hydrated (avoids layout jump)
   if (pos.x === -9999) return null;
 
-  const showPulse = !chatOpen && (unread > 0 || !tawkReady === false);
+  // Tooltip should appear to the left when the button is on the right half of screen
+  const tooltipOnLeft = pos.x > window.innerWidth / 2;
+  const showPulse      = !chatOpen && unread > 0;
+  const showTooltip    = hovered && !chatOpen && !isDragging;
 
   return (
     <>
@@ -190,19 +201,21 @@ export default function TawkToChat() {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onDoubleClick={onDoubleClick}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         style={{
-          position:   "fixed",
-          left:        pos.x,
-          top:         pos.y,
-          width:       btnSize,
-          height:      btnSize,
-          zIndex:      9998,
-          cursor:      dragging.current ? "grabbing" : "grab",
-          userSelect:  "none",
-          touchAction: "none",
-          transition: dragging.current ? "none" : "left 0.25s cubic-bezier(0.4,0,0.2,1), top 0.25s cubic-bezier(0.4,0,0.2,1)",
+          position:    "fixed",
+          left:         pos.x,
+          top:          pos.y,
+          width:        btnSize,
+          height:       btnSize,
+          zIndex:       9998,
+          cursor:       isDragging ? "grabbing" : "grab",
+          userSelect:   "none",
+          touchAction:  "none",
+          overflow:     "visible",   // allow tooltip to extend outside bounds
+          transition:   isDragging ? "none" : "left 0.25s cubic-bezier(0.4,0,0.2,1), top 0.25s cubic-bezier(0.4,0,0.2,1)",
         }}
-        title="Live Support — drag to reposition"
       >
         {/* Outer pulse ring */}
         {showPulse && (
@@ -229,7 +242,12 @@ export default function TawkToChat() {
           transition: "background 0.25s, box-shadow 0.25s, transform 0.18s",
         }}>
           {/* Icon */}
-          <span style={{ fontSize: chatOpen ? 20 : 22, lineHeight: 1, transition: "transform 0.25s", transform: chatOpen ? "rotate(180deg) scale(0.85)" : "rotate(0deg) scale(1)", userSelect: "none" }}>
+          <span style={{
+            fontSize: chatOpen ? 20 : 22, lineHeight: 1,
+            transition: "transform 0.25s",
+            transform: chatOpen ? "rotate(180deg) scale(0.85)" : "rotate(0deg) scale(1)",
+            userSelect: "none",
+          }}>
             {chatOpen ? "✕" : "💬"}
           </span>
 
@@ -248,37 +266,61 @@ export default function TawkToChat() {
           )}
         </div>
 
-        {/* Tooltip label — shown on hover when idle */}
-        {!chatOpen && (
-          <div style={{
-            position: "absolute",
-            ...(pos.x > window.innerWidth / 2
+        {/* ── Tooltip — visibility driven by React state (not CSS attr selector) ── */}
+        <div
+          aria-hidden
+          style={{
+            position:    "absolute",
+            // Flip left/right based on which half of screen the button is on
+            ...(tooltipOnLeft
               ? { right: btnSize + 10, left: "auto" }
-              : { left: btnSize + 10, right: "auto" }),
-            top: "50%", transform: "translateY(-50%)",
-            background: "#0F172A", color: "#fff",
-            fontSize: 11, fontWeight: 600,
-            padding: "5px 10px", borderRadius: 8,
-            whiteSpace: "nowrap" as const,
-            boxShadow: "0 2px 12px rgba(15,23,42,0.3)",
+              : { left:  btnSize + 10, right: "auto" }),
+            top: "50%",
+            transform: "translateY(-50%)",
+            // Solid background — no transparency issues
+            background:  "#0F172A",
+            color:       "#fff",
+            fontSize:    12,
+            fontWeight:  600,
+            lineHeight:  1,
+            padding:     "7px 12px",
+            borderRadius: 9,
+            whiteSpace:  "nowrap",
+            boxShadow:   "0 4px 16px rgba(15,23,42,0.35)",
             pointerEvents: "none",
-            opacity: 0,
-            transition: "opacity 0.18s",
+            zIndex:      1,
+            // React-state-driven opacity — reliable across all browsers
+            opacity:     showTooltip ? 1 : 0,
+            transition:  "opacity 0.15s ease",
           }}
-            className="chat-tooltip"
-          >
-            {tawkReady ? "Live Support" : "Connecting…"}
-            <div style={{
-              position: "absolute", top: "50%", transform: "translateY(-50%)",
-              ...(pos.x > window.innerWidth / 2
-                ? { right: -4, left: "auto", borderLeft: "4px solid #0F172A", borderRight: "none" }
-                : { left: -4, right: "auto", borderRight: "4px solid #0F172A", borderLeft: "none" }),
-              borderTop: "4px solid transparent",
-              borderBottom: "4px solid transparent",
-              width: 0, height: 0,
-            }} />
-          </div>
-        )}
+        >
+          {tawkReady ? "Live Support" : "Connecting…"}
+          {/* Arrow caret pointing toward the button */}
+          <div style={{
+            position:  "absolute",
+            top:       "50%",
+            transform: "translateY(-50%)",
+            width:     0,
+            height:    0,
+            ...(tooltipOnLeft
+              ? {
+                  right:        -6,
+                  left:         "auto",
+                  borderTop:    "5px solid transparent",
+                  borderBottom: "5px solid transparent",
+                  borderLeft:   "6px solid #0F172A",
+                  borderRight:  "none",
+                }
+              : {
+                  left:         -6,
+                  right:        "auto",
+                  borderTop:    "5px solid transparent",
+                  borderBottom: "5px solid transparent",
+                  borderRight:  "6px solid #0F172A",
+                  borderLeft:   "none",
+                }),
+          }} />
+        </div>
       </div>
 
       <style>{`
@@ -286,9 +328,6 @@ export default function TawkToChat() {
           0%   { transform: scale(1);    opacity: 0.6; }
           70%  { transform: scale(1.35); opacity: 0;   }
           100% { transform: scale(1.35); opacity: 0;   }
-        }
-        div[title="Live Support — drag to reposition"]:hover .chat-tooltip {
-          opacity: 1 !important;
         }
       `}</style>
     </>
