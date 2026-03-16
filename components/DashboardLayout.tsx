@@ -213,22 +213,13 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
   const SidebarContent = () => (
     <>
       {/* Logo */}
-      <div style={{ height: 104, display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0, padding: "0 20px" }}>
+      <div style={{ height: 96, display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0, padding: "0 20px" }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }} onClick={() => setSidebarOpen(false)}>
-          {/* Pill container — white background so the original blue logo is fully visible */}
-          <div style={{
-            background: "#ffffff",
-            borderRadius: 16,
-            padding: "10px 22px",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 2px 12px rgba(0,0,0,0.18)",
-          }}>
-            <img
-              src="/assets/logo-vaulte.png"
-              alt="Vaulte"
-              style={{ height: 52, width: "auto", maxWidth: 160, objectFit: "contain", display: "block" }}
-            />
-          </div>
+          <img
+            src="/assets/logo-vaulte.png"
+            alt="Vaulte"
+            style={{ height: 60, width: "auto", maxWidth: "100%", objectFit: "contain", display: "block" }}
+          />
         </Link>
       </div>
 
