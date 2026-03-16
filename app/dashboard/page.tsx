@@ -37,6 +37,7 @@ export default function Dashboard() {
   const [activeTab,  setActiveTab]  = useState("Dashboard");
   const [mounted,    setMounted]    = useState(false);
   const [transferAmount, setTransferAmount] = useState("100.00");
+  const [period, setPeriod] = useState<"7D" | "1M" | "3M">("7D");
 
   useEffect(() => {
     // DashboardLayout has already hydrated localStorage from Redis before this
@@ -68,19 +69,42 @@ export default function Dashboard() {
   const nKyc = mounted ? normalizeKyc(kycStatus) : "not_started";
   const kyc  = KYC_UI[nKyc];
 
-  // Chart data: real transactions grouped by day for the last 7 days
+  // ── Period helpers ────────────────────────────────────────────────────────
+  const periodDays   = period === "7D" ? 7 : period === "1M" ? 30 : 90;
+  const periodLabel  = period === "7D" ? "Last 7 days" : period === "1M" ? "Last 30 days" : "Last 3 months";
+  const periodCutoff = (() => {
+    const d = new Date(); d.setTime(d.getTime() - periodDays * 86_400_000); return d;
+  })();
+
+  // Transactions that fall within the selected period
+  const periodTxns = state.transactions.filter(t => new Date(t.date) >= periodCutoff);
+
+  // Chart: always 7 bars regardless of period; bucket width scales with period
+  const BARS = 7;
+  const msPer = periodDays * 86_400_000 / BARS;          // ms per bar
   const chartData = (() => {
-    const now = new Date();
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(now);
-      d.setDate(d.getDate() - (6 - i)); // i=0 is 6 days ago, i=6 is today
-      const dateStr = d.toISOString().slice(0, 10);
-      const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
-      const dayTxns = state.transactions.filter(t => t.date.startsWith(dateStr));
+    const now = Date.now();
+    return Array.from({ length: BARS }, (_, i) => {
+      const barEnd   = now - (BARS - 1 - i) * msPer;
+      const barStart = barEnd - msPer;
+      const barTxns  = state.transactions.filter(t => {
+        const ms = new Date(t.date).getTime();
+        return ms >= barStart && ms < barEnd;
+      });
+      // Label: day name for 7D, date for longer periods
+      let label: string;
+      if (period === "7D") {
+        const d = new Date(now - (BARS - 1 - i) * 86_400_000);
+        label = d.toLocaleDateString("en-US", { weekday: "short" });
+      } else {
+        const mid = new Date((barStart + barEnd) / 2);
+        label = mid.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      }
       return {
-        day:    dayName,
-        amount: dayTxns.filter(t => t.type === "debit").reduce((s, t) => s + t.amount, 0),
-        income: dayTxns.filter(t => t.type === "credit").reduce((s, t) => s + t.amount, 0),
+        day:      label,
+        amount:   barTxns.filter(t => t.type === "debit") .reduce((s, t) => s + t.amount, 0),
+        income:   barTxns.filter(t => t.type === "credit").reduce((s, t) => s + t.amount, 0),
+        isLatest: i === BARS - 1,
       };
     });
   })();
@@ -295,12 +319,15 @@ export default function Dashboard() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
                 <div>
                   <p style={{ fontSize: 15, fontWeight: 700, color: C.text, letterSpacing: "-0.2px", marginBottom: 3 }}>Spending Overview</p>
-                  <p style={{ fontSize: 12.5, color: C.muted }}>Last 7 days</p>
+                  <p style={{ fontSize: 12.5, color: C.muted }}>{periodLabel}</p>
                 </div>
                 <div style={{ display: "flex", gap: 3, background: C.bg, borderRadius: 10, padding: 3 }}>
-                  {["7D","1M","3M"].map((t, i) => (
-                    <button key={t} style={{ padding: "5px 13px", borderRadius: 8, border: "none", background: i === 0 ? "#fff" : "transparent", color: i === 0 ? C.text : C.muted, fontSize: 12, fontWeight: i === 0 ? 700 : 500, cursor: "pointer", fontFamily: "inherit", boxShadow: i === 0 ? C.shadow : "none", transition: "all 0.15s" }}>{t}</button>
-                  ))}
+                  {(["7D","1M","3M"] as const).map(t => {
+                    const active = t === period;
+                    return (
+                      <button key={t} onClick={() => setPeriod(t)} style={{ padding: "5px 13px", borderRadius: 8, border: "none", background: active ? "#fff" : "transparent", color: active ? C.text : C.muted, fontSize: 12, fontWeight: active ? 700 : 500, cursor: "pointer", fontFamily: "inherit", boxShadow: active ? C.shadow : "none", transition: "all 0.15s" }}>{t}</button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -313,41 +340,42 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <>
-                  {/* ── Spending metric cards ─────────────────────── */}
+                  {/* ── Spending metric cards — period-filtered, responsive ── */}
                   {(() => {
-                    const totalSpent  = state.transactions.filter(t=>t.type==="debit").reduce((s,t)=>s+t.amount,0);
-                    const totalIncome = state.transactions.filter(t=>t.type==="credit").reduce((s,t)=>s+t.amount,0);
+                    const totalSpent  = periodTxns.filter(t => t.type === "debit") .reduce((s, t) => s + t.amount, 0);
+                    const totalIncome = periodTxns.filter(t => t.type === "credit").reduce((s, t) => s + t.amount, 0);
                     const netChange   = totalIncome - totalSpent;
                     const netPos      = netChange >= 0;
-                    // Compact formatter: 1,234 → "1.2k", 12,345 → "12.3k"
+                    // Compact formatter: keeps values short on any screen size
                     const fmt = (n: number) => {
                       const abs = Math.abs(n);
-                      if (abs >= 1_000_000) return `${(abs/1_000_000).toFixed(1)}M`;
-                      if (abs >= 10_000)    return `${(abs/1_000).toFixed(1)}k`;
+                      if (abs >= 1_000_000) return `${(abs / 1_000_000).toFixed(1)}M`;
+                      if (abs >= 10_000)    return `${(abs / 1_000).toFixed(1)}k`;
                       return abs.toLocaleString("en-US", { maximumFractionDigits: 0 });
                     };
                     const metrics = [
-                      { label: "Total Spent",  raw: totalSpent,  display: `$${fmt(totalSpent)}`,                             color: "#DC2626", bg: "#FEF2F2", border: "#FECACA", trend: "↓" },
-                      { label: "Total Income", raw: totalIncome, display: `+$${fmt(totalIncome)}`,                           color: "#059669", bg: "#ECFDF5", border: "#A7F3D0", trend: "↑" },
-                      { label: "Net Change",   raw: netChange,   display: `${netPos ? "+" : "−"}$${fmt(Math.abs(netChange))}`, color: netPos ? "#059669" : "#D97706", bg: netPos ? "#ECFDF5" : "#FFFBEB", border: netPos ? "#A7F3D0" : "#FDE68A", trend: netPos ? "▲" : "▼" },
+                      { label: "Spent",   shortLabel: "Spent",  display: `$${fmt(totalSpent)}`,                              color: "#DC2626", bg: "#FEF2F2", border: "#FECACA", trend: "↓", spanFull: false },
+                      { label: "Income",  shortLabel: "Income", display: `+$${fmt(totalIncome)}`,                            color: "#059669", bg: "#ECFDF5", border: "#A7F3D0", trend: "↑", spanFull: false },
+                      { label: "Net",     shortLabel: "Net",    display: `${netPos ? "+" : "−"}$${fmt(Math.abs(netChange))}`, color: netPos ? "#059669" : "#D97706", bg: netPos ? "#ECFDF5" : "#FFFBEB", border: netPos ? "#A7F3D0" : "#FDE68A", trend: netPos ? "▲" : "▼", spanFull: true },
                     ];
                     return (
-                      <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
+                      <div className="spend-metrics-grid" style={{ marginBottom: 24 }}>
                         {metrics.map(m => (
-                          <div key={m.label} style={{
-                            flex: "1 1 0", minWidth: 0,
-                            background: m.bg, border: `1px solid ${m.border}`,
-                            borderRadius: 14, padding: "12px 14px",
-                            display: "flex", flexDirection: "column", gap: 4,
-                          }}>
+                          <div key={m.label}
+                            className={m.spanFull ? "spend-metric-net" : ""}
+                            style={{
+                              background: m.bg, border: `1px solid ${m.border}`,
+                              borderRadius: 12, padding: "11px 13px",
+                              display: "flex", flexDirection: "column", gap: 3,
+                              minWidth: 0,
+                            }}>
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
-                              <p style={{ fontSize: 10, color: C.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.07em", whiteSpace: "nowrap" as const }}>{m.label}</p>
-                              <span style={{ fontSize: 10, color: m.color, fontWeight: 700 }}>{m.trend}</span>
+                              <p style={{ fontSize: 9.5, color: C.muted, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.08em", whiteSpace: "nowrap" as const }}>{m.label}</p>
+                              <span style={{ fontSize: 9.5, color: m.color, fontWeight: 700 }}>{m.trend}</span>
                             </div>
                             <p style={{
-                              fontSize: "clamp(14px, 2.5vw, 20px)",
-                              fontWeight: 800, color: m.color,
-                              letterSpacing: "-0.5px", lineHeight: 1.1,
+                              fontSize: 17, fontWeight: 800, color: m.color,
+                              letterSpacing: "-0.4px", lineHeight: 1.1,
                               whiteSpace: "nowrap" as const,
                               overflow: "hidden", textOverflow: "ellipsis",
                             }}>{m.display}</p>
@@ -366,17 +394,17 @@ export default function Dashboard() {
                     ))}
                     <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: "100%", paddingBottom: 24 }}>
                       {chartData.map((d, i) => {
-                        const isToday = i === 6;
+                        const isLatest = d.isLatest;
                         const barH    = Math.max((d.amount / maxSpend) * 130, d.amount > 0 ? 4 : 0);
                         const incomeH = d.income > 0 ? (d.income / maxSpend) * 130 : 0;
                         return (
                           <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", position: "relative", height: "100%" }}>
                             {incomeH > 0 && <div style={{ position: "absolute", bottom: 24, width: "50%", height: incomeH, background: "linear-gradient(180deg,#34D399,#10B981)", borderRadius: "5px 5px 0 0", opacity: 0.35 }} />}
-                            {barH > 0 && <div style={{ position: "absolute", bottom: 24, width: "44%", height: barH, background: isToday ? "linear-gradient(180deg,#60A5FA,#1A73E8)" : "linear-gradient(180deg,#DBEAFE,#BFDBFE)", borderRadius: "5px 5px 0 0", cursor: "pointer", boxShadow: isToday ? "0 4px 14px rgba(26,115,232,0.22)" : "none", transition: "opacity 0.18s" }}
+                            {barH > 0 && <div style={{ position: "absolute", bottom: 24, width: "44%", height: barH, background: isLatest ? "linear-gradient(180deg,#60A5FA,#1A73E8)" : "linear-gradient(180deg,#DBEAFE,#BFDBFE)", borderRadius: "5px 5px 0 0", cursor: "pointer", boxShadow: isLatest ? "0 4px 14px rgba(26,115,232,0.22)" : "none", transition: "opacity 0.18s" }}
                               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = "0.72"; }}
                               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
                             />}
-                            <span style={{ position: "absolute", bottom: 4, fontSize: 10.5, fontWeight: isToday ? 700 : 500, color: isToday ? C.blue : C.muted }}>{d.day}</span>
+                            <span style={{ position: "absolute", bottom: 4, fontSize: 10.5, fontWeight: isLatest ? 700 : 500, color: isLatest ? C.blue : C.muted }}>{d.day}</span>
                           </div>
                         );
                       })}
@@ -578,6 +606,25 @@ export default function Dashboard() {
 
       <style>{`
         input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+        /* Spending metric cards — 3-column on desktop, 2+1 on mobile */
+        .spend-metrics-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 10px;
+        }
+        .spend-metric-net { /* Net Change — normal column on desktop */ }
+
+        @media (max-width: 520px) {
+          .spend-metrics-grid {
+            grid-template-columns: 1fr 1fr;
+          }
+          /* Net Change spans both columns on small screens */
+          .spend-metric-net {
+            grid-column: 1 / -1;
+          }
+        }
+
         @media (max-width: 900px) { .dash-grid { grid-template-columns: 1fr !important; } }
         @media (max-width: 768px) {
           .dash-tabs { margin: -16px -16px 20px !important; padding-left: 12px !important; }

@@ -18,14 +18,19 @@ function savePos(pos: { x: number; y: number }) {
   try { localStorage.setItem(POS_KEY, JSON.stringify(pos)); } catch { /* ignore */ }
 }
 
+// ── Button size — slightly smaller on narrow viewports ─────────────────────
+const BTN_DESKTOP = 56;
+const BTN_MOBILE  = 48;
+const getBtn = () => (typeof window !== "undefined" && window.innerWidth <= 520 ? BTN_MOBILE : BTN_DESKTOP);
+
 // ── Clamp so the button stays fully inside the viewport ────────────────────
-const BTN = 60; // button diameter
-function clamp(pos: { x: number; y: number }): { x: number; y: number } {
+function clamp(pos: { x: number; y: number }, btn: number): { x: number; y: number } {
+  const MARGIN = 12;
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   return {
-    x: Math.min(Math.max(pos.x, 0), vw - BTN),
-    y: Math.min(Math.max(pos.y, 0), vh - BTN),
+    x: Math.min(Math.max(pos.x, MARGIN), vw - btn - MARGIN),
+    y: Math.min(Math.max(pos.y, MARGIN), vh - btn - MARGIN),
   };
 }
 
@@ -34,6 +39,7 @@ export default function TawkToChat() {
   const [chatOpen,    setChatOpen]    = useState(false);
   const [tawkReady,   setTawkReady]   = useState(false);
   const [unread,      setUnread]      = useState(0);
+  const [btnSize,     setBtnSize]     = useState(BTN_DESKTOP);
 
   // ── Draggable state ────────────────────────────────────────────────────────
   const btnRef       = useRef<HTMLDivElement>(null);
@@ -41,24 +47,37 @@ export default function TawkToChat() {
   const dragOffset   = useRef({ x: 0, y: 0 });
   const didDrag      = useRef(false);          // distinguish click vs drag
 
-  // Default: bottom-right, just above the scrollbar + a little margin
-  const defaultPos = useCallback((): { x: number; y: number } => ({
-    x: window.innerWidth  - BTN - 20,
-    y: window.innerHeight - BTN - 24,
-  }), []);
+  // ── Default position:
+  //   • Mobile  (≤ 520 px wide): bottom-LEFT — avoids covering right-aligned
+  //     transaction amounts which are the most tapped content area
+  //   • Desktop: bottom-RIGHT (traditional chat position)
+  const defaultPos = useCallback((): { x: number; y: number } => {
+    const btn = getBtn();
+    const isMobile = window.innerWidth <= 520;
+    return {
+      x: isMobile ? 16 : window.innerWidth  - btn - 20,
+      y: window.innerHeight - btn - 28,
+    };
+  }, []);
 
   const [pos, setPos] = useState<{ x: number; y: number }>({ x: -9999, y: -9999 });
 
-  // Hydrate position after mount (avoids SSR mismatch)
+  // Hydrate position + button size after mount (avoids SSR mismatch)
   useEffect(() => {
+    const btn = getBtn();
+    setBtnSize(btn);
     const saved = loadPos();
-    setPos(clamp(saved ?? defaultPos()));
+    setPos(clamp(saved ?? defaultPos(), btn));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Reposition on viewport resize
+  // Reposition + resize button on viewport resize
   useEffect(() => {
-    const onResize = () => setPos(p => clamp(p));
+    const onResize = () => {
+      const btn = getBtn();
+      setBtnSize(btn);
+      setPos(p => clamp(p, btn));
+    };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
@@ -123,9 +142,9 @@ export default function TawkToChat() {
   const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragging.current) return;
     didDrag.current = true;
-    const next = clamp({ x: e.clientX - dragOffset.current.x, y: e.clientY - dragOffset.current.y });
+    const next = clamp({ x: e.clientX - dragOffset.current.x, y: e.clientY - dragOffset.current.y }, btnSize);
     setPos(next);
-  }, []);
+  }, [btnSize]);
 
   const onPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragging.current) return;
@@ -148,8 +167,9 @@ export default function TawkToChat() {
   const onDoubleClick = useCallback(() => {
     if (didDrag.current) return;
     setPos(p => {
-      const vw = window.innerWidth;
-      const snapped = clamp({ x: p.x < vw / 2 ? 20 : vw - BTN - 20, y: p.y });
+      const vw  = window.innerWidth;
+      const btn = getBtn();
+      const snapped = clamp({ x: p.x < vw / 2 ? 16 : vw - btn - 16, y: p.y }, btn);
       savePos(snapped);
       return snapped;
     });
@@ -174,21 +194,20 @@ export default function TawkToChat() {
           position:   "fixed",
           left:        pos.x,
           top:         pos.y,
-          width:       BTN,
-          height:      BTN,
+          width:       btnSize,
+          height:      btnSize,
           zIndex:      9998,
           cursor:      dragging.current ? "grabbing" : "grab",
           userSelect:  "none",
           touchAction: "none",
-          // Smooth repositioning during drag, but instant during pointer events
           transition: dragging.current ? "none" : "left 0.25s cubic-bezier(0.4,0,0.2,1), top 0.25s cubic-bezier(0.4,0,0.2,1)",
         }}
         title="Live Support — drag to reposition"
       >
-        {/* Outer ring with pulse animation */}
+        {/* Outer pulse ring */}
         {showPulse && (
           <div style={{
-            position: "absolute", inset: -6,
+            position: "absolute", inset: -5,
             borderRadius: "50%",
             background: "rgba(22,163,74,0.15)",
             animation: "chatPulseRing 2s ease-out infinite",
@@ -198,7 +217,7 @@ export default function TawkToChat() {
 
         {/* Main circle */}
         <div style={{
-          width: BTN, height: BTN, borderRadius: "50%",
+          width: btnSize, height: btnSize, borderRadius: "50%",
           background: chatOpen
             ? "linear-gradient(135deg,#0F172A,#1E293B)"
             : "linear-gradient(135deg,#16A34A,#15803D)",
@@ -229,17 +248,16 @@ export default function TawkToChat() {
           )}
         </div>
 
-        {/* Tooltip label — shown when idle (not dragging, not open) */}
+        {/* Tooltip label — shown on hover when idle */}
         {!chatOpen && (
           <div style={{
             position: "absolute",
-            // Position label to the LEFT if near right edge, RIGHT if near left edge
             ...(pos.x > window.innerWidth / 2
-              ? { right: BTN + 10, left: "auto" }
-              : { left: BTN + 10, right: "auto" }),
+              ? { right: btnSize + 10, left: "auto" }
+              : { left: btnSize + 10, right: "auto" }),
             top: "50%", transform: "translateY(-50%)",
             background: "#0F172A", color: "#fff",
-            fontSize: 11.5, fontWeight: 600,
+            fontSize: 11, fontWeight: 600,
             padding: "5px 10px", borderRadius: 8,
             whiteSpace: "nowrap" as const,
             boxShadow: "0 2px 12px rgba(15,23,42,0.3)",
