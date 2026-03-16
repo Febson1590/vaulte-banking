@@ -13,11 +13,6 @@ const C = {
   shadowHv: "0 2px 8px rgba(15,23,42,0.06), 0 14px 36px rgba(15,23,42,0.10)",
 } as const;
 
-const contacts = [
-  { name: "Sarah", initials: "S", bg: "linear-gradient(145deg,#2563EB,#1d4ed8)" },
-  { name: "Alex",  initials: "A", bg: "linear-gradient(145deg,#374151,#1f2937)" },
-  { name: "Emma",  initials: "E", bg: "linear-gradient(145deg,#7C3AED,#6d28d9)" },
-];
 
 const tabs = ["Dashboard", "Accounts", "Transfers", "Cards", "Help"];
 const tabLinks: Record<string, string> = {
@@ -36,7 +31,6 @@ export default function Dashboard() {
   const [currentUser, setUser]      = useState<VaulteUser | null>(null);
   const [activeTab,  setActiveTab]  = useState("Dashboard");
   const [mounted,    setMounted]    = useState(false);
-  const [transferAmount, setTransferAmount] = useState("100.00");
   const [period, setPeriod] = useState<"7D" | "1M" | "3M">("7D");
 
   useEffect(() => {
@@ -481,33 +475,6 @@ export default function Dashboard() {
 
         {/* ═══ RIGHT ═══ */}
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-
-          {/* Quick Transfer */}
-          <div style={card({ padding: "22px 20px" })} onMouseEnter={e => (e.currentTarget as HTMLElement).style.boxShadow = C.shadowHv} onMouseLeave={e => (e.currentTarget as HTMLElement).style.boxShadow = C.shadow}>
-            <p style={{ fontSize: 14.5, fontWeight: 700, color: C.text, letterSpacing: "-0.2px", marginBottom: 16 }}>Quick Transfer</p>
-            <div style={{ display: "flex", gap: 12, marginBottom: 20, justifyContent: "center" }}>
-              {contacts.map(c => (
-                <div key={c.name} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 7, cursor: "pointer" }}>
-                  <div style={{ width: 52, height: 52, borderRadius: 17, background: c.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 700, color: "#fff", boxShadow: "0 4px 14px rgba(15,23,42,0.12)", transition: "transform 0.2s, box-shadow 0.2s" }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 10px 24px rgba(15,23,42,0.18)"; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 14px rgba(15,23,42,0.12)"; }}
-                  >{c.initials}</div>
-                  <span style={{ fontSize: 11.5, color: C.sub, fontWeight: 500 }}>{c.name}</span>
-                </div>
-              ))}
-            </div>
-            <div style={{ background: C.bg, borderRadius: 14, padding: "12px 16px", marginBottom: 12, border: `1.5px solid ${C.border}` }}>
-              <p style={{ fontSize: 10.5, color: C.muted, fontWeight: 600, marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.08em" }}>Amount</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <span style={{ fontSize: 17, fontWeight: 600, color: C.muted }}>$</span>
-                <input value={transferAmount} onChange={e => setTransferAmount(e.target.value)} style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 22, fontWeight: 800, color: C.text, fontFamily: "inherit", letterSpacing: "-0.5px" }} />
-              </div>
-            </div>
-            <Link href="/dashboard/transfer" style={{ display: "block", width: "100%", padding: "13px", borderRadius: 14, border: "none", background: "linear-gradient(135deg,#1A73E8,#1558b0)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(26,115,232,0.24)", textAlign: "center", textDecoration: "none", transition: "all 0.2s" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 24px rgba(26,115,232,0.32)"; (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px rgba(26,115,232,0.24)"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}
-            >Send Money</Link>
-          </div>
 
           {/* Virtual Card */}
           {state.card.issued ? (
