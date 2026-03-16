@@ -45,9 +45,66 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const state = body?.state;
+    // eslint-disable-next-line prefer-const
+    let state = body?.state as Record<string, unknown> | undefined;
     if (!state) {
       return NextResponse.json({ error: "state is required in request body" }, { status: 400 });
+    }
+
+    // ── Merge missed admin transactions ──────────────────────
+    // When the admin credits/debits a wallet directly in Redis,
+    // the client's local state won't know about it. If the client
+    // then saves its stale state, it would overwrite the admin's
+    // change. We prevent that by re-applying any admin_credit /
+    // admin_debit transactions that are in Redis but absent from
+    // the incoming client state.
+    try {
+      const serverState = await redis.get<Record<string, unknown>>(RK.userState(email));
+      if (serverState?.transactions && state.transactions) {
+        const clientTxnIds = new Set(
+          (state.transactions as Array<{ id: string }>).map(t => t.id),
+        );
+        type TxEntry = {
+          id: string; txType: string; type: string;
+          amount: number; accountId: string;
+        };
+        const missedAdminTxns = (serverState.transactions as TxEntry[]).filter(
+          t => !clientTxnIds.has(t.id) &&
+               (t.txType === "admin_credit" || t.txType === "admin_debit"),
+        );
+
+        if (missedAdminTxns.length > 0) {
+          console.log(
+            `[PUT /api/user/state] Merging ${missedAdminTxns.length} missed admin` +
+            ` transaction(s) for ${email}:`,
+            missedAdminTxns.map(t => `${t.txType} ${t.amount} acct=${t.accountId}`),
+          );
+
+          // Re-apply each admin delta to the matching account balance
+          const accounts = (
+            (state.accounts as Array<{ id: string; balance: number }>) ?? []
+          ).map(acc => {
+            const delta = missedAdminTxns
+              .filter(t => t.accountId === acc.id)
+              .reduce((sum, t) => sum + (t.type === "credit" ? t.amount : -t.amount), 0);
+            return delta !== 0
+              ? { ...acc, balance: Math.max(0, acc.balance + delta) }
+              : acc;
+          });
+
+          state = {
+            ...state,
+            accounts,
+            transactions: [
+              ...missedAdminTxns,
+              ...(state.transactions as unknown[]),
+            ],
+          };
+        }
+      }
+    } catch (mergeErr) {
+      // Merge is best-effort — a failure must never block the save
+      console.warn("[PUT /api/user/state] Admin-merge warning:", mergeErr);
     }
 
     await redis.set(RK.userState(email), {

@@ -24,10 +24,11 @@ interface AccountEntry {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, amount, type } = body as {
+    const { email, amount, type, currency } = body as {
       email?: string;
       amount?: number;
       type?: "credit" | "debit";
+      currency?: string; // defaults to "USD" if omitted
     };
 
     if (!email || amount === undefined || !type) {
@@ -67,11 +68,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ── Resolve target currency (default USD) ───────────────
+    const targetCurrency = (currency ?? "USD").toUpperCase();
+
     const accounts = (stateRaw.accounts as AccountEntry[]).map(a => ({ ...a }));
-    const primaryIdx = accounts.findIndex(a => a.currency === "USD");
+    const primaryIdx = accounts.findIndex(a => a.currency === targetCurrency);
     if (primaryIdx === -1) {
       return NextResponse.json(
-        { error: "No USD account found for this user" },
+        { error: `No ${targetCurrency} account found for this user` },
         { status: 404 }
       );
     }
@@ -79,6 +83,12 @@ export async function POST(req: NextRequest) {
     const oldBal = accounts[primaryIdx].balance as number;
     const newBal = type === "credit" ? oldBal + amt : Math.max(0, oldBal - amt);
     accounts[primaryIdx] = { ...accounts[primaryIdx], balance: newBal };
+
+    console.log(
+      `[admin/balance] ${type} ${amt} ${targetCurrency} →` +
+      ` userId=${authUser.id} email=${normalizedEmail}` +
+      ` accountId=${accounts[primaryIdx].id} newBalance=${newBal}`
+    );
 
     // ── Build an admin transaction record ───────────────────
     const txn = {
@@ -90,7 +100,7 @@ export async function POST(req: NextRequest) {
       amount:      amt,
       fee:         0,
       balanceAfter: newBal,
-      currency:    "USD",
+      currency:    targetCurrency,
       date:        new Date().toISOString(),
       category:    "Adjustment",
       badge:       "Admin",
