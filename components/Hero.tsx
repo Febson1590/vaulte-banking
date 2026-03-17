@@ -142,7 +142,9 @@ export default function Hero() {
   return (
     <section className="hero-section" style={{
       background: "linear-gradient(145deg,#0F172A 0%,#1a3a7a 45%,#1A73E8 100%)",
-      minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center",
+      minHeight: "100vh", display: "flex", flexDirection: "column",
+      // justifyContent is intentionally NOT set here — it lives in CSS (.hero-section)
+      // so that media queries can override it on mobile (inline styles block CSS overrides).
       padding: "40px 5% 20px", position: "relative", overflow: "hidden",
     }}>
       <div style={{ position: "absolute", inset: 0, opacity: 0.03, backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,1) 1px,transparent 1px)", backgroundSize: "44px 44px" }} />
@@ -155,13 +157,13 @@ export default function Hero() {
             <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22C55E", display: "inline-block" }} />
             <span style={{ fontSize: 12, color: "#22C55E", fontWeight: 600, letterSpacing: "0.04em" }}>Now live in 190+ countries</span>
           </div>
-          <h1 style={{ fontSize: "clamp(38px,5.5vw,66px)", fontWeight: 900, color: "#fff", lineHeight: 1.08, letterSpacing: "-2px", marginBottom: 20 }}>
+          <h1 className="hero-heading" style={{ fontSize: "clamp(38px,5.5vw,66px)", fontWeight: 900, color: "#fff", lineHeight: 1.08, letterSpacing: "-2px", marginBottom: 20 }}>
             Global Digital<br />Banking
           </h1>
           <p className="hero-desc" style={{ fontSize: 17, color: "rgba(255,255,255,0.72)", lineHeight: 1.75, marginBottom: 36, maxWidth: 460 }}>
             Borderless banking for everyone. Send, save, and manage money worldwide with bank-level security.
           </p>
-          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 52 }}>
+          <div className="hero-cta" style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 52 }}>
             <Link href="/register" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "13px 26px", background: "#1A73E8", color: "#fff", borderRadius: 10, fontWeight: 700, fontSize: 15, textDecoration: "none", boxShadow: "0 4px 18px rgba(26,115,232,0.55)", transition: "all 0.2s" }}
               onMouseEnter={e => { e.currentTarget.style.background = "#1557b0"; e.currentTarget.style.transform = "translateY(-2px)"; }}
               onMouseLeave={e => { e.currentTarget.style.background = "#1A73E8"; e.currentTarget.style.transform = "translateY(0)"; }}
@@ -191,10 +193,45 @@ export default function Hero() {
       </div>
 
       <style>{`
+        /* ── Desktop: vertically center hero content ──────────────────────
+           justify-content is a CSS rule (not inline) so media queries can
+           override it on mobile without needing JS or !important hacks.    */
+        .hero-section { justify-content: center; }
+
+        /* ── Tablet / small desktop (≤ 900 px) ───────────────────────────
+           Switch to top-anchor layout so translated text never shifts the
+           entire content block toward / away from the navbar.
+           With justify-content: flex-start the block always starts at the
+           stable padding-top value (110 px = navbar 88 px + 22 px buffer).  */
         @media (max-width: 900px) {
-          .hero-section { padding: 110px 6% 50px !important; }
-          .hero-grid { grid-template-columns: 1fr !important; }
-          .hero-desc { font-size: 15px !important; max-width: 100% !important; }
+          .hero-section {
+            padding: 110px 6% 50px !important;
+            justify-content: flex-start !important;
+          }
+          .hero-grid  { grid-template-columns: 1fr !important; }
+
+          /* Reserve vertical space so shorter translations never collapse
+             the block and pull later elements (buttons, stats) upward.
+
+             Heading: clamp resolves to ≈ 49 px at 900 px, lineHeight 1.08
+             → 53 px/line.  Reserve space for up to 3 translated lines.    */
+          .hero-heading {
+            min-height: 165px;
+          }
+
+          /* Description: 15 px × lineHeight 1.75 = 26 px/line.
+             Reserve space for up to 5 translated lines.                    */
+          .hero-desc {
+            font-size: 15px !important;
+            max-width: 100% !important;
+            min-height: 130px;
+          }
+
+          /* CTA buttons: floor height stops stats from jumping up when
+             both buttons happen to fit in one line in a short language.    */
+          .hero-cta { min-height: 60px; }
+
+          /* Device mockups */
           .hero-right {
             height: 210px !important;
             overflow: visible !important;
@@ -209,9 +246,24 @@ export default function Hero() {
             margin-left: -280px;
           }
         }
+
+        /* ── Mobile (≤ 480 px) ────────────────────────────────────────────
+           padding-top 100 px > navbar 88 px — guarantees no overlap even
+           on the smallest phones; also re-confirms flex-start anchor.      */
         @media (max-width: 480px) {
-          .hero-section { padding: 80px 5% 40px !important; }
-          .hero-desc { font-size: 14px !important; }
+          .hero-section {
+            padding: 100px 5% 40px !important;
+            justify-content: flex-start !important;
+          }
+
+          /* Heading: 38 px font × 1.08 lh = 41 px/line. 3 lines = 123 px. */
+          .hero-heading { min-height: 130px; }
+
+          /* Description: 14 px × 1.75 lh = 24.5 px/line. 5 lines = 122 px. */
+          .hero-desc { font-size: 14px !important; min-height: 110px; }
+
+          .hero-cta { min-height: 54px; }
+
           .hero-mockups {
             transform: scale(0.46);
             margin-left: -280px;
