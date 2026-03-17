@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
+import LanguageSelector from "@/components/LanguageSelector";
 
 const faqs = [
   {
@@ -60,7 +61,8 @@ export default function HelpPage() {
         <Link href="/" style={{ textDecoration: "none" }}>
           <img src="/assets/logo-vaulte.png" alt="Vaulte" style={{ height: 120, objectFit: "contain", mixBlendMode: "screen" }} />
         </Link>
-        <div style={{ display: "flex", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <LanguageSelector variant="dark" />
           <Link href="/login" style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.8)", textDecoration: "none", padding: "8px 16px", borderRadius: 8 }}>Login</Link>
           <Link href="/register" style={{ fontSize: 14, fontWeight: 700, color: "#fff", textDecoration: "none", padding: "9px 20px", borderRadius: 8, background: "#1A73E8" }}>Open Account</Link>
         </div>

@@ -75,7 +75,14 @@ function resetToEnglish() {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function LanguageSelector() {
+interface LanguageSelectorProps {
+  /** "light" (default) — dark text on light bg (sidebar / floating).
+   *  "dark"            — light text on dark bg (public navbars). */
+  variant?: "light" | "dark";
+}
+
+export default function LanguageSelector({ variant = "light" }: LanguageSelectorProps) {
+  const isDark = variant === "dark";
   const [selectedCode, setSelectedCode] = useState("en");
   const [open,         setOpen]         = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -143,10 +150,10 @@ export default function LanguageSelector() {
     display: "flex", alignItems: "center", gap: 5,
     height: 38, padding: "0 11px",
     borderRadius: 10,
-    border: "1px solid rgba(15,23,42,0.07)",
+    border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid rgba(15,23,42,0.07)",
     background: "transparent",
     cursor: "pointer",
-    fontSize: 13, color: "#0F172A",
+    fontSize: 13, color: isDark ? "rgba(255,255,255,0.9)" : "#0F172A",
     fontFamily: "inherit",
     transition: "background 0.15s",
     whiteSpace: "nowrap",
@@ -159,7 +166,7 @@ export default function LanguageSelector() {
       <button
         style={triggerStyle}
         onClick={() => setOpen(v => !v)}
-        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#F3F5FA"; }}
+        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = isDark ? "rgba(255,255,255,0.1)" : "#F3F5FA"; }}
         onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
         title="Select language"
         aria-label="Language selector"
@@ -182,7 +189,7 @@ export default function LanguageSelector() {
         >
           {codeLabel}
         </span>
-        <span style={{ fontSize: 9, color: "#94A3B8", marginLeft: 1 }}>▾</span>
+        <span style={{ fontSize: 9, color: isDark ? "rgba(255,255,255,0.5)" : "#94A3B8", marginLeft: 1 }}>▾</span>
       </button>
 
       {/* ── Dropdown ───────────────────────────────────────────────────── */}

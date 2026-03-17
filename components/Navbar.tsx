@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import LanguageSelector from "@/components/LanguageSelector";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -33,6 +34,7 @@ export default function Navbar() {
           ))}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }} className="nav-links">
+          <LanguageSelector variant="dark" />
           <Link href="/login" style={{ fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,0.9)", textDecoration: "none", padding: "8px 16px", borderRadius: 8, transition: "all 0.2s" }}
             onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; }}
             onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
@@ -56,6 +58,9 @@ export default function Navbar() {
             <a key={l} href={`#${l.toLowerCase().replace(/ /g, "-")}`} onClick={() => setMenuOpen(false)}
               style={{ padding: "10px 0", fontSize: 15, color: "rgba(255,255,255,0.8)", textDecoration: "none", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>{l}</a>
           ))}
+          <div style={{ padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+            <LanguageSelector variant="dark" />
+          </div>
           <Link href="/login" onClick={() => setMenuOpen(false)} style={{ padding: "10px 0", fontSize: 15, color: "#60a5fa", fontWeight: 600, textDecoration: "none" }}>Login</Link>
           <Link href="/register" onClick={() => setMenuOpen(false)} style={{ marginTop: 8, padding: "12px", textAlign: "center", fontSize: 15, fontWeight: 700, color: "#fff", textDecoration: "none", background: "#1A73E8", borderRadius: 8 }}>Open Account</Link>
         </div>
