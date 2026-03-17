@@ -53,6 +53,19 @@ function readCookieLang(): string {
   }
 }
 
+/**
+ * Delete the googtrans cookie on every domain/path variant Google Translate
+ * might have used when setting it.  GT behaviour differs between localhost,
+ * bare hostnames, and dot-prefixed production domains, so we cover all three.
+ */
+function clearGoogTransCookie(): void {
+  const exp  = "expires=Thu, 01 Jan 1970 00:00:01 GMT";
+  const host = location.hostname;
+  document.cookie = `googtrans=; path=/; ${exp}`;
+  document.cookie = `googtrans=; path=/; ${exp}; domain=${host}`;
+  document.cookie = `googtrans=; path=/; ${exp}; domain=.${host}`;
+}
+
 /** Programmatically trigger Google Translate for the given language code.
  *  Retries up to 20 times (6 seconds) waiting for GT to initialise. */
 function applyGoogleTranslate(langCode: string, retries = 0) {
@@ -65,11 +78,16 @@ function applyGoogleTranslate(langCode: string, retries = 0) {
   }
 }
 
-/** Clear the googtrans cookie on both root path and domain, then reload. */
-function resetToEnglish() {
-  const expires = "expires=Thu, 01 Jan 1970 00:00:01 GMT";
-  document.cookie = `googtrans=; path=/; ${expires}`;
-  document.cookie = `googtrans=; path=/; ${expires}; domain=.${location.hostname}`;
+/**
+ * Reset to English.
+ * 1. Write "en" to localStorage so the init effect always knows the user's
+ *    explicit preference — even if called without going through handleSelect.
+ * 2. Clear the googtrans cookie with all three domain variants.
+ * 3. Reload the page so GT sees a clean state.
+ */
+function resetToEnglish(): void {
+  localStorage.setItem("vaulte_lang", "en");
+  clearGoogTransCookie();
   window.location.reload();
 }
 
@@ -89,19 +107,54 @@ export default function LanguageSelector({ variant = "light" }: LanguageSelector
 
   // ── Initialise: restore saved / auto-detected language ───────────────────
   useEffect(() => {
-    const cookieLang = readCookieLang();
     const savedLang  = localStorage.getItem("vaulte_lang");
+    const cookieLang = readCookieLang();
 
+    // ── Branch 1: User explicitly chose English ─────────────────────────────
+    // Check this FIRST so a stale GT cookie can never override it.
+    if (savedLang === "en") {
+      setSelectedCode("en");
+
+      if (cookieLang !== "en") {
+        // The cookie survived the last reload (e.g. GT set it under a domain
+        // variant we missed).  Do one additional flush-reload, guarded by a
+        // sessionStorage flag so it cannot loop.
+        if (!sessionStorage.getItem("vaulte_en_flush")) {
+          sessionStorage.setItem("vaulte_en_flush", "1");
+          clearGoogTransCookie();
+          window.location.reload();
+        } else {
+          // Second attempt — cookie is unusually persistent; clear it and
+          // continue (page text may still be translated but UI is correct,
+          // and the next navigation will load clean).
+          sessionStorage.removeItem("vaulte_en_flush");
+          clearGoogTransCookie();
+        }
+      } else {
+        // Cookie is already clean — remove flush guard so future visits are normal.
+        sessionStorage.removeItem("vaulte_en_flush");
+      }
+      return;
+    }
+
+    // ── Branch 2: Active GT cookie (foreign language) ───────────────────────
     if (cookieLang !== "en") {
-      // An active translation is already applied via cookie — sync the UI
       setSelectedCode(cookieLang);
+      // Only write to localStorage if the user hasn't saved a preference yet;
+      // if they have a *different* saved preference, don't clobber it.
       if (!savedLang) localStorage.setItem("vaulte_lang", cookieLang);
-    } else if (savedLang && savedLang !== "en") {
-      // Saved preference, but no active cookie — re-apply
+      return;
+    }
+
+    // ── Branch 3: Saved non-English preference, no active cookie ───────────
+    if (savedLang && savedLang !== "en") {
       setSelectedCode(savedLang);
       applyGoogleTranslate(savedLang);
-    } else if (!savedLang) {
-      // Very first visit — auto-detect browser language
+      return;
+    }
+
+    // ── Branch 4: First visit — auto-detect browser language ────────────────
+    if (!savedLang) {
       const browserRaw = navigator.language.toLowerCase();           // e.g. "zh-tw"
       const prefix     = browserRaw.split("-")[0];                   // e.g. "zh"
 
@@ -136,7 +189,7 @@ export default function LanguageSelector({ variant = "light" }: LanguageSelector
     setSelectedCode(langCode);
     localStorage.setItem("vaulte_lang", langCode);
     if (langCode === "en") {
-      resetToEnglish();
+      resetToEnglish();   // also writes "en" to localStorage internally
     } else {
       applyGoogleTranslate(langCode);
     }
