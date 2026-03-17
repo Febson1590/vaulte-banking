@@ -40,10 +40,19 @@ export default function RootLayout({
          * This must be the FIRST script in <head> so it executes synchronously
          * during HTML parsing, well before the afterInteractive GT bundle loads.
          *
-         * Three cookie-deletion variants cover every domain format GT may use:
-         *   1. No domain  (localhost / bare hostname)
-         *   2. domain=hostname       (e.g. vaulteapp.com)
-         *   3. domain=.hostname      (e.g. .vaulteapp.com — GT's typical form)
+         * Five cookie-deletion variants are required:
+         *   1. No domain          (localhost / bare hostname)
+         *   2. domain=hostname    (e.g. www.vaulteapp.com)
+         *   3. domain=.hostname   (e.g. .www.vaulteapp.com)
+         *   4. domain=apex        (e.g. vaulteapp.com)   ← GT sets cookie here
+         *   5. domain=.apex       (e.g. .vaulteapp.com)  ← GT's typical form
+         *
+         * Variants 4-5 are critical for www-prefixed custom domains.  On
+         * www.vaulteapp.com Google Translate sets the cookie on the APEX domain
+         * (.vaulteapp.com), not on www.  Without clearing the apex cookie the
+         * page reverts to the previous language on every reload despite the user
+         * having selected English.  vaulte-banking.vercel.app has no www prefix
+         * so this was not visible there — it only manifested on the custom domain.
          */}
         {/* eslint-disable-next-line @next/next/no-sync-scripts */}
         <script dangerouslySetInnerHTML={{ __html:
@@ -52,9 +61,15 @@ export default function RootLayout({
           `if(l==='en'){` +
           `var e='expires=Thu, 01 Jan 1970 00:00:01 GMT';` +
           `var h=location.hostname;` +
-          `document.cookie='googtrans=; path=/; '+e;` +
-          `document.cookie='googtrans=; path=/; '+e+'; domain='+h;` +
+          `document.cookie='googtrans=; path=/; '+e+';';` +
+          `document.cookie='googtrans=; path=/; '+e+'; domain='+h+';';` +
           `document.cookie='googtrans=; path=/; '+e+'; domain=.'+h+';';` +
+          `var p=h.split('.');` +
+          `if(p.length>2){` +
+          `var a=p.slice(-2).join('.');` +
+          `document.cookie='googtrans=; path=/; '+e+'; domain='+a+';';` +
+          `document.cookie='googtrans=; path=/; '+e+'; domain=.'+a+';';` +
+          `}` +
           `}}catch(x){}})()`
         }} />
 

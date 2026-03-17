@@ -55,14 +55,32 @@ let _gtVersion = 0;
  * Delete the googtrans cookie on every domain/path variant Google Translate
  * might have used.  Also increments _gtVersion to abort any in-flight
  * applyGoogleTranslate retry loops immediately.
+ *
+ * We clear five variants to handle both bare hostnames (vaulte-banking.vercel.app)
+ * and www-prefixed custom domains (www.vaulteapp.com).  On a custom domain GT
+ * typically sets the cookie on the APEX domain (.vaulteapp.com) — not on the
+ * www subdomain — so clearing only location.hostname misses it entirely.
  */
 function clearGoogTransCookie(): void {
   _gtVersion++;                                     // cancel pending retries
   const exp  = "expires=Thu, 01 Jan 1970 00:00:01 GMT";
   const host = location.hostname;
+
+  // 1. No explicit domain (covers localhost / direct file)
   document.cookie = `googtrans=; path=/; ${exp}`;
+  // 2-3. Exact hostname and dot-prefixed hostname (e.g. www.vaulteapp.com)
   document.cookie = `googtrans=; path=/; ${exp}; domain=${host}`;
   document.cookie = `googtrans=; path=/; ${exp}; domain=.${host}`;
+
+  // 4-5. Apex domain — critical for www.* custom domains.
+  //      GT sets the cookie on the APEX (vaulteapp.com / .vaulteapp.com),
+  //      not on the www subdomain, so we must also clear it there.
+  const parts = host.split(".");
+  if (parts.length > 2) {
+    const apex = parts.slice(-2).join(".");
+    document.cookie = `googtrans=; path=/; ${exp}; domain=${apex}`;
+    document.cookie = `googtrans=; path=/; ${exp}; domain=.${apex}`;
+  }
 }
 
 /**
