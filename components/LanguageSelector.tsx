@@ -41,24 +41,23 @@ export const LANGUAGES = [
   { code: "sw",    name: "Kiswahili",         flag: "🇰🇪" },
 ];
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Cancellation token ────────────────────────────────────────────────────────
+// Every applyGoogleTranslate call takes ownership of the current version.
+// clearGoogTransCookie() also bumps the version. Any retry callback whose
+// captured version no longer matches _gtVersion is silently dropped — this
+// prevents orphaned retries from re-applying a stale language after the user
+// has already selected English (or a different language).
+let _gtVersion = 0;
 
-/** Read the target language from the googtrans cookie (returns "en" if absent). */
-function readCookieLang(): string {
-  try {
-    const m = document.cookie.match(/googtrans=\/[^/]+\/([^;]+)/);
-    return m?.[1] ?? "en";
-  } catch {
-    return "en";
-  }
-}
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 /**
  * Delete the googtrans cookie on every domain/path variant Google Translate
- * might have used when setting it.  GT behaviour differs between localhost,
- * bare hostnames, and dot-prefixed production domains, so we cover all three.
+ * might have used.  Also increments _gtVersion to abort any in-flight
+ * applyGoogleTranslate retry loops immediately.
  */
 function clearGoogTransCookie(): void {
+  _gtVersion++;                                     // cancel pending retries
   const exp  = "expires=Thu, 01 Jan 1970 00:00:01 GMT";
   const host = location.hostname;
   document.cookie = `googtrans=; path=/; ${exp}`;
@@ -66,29 +65,45 @@ function clearGoogTransCookie(): void {
   document.cookie = `googtrans=; path=/; ${exp}; domain=.${host}`;
 }
 
-/** Programmatically trigger Google Translate for the given language code.
- *  Retries up to 20 times (6 seconds) waiting for GT to initialise. */
-function applyGoogleTranslate(langCode: string, retries = 0) {
-  const select = document.querySelector(".goog-te-combo") as HTMLSelectElement | null;
-  if (select) {
-    select.value = langCode;
-    select.dispatchEvent(new Event("change"));
-  } else if (retries < 20) {
-    setTimeout(() => applyGoogleTranslate(langCode, retries + 1), 300);
+/**
+ * Programmatically apply a language via Google Translate.
+ *
+ * Retries every 300 ms (up to 6 s total) until the hidden GT combo select
+ * is available.  Each call claims a unique version number; if a newer call
+ * (or clearGoogTransCookie) increments _gtVersion, all pending retries for
+ * the previous version are silently dropped.
+ */
+function applyGoogleTranslate(langCode: string): void {
+  const version = ++_gtVersion;
+
+  function attempt(tries: number): void {
+    if (version !== _gtVersion) return;             // cancelled by a newer call
+    const sel = document.querySelector(".goog-te-combo") as HTMLSelectElement | null;
+    if (sel) {
+      sel.value = langCode;
+      sel.dispatchEvent(new Event("change"));
+    } else if (tries < 20) {
+      setTimeout(() => attempt(tries + 1), 300);
+    }
   }
+
+  attempt(0);
 }
 
 /**
  * Reset to English.
- * 1. Write "en" to localStorage so the init effect always knows the user's
- *    explicit preference — even if called without going through handleSelect.
- * 2. Clear the googtrans cookie with all three domain variants.
- * 3. Reload the page so GT sees a clean state.
+ *
+ * Order of operations matters:
+ * 1. clearGoogTransCookie() — bumps _gtVersion (cancels retries) AND wipes the
+ *    googtrans cookie before the reload so GT has nothing to restore.
+ * 2. localStorage — written so the root-layout sync <script> knows to keep the
+ *    cookie clear on the very next load (before GT initialises).
+ * 3. reload — gives GT a clean slate.
  */
 function resetToEnglish(): void {
-  localStorage.setItem("vaulte_lang", "en");
-  clearGoogTransCookie();
-  window.location.reload();
+  clearGoogTransCookie();                           // step 1: cancel + clear
+  localStorage.setItem("vaulte_lang", "en");        // step 2: persist choice
+  window.location.reload();                         // step 3: clean reload
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -105,71 +120,46 @@ export default function LanguageSelector({ variant = "light" }: LanguageSelector
   const [open,         setOpen]         = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
-  // ── Initialise: restore saved / auto-detected language ───────────────────
+  // ── Init: localStorage is the single source of truth ─────────────────────
+  //
+  // We deliberately do NOT read the googtrans cookie here.  The cookie is
+  // GT's internal output; our source of truth is localStorage["vaulte_lang"].
+  // The root-layout sync <script> clears the cookie before GT loads whenever
+  // the saved preference is English, so there is no flash of a foreign language.
   useEffect(() => {
-    const savedLang  = localStorage.getItem("vaulte_lang");
-    const cookieLang = readCookieLang();
+    const saved = localStorage.getItem("vaulte_lang");
 
-    // ── Branch 1: User explicitly chose English ─────────────────────────────
-    // Check this FIRST so a stale GT cookie can never override it.
-    if (savedLang === "en") {
-      setSelectedCode("en");
-
-      if (cookieLang !== "en") {
-        // The cookie survived the last reload (e.g. GT set it under a domain
-        // variant we missed).  Do one additional flush-reload, guarded by a
-        // sessionStorage flag so it cannot loop.
-        if (!sessionStorage.getItem("vaulte_en_flush")) {
-          sessionStorage.setItem("vaulte_en_flush", "1");
-          clearGoogTransCookie();
-          window.location.reload();
-        } else {
-          // Second attempt — cookie is unusually persistent; clear it and
-          // continue (page text may still be translated but UI is correct,
-          // and the next navigation will load clean).
-          sessionStorage.removeItem("vaulte_en_flush");
-          clearGoogTransCookie();
-        }
-      } else {
-        // Cookie is already clean — remove flush guard so future visits are normal.
-        sessionStorage.removeItem("vaulte_en_flush");
-      }
-      return;
-    }
-
-    // ── Branch 2: Active GT cookie (foreign language) ───────────────────────
-    if (cookieLang !== "en") {
-      setSelectedCode(cookieLang);
-      // Only write to localStorage if the user hasn't saved a preference yet;
-      // if they have a *different* saved preference, don't clobber it.
-      if (!savedLang) localStorage.setItem("vaulte_lang", cookieLang);
-      return;
-    }
-
-    // ── Branch 3: Saved non-English preference, no active cookie ───────────
-    if (savedLang && savedLang !== "en") {
-      setSelectedCode(savedLang);
-      applyGoogleTranslate(savedLang);
-      return;
-    }
-
-    // ── Branch 4: First visit — auto-detect browser language ────────────────
-    if (!savedLang) {
-      const browserRaw = navigator.language.toLowerCase();           // e.g. "zh-tw"
-      const prefix     = browserRaw.split("-")[0];                   // e.g. "zh"
-
-      const match =
-        LANGUAGES.find(l => l.code.toLowerCase() === browserRaw) ??  // exact
-        LANGUAGES.find(l => l.code.toLowerCase() === prefix);         // prefix
+    // ── First visit: nothing saved yet ───────────────────────────────────────
+    if (!saved) {
+      const raw    = navigator.language.toLowerCase();    // e.g. "zh-tw"
+      const prefix = raw.split("-")[0];                   // e.g. "zh"
+      const match  =
+        LANGUAGES.find(l => l.code.toLowerCase() === raw)    ??  // exact
+        LANGUAGES.find(l => l.code.toLowerCase() === prefix);    // prefix
 
       if (match && match.code !== "en") {
         setSelectedCode(match.code);
         localStorage.setItem("vaulte_lang", match.code);
         applyGoogleTranslate(match.code);
       } else {
-        localStorage.setItem("vaulte_lang", "en");                   // mark as visited
+        setSelectedCode("en");
+        localStorage.setItem("vaulte_lang", "en");
+        clearGoogTransCookie();                           // ensure no stale cookie
       }
+      return;
     }
+
+    // ── English: make sure no stale cookie can trigger GT ────────────────────
+    if (saved === "en") {
+      setSelectedCode("en");
+      clearGoogTransCookie();   // bumps version + clears cookie (belt-and-suspenders
+                                // alongside the sync head script in layout.tsx)
+      return;
+    }
+
+    // ── Saved non-English language: apply it ──────────────────────────────────
+    setSelectedCode(saved);
+    applyGoogleTranslate(saved);
   }, []);
 
   // ── Close dropdown on outside click ──────────────────────────────────────
@@ -189,7 +179,7 @@ export default function LanguageSelector({ variant = "light" }: LanguageSelector
     setSelectedCode(langCode);
     localStorage.setItem("vaulte_lang", langCode);
     if (langCode === "en") {
-      resetToEnglish();   // also writes "en" to localStorage internally
+      resetToEnglish();         // clears cookie + cancels retries + reloads
     } else {
       applyGoogleTranslate(langCode);
     }
@@ -226,7 +216,6 @@ export default function LanguageSelector({ variant = "light" }: LanguageSelector
         aria-expanded={open}
         aria-haspopup="listbox"
       >
-        {/* Flag */}
         <span style={{ fontSize: 17, lineHeight: 1 }}>{current.flag}</span>
         {/* Full name — hidden below 900 px via CSS class */}
         <span
@@ -235,7 +224,7 @@ export default function LanguageSelector({ variant = "light" }: LanguageSelector
         >
           {current.name}
         </span>
-        {/* Code — visible only when name is hidden (< 900 px) */}
+        {/* 2-letter code — visible only when name is hidden (< 900 px) */}
         <span
           className="vaulte-lang-code"
           style={{ fontWeight: 600, fontSize: 12.5, letterSpacing: "0.02em" }}
@@ -261,7 +250,7 @@ export default function LanguageSelector({ variant = "light" }: LanguageSelector
             borderRadius: 14,
             border: "1px solid rgba(15,23,42,0.07)",
             boxShadow: "0 8px 32px rgba(15,23,42,0.12), 0 2px 8px rgba(15,23,42,0.06)",
-            zIndex: 999,
+            zIndex: 1000,
             padding: "6px 0",
           }}
         >

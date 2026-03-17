@@ -31,6 +31,34 @@ export default function RootLayout({
     <html lang="en" className={inter.className}>
       <head>
         {/*
+         * ── SYNC LANGUAGE GUARD (runs before any script, including GT) ──────
+         *
+         * If the user has explicitly saved "en" as their language preference,
+         * wipe the googtrans cookie immediately — before Google Translate's
+         * script has a chance to read it and re-apply a stale foreign language.
+         *
+         * This must be the FIRST script in <head> so it executes synchronously
+         * during HTML parsing, well before the afterInteractive GT bundle loads.
+         *
+         * Three cookie-deletion variants cover every domain format GT may use:
+         *   1. No domain  (localhost / bare hostname)
+         *   2. domain=hostname       (e.g. vaulteapp.com)
+         *   3. domain=.hostname      (e.g. .vaulteapp.com — GT's typical form)
+         */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script dangerouslySetInnerHTML={{ __html:
+          `(function(){try{` +
+          `var l=localStorage.getItem('vaulte_lang');` +
+          `if(l==='en'){` +
+          `var e='expires=Thu, 01 Jan 1970 00:00:01 GMT';` +
+          `var h=location.hostname;` +
+          `document.cookie='googtrans=; path=/; '+e;` +
+          `document.cookie='googtrans=; path=/; '+e+'; domain='+h;` +
+          `document.cookie='googtrans=; path=/; '+e+'; domain=.'+h+';';` +
+          `}}catch(x){}})()`
+        }} />
+
+        {/*
          * Define the Google Translate callback inline in <head> so it is
          * available before translate.js loads (the script calls this function
          * as soon as it finishes loading via ?cb=googleTranslateElementInit).
