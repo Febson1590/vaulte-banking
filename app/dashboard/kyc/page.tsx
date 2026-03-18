@@ -234,11 +234,24 @@ export default function KYCPage() {
         dob: form.dob, nationality: form.nationality,
         address: form.address, city: form.city,
       });
-      // Also write "pending" to Redis so other devices see the submission
+      // Persist status + full KYC data + uploaded document to Redis so admin
+      // can review from any device (not just the user's local browser).
       fetch("/api/kyc/status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user.email, kycStatus: "pending" }),
+        body: JSON.stringify({
+          email:     user.email,
+          kycStatus: "pending",
+          kycData: {
+            docType:     form.docType,
+            nationality: form.nationality,
+            dob:         form.dob,
+            address:     form.address,
+            city:        form.city,
+            submittedAt: new Date().toISOString(),
+          },
+          kycDoc: docImage,   // base64 data URL of the uploaded ID photo
+        }),
       }).catch(err => console.error("[kyc/submit] Redis sync failed:", err));
       setSubmitting(false);
       setStep(3);

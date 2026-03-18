@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Session expired. Please sign in again." }, { status: 401 });
     }
 
-    const { email, kycStatus } = await req.json();
+    const { email, kycStatus, kycData, kycDoc } = await req.json();
     if (!email || !kycStatus) {
       return NextResponse.json({ error: "email and kycStatus are required" }, { status: 400 });
     }
@@ -62,7 +62,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await redis.set(RK.kycStatus(normalizedEmail), kycStatus);
+    // ── Write all three KYC keys atomically in parallel ──────
+    const writes: Promise<unknown>[] = [
+      redis.set(RK.kycStatus(normalizedEmail), kycStatus),
+    ];
+
+    // Persist full KYC form data (docType, nationality, dob, address, city, submittedAt)
+    // so admin can read it cross-device without relying on localStorage.
+    if (kycData && typeof kycData === "object") {
+      writes.push(redis.set(RK.kycData(normalizedEmail), kycData));
+    }
+
+    // Persist the uploaded ID document (base64 data URL) to Redis so admin can
+    // retrieve and preview it from any device.
+    if (typeof kycDoc === "string" && kycDoc.startsWith("data:")) {
+      writes.push(redis.set(RK.kycDoc(normalizedEmail), kycDoc));
+    }
+
+    await Promise.all(writes);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[POST /api/kyc/status]", err);

@@ -48,8 +48,10 @@ export const RK = {
   loginHistory:   (userId: string) => `login:history:${userId}`,
   // KYC status — cross-device sync
   kycStatus:      (email: string) => `kyc:status:${email.toLowerCase()}`,
-  // Full KYC submission data (doc type, nationality, dob, etc.)
+  // Full KYC submission data (doc type, nationality, dob, address, city, submittedAt)
   kycData:        (email: string) => `kyc:data:${email.toLowerCase()}`,
+  // KYC document image — base64 data URL of the uploaded ID photo
+  kycDoc:         (email: string) => `kyc:doc:${email.toLowerCase()}`,
   // httpOnly session token → { email, userId, createdAt }
   session:        (token: string) => `session:${token}`,
   // User banking state (accounts, transactions, card, preferences, etc.)

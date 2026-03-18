@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
-import { updateUser, getKycDoc } from "@/lib/vaulteState";
+import { updateUser } from "@/lib/vaulteState";
 import type { VaulteUser } from "@/lib/vaulteState";
 
 // ─── KYC Entry Type ─────────────────────────────────────────
@@ -45,14 +45,17 @@ export default function AdminKYC() {
   const [syncError,  setSyncError]    = useState("");
   const [syncing,    setSyncing]      = useState(false);
 
-  // ─── Load KYC document when modal opens ─────────────────
+  // ─── Load KYC document from Redis when modal opens ───────
+  // Fetches from the server so it works across all devices/browsers,
+  // not just the device where the user originally uploaded the file.
   useEffect(() => {
     if (!selected) { setDocPreview(null); return; }
-    if (selected.isRealUser && selected.userId) {
-      setDocPreview(getKycDoc(selected.userId));
-    } else {
-      setDocPreview(null);
-    }
+    if (!selected.isRealUser || !selected.email) { setDocPreview(null); return; }
+
+    fetch(`/api/admin/kyc-doc?email=${encodeURIComponent(selected.email)}`)
+      .then(r => r.json())
+      .then(({ kycDoc }: { kycDoc: string | null }) => setDocPreview(kycDoc))
+      .catch(() => setDocPreview(null));
   }, [selected]);
 
   // ─── Load users from Redis via admin API (single source of truth) ─

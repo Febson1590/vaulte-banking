@@ -104,6 +104,7 @@ export async function DELETE(req: NextRequest) {
     // KYC, banking state, and user profile data
     await redis.del(RK.kycStatus(normalizedEmail));
     await redis.del(RK.kycData(normalizedEmail));
+    await redis.del(RK.kycDoc(normalizedEmail));
     await redis.del(RK.userState(normalizedEmail));
     // Invalidate all active session tokens for this user by scanning
     // session:* keys and deleting any whose email matches this user.
