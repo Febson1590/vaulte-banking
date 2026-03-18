@@ -109,7 +109,12 @@ const COUNTRIES: { value: string; label: string }[] = [
   { value: "Yemen",                 label: "🇾🇪 Yemen" },
   { value: "Zambia",                label: "🇿🇲 Zambia" },
   { value: "Zimbabwe",              label: "🇿🇼 Zimbabwe" },
-];
+].sort((a, b) => {
+  // Treat "USA" as "United States" for sort order so it lands between
+  // "United Kingdom" and "Uruguay" rather than after both.
+  const key = (v: string) => v === "USA" ? "United States" : v;
+  return key(a.value).localeCompare(key(b.value), undefined, { sensitivity: "base" });
+});
 
 const inputStyle = (err?: string): React.CSSProperties => ({
   width: "100%", padding: "11px 14px", borderRadius: 10,
