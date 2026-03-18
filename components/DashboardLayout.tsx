@@ -138,10 +138,39 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
           setMounted(true);
           setServerHydrated(true);
         } else {
-          // ── Server explicitly returned no session ────────────────────────
-          // The token is missing, expired, or invalid. Clear stale data and
-          // send the user to login — never serve a dashboard from cached state
-          // when the server has rejected the session.
+          // ── Session endpoint returned null ───────────────────────────────
+          // This can happen transiently right after a successful OTP login:
+          // e.g. Redis cold-start, Vercel edge/serverless split, or a brief
+          // network hiccup between the OTP route write and this read.
+          //
+          // Guard: if login-verify set "vaulte_just_logged_in" in
+          // sessionStorage within the last 30 s AND localStorage already has
+          // a current user (written by login-verify moments ago), use it as a
+          // fallback so the user is never bounced to /login immediately after
+          // a successful authentication.  The edge middleware already guarantees
+          // a vaulte_session cookie is present at this point (cookie-only gate).
+          const jliRaw =
+            typeof sessionStorage !== "undefined"
+              ? sessionStorage.getItem("vaulte_just_logged_in")
+              : null;
+          const justLoggedIn =
+            jliRaw !== null && Date.now() - Number(jliRaw) < 30_000;
+
+          if (justLoggedIn) {
+            sessionStorage.removeItem("vaulte_just_logged_in");
+            const localUser = getCurrentUser();
+            if (localUser) {
+              serverHydratedRef.current = true;
+              setCurrentUser(localUser);
+              setState(getState());
+              setMounted(true);
+              setServerHydrated(true);
+              return;
+            }
+          }
+
+          // Genuine session failure (no recent login flag, or no local user).
+          // Clear stale data and redirect to the login page.
           localStorage.removeItem("vaulte_user");
           router.push("/login");
           return;
@@ -160,7 +189,7 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
 
     hydrateFromServer();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     if (mounted) {

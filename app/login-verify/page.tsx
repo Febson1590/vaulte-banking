@@ -150,7 +150,29 @@ function LoginVerifyInner() {
         body:    JSON.stringify({ userId: data.userId, email: userEmail, status: "success" }),
       }).catch(() => {});
 
-      setTimeout(() => router.push("/dashboard"), 1800);
+      // ── Mark this as a fresh login ─────────────────────────────────────
+      // DashboardLayout reads this flag to decide whether it can fall back
+      // to localStorage if the session endpoint has a transient miss on
+      // the first render (Redis cold-start, edge / serverless split, etc.).
+      sessionStorage.setItem("vaulte_just_logged_in", Date.now().toString());
+
+      // ── Wait for session to be confirmed, then navigate ────────────────
+      // Show the "Login Successful!" screen for at least 1 s, then poll
+      // /api/auth/session until the server confirms the session is ready
+      // (up to ~3 s total), then push to /dashboard.  This satisfies the
+      // requirement: "wait until auth state is confirmed before redirect".
+      void (async () => {
+        await new Promise<void>(r => setTimeout(r, 1000));
+        for (let i = 0; i < 8; i++) {
+          try {
+            const chk = await fetch("/api/auth/session");
+            const dat = await chk.json();
+            if (dat?.user) break;
+          } catch { /* network error — keep trying */ }
+          if (i < 7) await new Promise<void>(r => setTimeout(r, 250));
+        }
+        router.push("/dashboard");
+      })();
     } catch {
       setError("Network error. Please try again.");
       setLoading(false);
