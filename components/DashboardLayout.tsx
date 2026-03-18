@@ -206,6 +206,26 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
 
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
 
+  // Prevent body scroll while the mobile drawer is open.
+  // iOS Safari ignores overflow:hidden on <body> in some versions, so we also
+  // set touch-action:none on the root element as a belt-and-suspenders guard.
+  // We carefully restore both properties on close AND on unmount so there is
+  // never a permanently-locked body if the component unmounts while open.
+  useEffect(() => {
+    const root = document.documentElement; // <html>
+    if (sidebarOpen) {
+      document.body.style.overflow   = "hidden";
+      root.style.overflow            = "hidden";
+    } else {
+      document.body.style.overflow   = "";
+      root.style.overflow            = "";
+    }
+    return () => {
+      document.body.style.overflow   = "";
+      root.style.overflow            = "";
+    };
+  }, [sidebarOpen]);
+
   const handleLogout = async () => {
     // Invalidate the httpOnly session token in Redis
     try { await fetch("/api/auth/session", { method: "DELETE" }); } catch { /* ignore */ }
@@ -410,8 +430,18 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
         height: "100vh", display: "flex", flexDirection: "column",
         zIndex: 150, boxShadow: "2px 0 32px rgba(15,23,42,0.3)",
         transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)",
-        transition: "transform 0.28s cubic-bezier(0.4,0,0.2,1)", overflowY: "auto",
-      }}>
+        transition: "transform 0.28s cubic-bezier(0.4,0,0.2,1)",
+        // KEY FIX: When the drawer is off-screen, iOS Safari still recognises it
+        // as an overflow-y:auto scroll container and can route touch sequences to
+        // it instead of the page body — causing the intermittent "frozen scroll"
+        // bug.  Setting overflow:hidden + pointer-events:none when closed removes
+        // it from the iOS touch hit-test engine entirely.
+        overflowY:     sidebarOpen ? "auto"  : "hidden",
+        pointerEvents: sidebarOpen ? "auto"  : "none",
+        // Prevent over-scroll rubber-band from the drawer chaining to the body
+        // when the drawer IS open and reaches its scroll boundary.
+        overscrollBehavior: "contain",
+      } as React.CSSProperties}>
         <SidebarContent />
       </aside>
 

@@ -13,15 +13,29 @@ export default function TawkToChat() {
 
   // ── Load Tawk.to script and hide their default launcher ───────────────────
   useEffect(() => {
-    // Suppress Tawk's built-in launcher bubble so only our button shows
+    // Suppress Tawk's built-in launcher bubble so only our custom button shows.
+    //
+    // Rules applied:
+    //  • display:none        — removes the element from layout and touch flow
+    //  • pointer-events:none — belt-and-suspenders: if a future Tawk.to release
+    //    removes display:none from one of these containers, it still can't
+    //    intercept touch/scroll events on mobile and cause scroll freezing.
+    //
+    // We deliberately do NOT hide the chat-window iframe (the large panel that
+    // appears when api.maximize() is called) — that must remain visible so the
+    // conversation is actually usable after the user clicks our custom button.
     const styleTag = document.createElement("style");
     styleTag.id = "vaulte-tawk-hide";
     styleTag.textContent = `
       #tawk-bubble-container,
       .tawk-min-container,
       .tawk-button-circle,
+      .tawk-branding,
       iframe[title*="chat button"],
-      iframe[title*="chat widget"] { display: none !important; }
+      iframe[title*="chat widget"] {
+        display:        none !important;
+        pointer-events: none !important;
+      }
     `;
     document.head.appendChild(styleTag);
 

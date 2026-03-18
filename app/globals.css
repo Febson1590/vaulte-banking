@@ -29,7 +29,13 @@ font                                   { display: inline !important; }
 .translated-rtl span,
 .translated-rtl button,
 .translated-rtl a                      { overflow-wrap: break-word; word-break: break-word; }
-html { scroll-behavior: smooth; overflow-x: hidden; }
+/* overflow-x:clip clips visually but (unlike overflow-x:hidden) does NOT create
+   a new block-formatting context or an implicit scroll container.  On iOS Safari,
+   overflow:hidden on <html> can establish a competing scroll boundary that
+   fragments the natural body-scroll context — clip avoids that entirely.
+   The hidden declaration is listed first as a fallback for older browsers;
+   modern browsers that understand clip override it with the second declaration. */
+html { scroll-behavior: smooth; overflow-x: hidden; overflow-x: clip; }
 body {
   background-color: #F8FAFC;
   color: #111827;
