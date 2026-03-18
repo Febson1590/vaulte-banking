@@ -882,14 +882,6 @@ export default function TransferPage() {
                         Verifying recipient details…
                       </div>
                     )}
-                    {verificationResult && !verifying && (
-                      <div style={{ padding: "12px 14px", background: verificationResult.bg, border: `1px solid ${verificationResult.border}`, borderRadius: 12, display: "flex", alignItems: "flex-start", gap: 10 }}>
-                        <div>
-                          <p style={{ fontSize: 13, fontWeight: 700, color: verificationResult.color }}>{verificationResult.label}</p>
-                          <p style={{ fontSize: 12, color: verificationResult.color, opacity: 0.85 }}>{verificationResult.sublabel}</p>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -1010,15 +1002,6 @@ export default function TransferPage() {
                     </div>
                   ))}
                 </div>
-
-                {/* Verification badge (ACH/Wire) */}
-                {verificationResult && (transferType === "ach" || transferType === "wire") && (
-                  <div style={{ padding: "11px 14px", background: verificationResult.bg, border: `1px solid ${verificationResult.border}`, borderRadius: 12, marginBottom: 18, display: "flex", alignItems: "flex-start", gap: 8 }}>
-                    <div>
-                      <p style={{ fontSize: 13, fontWeight: 700, color: verificationResult.color }}>{verificationResult.label}</p>
-                    </div>
-                  </div>
-                )}
 
                 {/* ACH pending notice */}
                 {transferType === "ach" && (
