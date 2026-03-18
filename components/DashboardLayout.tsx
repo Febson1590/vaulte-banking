@@ -393,14 +393,27 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
   );
 
   return (
-    <div style={{ display: "flex", minHeight: "100dvh", background: C.bg, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-      // CRITICAL iOS Safari fix: default align-items:stretch causes the browser
-      // to resolve the flex cross-size from minHeight and locks .vaulte-main to
-      // exactly 100dvh.  Content overflows visually but never expands document
-      // scroll height → page appears frozen.  flex-start lets .vaulte-main size
-      // to its own content height instead of being stretched to the container.
-      alignItems: "flex-start",
-    }}>
+    // ROOT LAYOUT — display:block (NOT flex).
+    //
+    // The previous display:flex approach created an inescapable iOS Safari trap:
+    //   1. Outer flex row   (min-height:100dvh, align-items:flex-start)
+    //   2. .vaulte-main     (flex:1, display:flex, flex-direction:column,
+    //                        min-height:100dvh)
+    //
+    // iOS Safari treats min-height on a flex COLUMN as a definite height.
+    // All children are therefore sized WITHIN that 100dvh box.  When content
+    // overflows it paints outside visually, but the container's layout height
+    // stays exactly 100dvh → outer container is 100dvh → document is 100dvh →
+    // nothing to scroll.  align-items:flex-start on the outer wrapper only
+    // addressed the cross-axis stretch; it could not undo the inner flex-column
+    // cap that iOS Safari enforces independently.
+    //
+    // With display:block there is NO flex cross-axis calculation at all.
+    // .vaulte-main is a plain block element whose height equals its content.
+    // The outer div provides min-height:100dvh purely as a background fill for
+    // short pages; it never caps anything.  Document height grows with content
+    // and iOS Safari body scroll works on every page at any content height.
+    <div style={{ display: "block", minHeight: "100dvh", background: C.bg, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
 
       {/* ═══════════ DESKTOP SIDEBAR ═══════════ */}
       <aside className="vaulte-sidebar" style={{
@@ -441,7 +454,9 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
       </aside>
 
       {/* ═══════════ MAIN ═══════════ */}
-      <div className="vaulte-main" style={{ flex: 1, minWidth: 0, marginLeft: 236, display: "flex", flexDirection: "column", minHeight: "100dvh" }}>
+      {/* flex:1 and minHeight:100dvh removed — outer wrapper is now display:block,
+          so .vaulte-main is a plain block element that grows freely with content. */}
+      <div className="vaulte-main" style={{ minWidth: 0, marginLeft: 236, display: "flex", flexDirection: "column" }}>
 
         {/* Topbar */}
         <header className="vaulte-topbar" style={{
