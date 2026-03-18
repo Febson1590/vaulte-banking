@@ -41,7 +41,7 @@ function getInitials(name: string): string {
 }
 
 // ─── Step Types ──────────────────────────────────────────────
-type Step = 1 | 2 | 3 | 4 | "processing" | "success";
+type Step = 1 | 2 | 3 | 4 | "processing" | "success" | "dormant_error";
 
 // ─── Internal Transfer Form ──────────────────────────────────
 interface InternalForm {
@@ -80,6 +80,7 @@ export default function TransferPage() {
   const [savedRecipients, setSaved]   = useState<Recipient[]>([]);
   const [kycStatus, setKycStatus]     = useState<string>("unverified");
   const [userId, setUserId]           = useState<string>("");
+  const [accountStatus, setAccountStatus] = useState<string>("");
 
   // ── Step 1: Transfer type ──────────────────────────────────
   const [step, setStep]                       = useState<Step>(1);
@@ -128,6 +129,7 @@ export default function TransferPage() {
     if (user) {
       setKycStatus(user.kycStatus ?? "unverified");
       setUserId(user.id);
+      setAccountStatus(user.accountStatus ?? "");
       setSaved(getRecipients(user.id));
     }
   }, []);
@@ -351,6 +353,47 @@ export default function TransferPage() {
   const handleConfirm = () => {
     setStep("processing");
     setTimeout(() => {
+      // ── Dormant account enforcement ──────────────────────────
+      // Re-read from localStorage at execution time so any admin
+      // status change takes effect without requiring a page reload.
+      const freshUser = getCurrentUser();
+      const effectiveStatus = freshUser?.accountStatus ?? accountStatus;
+      if (effectiveStatus === "dormant") {
+        const failedTx: Transaction = {
+          id:           genTxId(),
+          txType:       "transfer_out",
+          type:         "debit",
+          name:         `Transfer to ${recipientName}`,
+          sub:          recipientBankName,
+          amount:       numAmount,
+          fee:          feeInfo.fee,
+          balanceAfter: fromAccount.balance,   // balance unchanged
+          currency:     fromAccount.currency,
+          date:         new Date().toISOString(),
+          category:     "Transfer",
+          badge:        transferType === "wire" ? "Wire" : transferType === "ach" ? "ACH" : "Vaulte",
+          badgeBg:      "#FEF2F2", badgeBorder: "#FECACA", badgeColor: "#DC2626",
+          status:       "failed",
+          accountId:    fromAccountId,
+          icon:         "↗",
+          iconBg:       "linear-gradient(135deg,#FEE2E2,#FECACA)",
+          iconColor:    "#DC2626",
+          reference:    genRef(),
+          recipientName,
+          recipientBank: recipientBankName,
+          note:         memo || undefined,
+          source:       "user_action",
+          createdBy:    userId || "system",
+          internalNote: "Dormant account",
+        };
+        const newState = { ...state, transactions: [failedTx, ...state.transactions] };
+        setState(newState);
+        saveState(newState);
+        setStep("dormant_error");
+        return;
+      }
+      // ─────────────────────────────────────────────────────────
+
       const ref      = genRef();
       const id       = genTxId();
       const balAfter = parseFloat((fromAccount.balance - totalSend).toFixed(8));
@@ -1041,6 +1084,21 @@ export default function TransferPage() {
                   </div>
                 )}
 
+                <div style={{ display: "flex", gap: 12 }}>
+                  <button onClick={resetForm} style={{ flex: 1, padding: "13px", borderRadius: 14, border: `1px solid ${C.border}`, background: "transparent", color: C.sub, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>New Transfer</button>
+                  <button onClick={() => router.push("/dashboard")} style={{ flex: 1, padding: "13px", borderRadius: 14, border: "none", background: "linear-gradient(135deg,#1A73E8,#1558b0)", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(26,115,232,0.28)" }}>← Dashboard</button>
+                </div>
+              </div>
+            )}
+
+            {/* ══════ DORMANT ERROR ══════ */}
+            {step === "dormant_error" && (
+              <div style={{ textAlign: "center", padding: "48px 24px 40px" }}>
+                <div style={{ width: 76, height: 76, borderRadius: "50%", background: "linear-gradient(135deg,#FEE2E2,#FECACA)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", boxShadow: "0 8px 28px rgba(220,38,38,0.18)", fontSize: 32, color: "#DC2626" }}>✕</div>
+                <p style={{ fontSize: 22, fontWeight: 800, color: C.text, marginBottom: 10, letterSpacing: "-0.4px" }}>Transaction unsuccessful</p>
+                <p style={{ fontSize: 14, color: C.sub, lineHeight: 1.65, maxWidth: 360, margin: "0 auto 32px" }}>
+                  Your account is currently in dormant status. To resume transfers, please contact support for account reactivation.
+                </p>
                 <div style={{ display: "flex", gap: 12 }}>
                   <button onClick={resetForm} style={{ flex: 1, padding: "13px", borderRadius: 14, border: `1px solid ${C.border}`, background: "transparent", color: C.sub, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>New Transfer</button>
                   <button onClick={() => router.push("/dashboard")} style={{ flex: 1, padding: "13px", borderRadius: 14, border: "none", background: "linear-gradient(135deg,#1A73E8,#1558b0)", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(26,115,232,0.28)" }}>← Dashboard</button>

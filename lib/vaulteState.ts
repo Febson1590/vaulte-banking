@@ -21,7 +21,7 @@ export interface VaulteUser {
   kycNationality?: string;
   kycAddress?: string;
   kycCity?: string;
-  accountStatus?: "active" | "suspended" | "frozen" | "closed";
+  accountStatus?: "active" | "suspended" | "frozen" | "closed" | "dormant";
   adminNotes?: string;
   profilePhoto?: string;
 }

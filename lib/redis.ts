@@ -80,7 +80,7 @@ export interface AuthUser {
   lastLoginIp:           string | null;
   knownIps:              string[];
   // Admin-managed fields (written via /api/admin/manage)
-  accountStatus?:        "active" | "suspended" | "frozen" | "closed";
+  accountStatus?:        "active" | "suspended" | "frozen" | "closed" | "dormant";
   adminNotes?:           string;
   profilePhoto?:         string;
 }
