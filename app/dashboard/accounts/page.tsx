@@ -340,7 +340,7 @@ export default function AccountsPage() {
 
         {/* ═══ Account detail panel ═══ */}
         {selected && (
-          <div style={{ position: "sticky", top: 96 }}>
+          <div className="accounts-detail-sticky" style={{ position: "sticky", top: 96 }}>
             <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.border}`, boxShadow: C.shadow, overflow: "hidden" }}>
               {/* Panel header */}
               <div style={{ background: `linear-gradient(135deg, ${selected.color}18 0%, ${selected.color}08 100%)`, padding: "24px 24px 20px", borderBottom: `1px solid ${C.border}` }}>
@@ -443,6 +443,7 @@ export default function AccountsPage() {
         input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
         @media (max-width: 900px) {
           .accounts-main-grid { grid-template-columns: 1fr !important; }
+          .accounts-detail-sticky { position: static !important; top: auto !important; }
         }
         @media (max-width: 600px) {
           .accounts-stats-grid { grid-template-columns: 1fr 1fr !important; }

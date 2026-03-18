@@ -533,7 +533,7 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
         )}
 
         {/* Page content */}
-        <main className="vaulte-main-content" style={{ flex: 1, padding: "28px 32px 40px" }}>
+        <main className="vaulte-main-content" style={{ flex: "1 0 auto", padding: "28px 32px 40px" }}>
           {children}
         </main>
       </div>
