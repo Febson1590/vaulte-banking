@@ -206,25 +206,12 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
 
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
 
-  // Prevent body scroll while the mobile drawer is open.
-  // iOS Safari ignores overflow:hidden on <body> in some versions, so we also
-  // set touch-action:none on the root element as a belt-and-suspenders guard.
-  // We carefully restore both properties on close AND on unmount so there is
-  // never a permanently-locked body if the component unmounts while open.
-  useEffect(() => {
-    const root = document.documentElement; // <html>
-    if (sidebarOpen) {
-      document.body.style.overflow   = "hidden";
-      root.style.overflow            = "hidden";
-    } else {
-      document.body.style.overflow   = "";
-      root.style.overflow            = "";
-    }
-    return () => {
-      document.body.style.overflow   = "";
-      root.style.overflow            = "";
-    };
-  }, [sidebarOpen]);
+  // NOTE: No body/html overflow lock here.
+  // The mobile sidebar overlay (position:fixed, inset:0, zIndex:149) already
+  // blocks all touch interaction when the drawer is open.  Adding overflow:hidden
+  // on <html>/<body> is redundant AND harmful on iOS Safari: after restoring ""
+  // the browser must re-evaluate its scroll context, dropping gestures for
+  // 200-800 ms — exactly the "frozen scroll after sidebar closes" symptom.
 
   const handleLogout = async () => {
     // Invalidate the httpOnly session token in Redis

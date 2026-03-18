@@ -57,11 +57,62 @@ export default function TawkToChat() {
         api.onChatMaximized      = () => setChatOpen(true);
         api.onChatMinimized      = () => setChatOpen(false);
         api.onUnreadCountChanged = (count: number) => setUnread(count);
+
+        // JS-level touch isolation — belt-and-suspenders alongside the CSS rules.
+        //
+        // Even with display:none + pointer-events:none in the <style> tag above,
+        // Tawk.to sometimes injects new DOM nodes AFTER the style is evaluated,
+        // or uses selectors our CSS doesn't match yet.  We programmatically stamp
+        // pointer-events:none (and touch-action:none as a second guard) on every
+        // Tawk.to root container so no injected element can intercept a vertical
+        // scroll gesture and route it away from the document body.
+        //
+        // We deliberately SKIP the chat-window iframe (the large panel opened by
+        // api.maximize()) — that must remain interactive so the user can type.
+        const TAWK_LAUNCHER_SELECTORS = [
+          "#tawk-bubble-container",
+          ".tawk-min-container",
+          ".tawk-button-circle",
+          ".tawk-branding",
+        ] as const;
+
+        function isolateTawkLaunchers(): void {
+          TAWK_LAUNCHER_SELECTORS.forEach(sel => {
+            document.querySelectorAll<HTMLElement>(sel).forEach(el => {
+              el.style.pointerEvents = "none";
+              el.style.touchAction   = "none";
+            });
+          });
+          // Also stamp all Tawk.to iframes that are the launcher / widget button
+          // (not the chat-window panel — that one has title "Tawk.to Live Chat").
+          document.querySelectorAll<HTMLIFrameElement>("iframe").forEach(iframe => {
+            const t = (iframe.title ?? "").toLowerCase();
+            if ((t.includes("chat") && (t.includes("button") || t.includes("widget")))
+                || t.includes("tawk")) {
+              // Only isolate if it is NOT the open chat-window panel
+              if (!t.includes("live chat") && !t.includes("chat window")) {
+                iframe.style.pointerEvents = "none";
+                iframe.style.touchAction   = "none";
+              }
+            }
+          });
+        }
+
+        // Run once immediately, then re-run whenever Tawk.to re-injects elements
+        isolateTawkLaunchers();
+        const tawkObserver = new MutationObserver(isolateTawkLaunchers);
+        tawkObserver.observe(document.body, { childList: true, subtree: true });
+
+        // Store observer reference on the window so cleanup can stop it
+        (window as Window & { _vaulteTawkObserver?: MutationObserver })._vaulteTawkObserver = tawkObserver;
       }
     }, 300);
 
     return () => {
       clearInterval(pollInterval);
+      // Disconnect the DOM observer that stamps pointer-events:none on launchers
+      const obs = (window as Window & { _vaulteTawkObserver?: MutationObserver })._vaulteTawkObserver;
+      if (obs) { obs.disconnect(); delete (window as Window & { _vaulteTawkObserver?: MutationObserver })._vaulteTawkObserver; }
       try { document.head.removeChild(s1); } catch { /* ignore */ }
       const st = document.getElementById("vaulte-tawk-hide");
       if (st) document.head.removeChild(st);

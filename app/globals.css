@@ -42,6 +42,11 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  /* Tell the browser to handle vertical panning natively, bypassing any
+     touchmove.preventDefault() calls from third-party scripts (Google
+     Translate, Tawk.to).  This is the spec-level fix that prevents those
+     injected handlers from ever blocking a vertical scroll gesture. */
+  touch-action: pan-y;
 }
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #f1f5f9; }
