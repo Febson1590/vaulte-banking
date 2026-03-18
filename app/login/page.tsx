@@ -91,23 +91,6 @@ function LoginPageInner() {
     }, 600);
   };
 
-  // ── Demo login (bypass OTP for demo account) ─────────────
-  const handleDemoLogin = () => {
-    setLoading(true);
-    setTimeout(() => {
-      const user = loginUser("demo@vaulte.com", "Demo@12345");
-      if (user) {
-        saveCurrentUser(user);
-        fetch("/api/auth/track-login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({ userId: user.id, email: user.email, status: "success" }),
-        }).catch(() => {});
-        router.push("/dashboard");
-      }
-    }, 800);
-  };
-
   return (
     <div style={{
       minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
@@ -197,35 +180,10 @@ function LoginPageInner() {
               onMouseLeave={e => { if (!loading) { e.currentTarget.style.background = "#1A73E8"; e.currentTarget.style.transform = "translateY(0)"; } }}
             >{loading ? "Signing in…" : "Sign In"}</button>
 
-            <p style={{ textAlign: "center", fontSize: 14, color: "#6B7280", marginBottom: 20 }}>
+            <p style={{ textAlign: "center", fontSize: 14, color: "#6B7280" }}>
               Don&apos;t have an account?{" "}
               <Link href="/register" style={{ color: "#1A73E8", fontWeight: 700, textDecoration: "none" }}>Create one free</Link>
             </p>
-
-            {/* Divider */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-              <div style={{ flex: 1, height: 1, background: "#E5E7EB" }} />
-              <span style={{ fontSize: 12.5, color: "#9CA3AF", fontWeight: 500 }}>Or try the demo</span>
-              <div style={{ flex: 1, height: 1, background: "#E5E7EB" }} />
-            </div>
-
-            {/* Demo login */}
-            <button type="button" onClick={handleDemoLogin} disabled={loading} style={{
-              width: "100%", padding: "12px", borderRadius: 10, border: "1.5px solid #E2E8F0",
-              background: "#F8FAFC", color: "#374151", fontSize: 14, fontWeight: 600,
-              cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-              transition: "all 0.18s",
-            }}
-              onMouseEnter={e => { if (!loading) { (e.currentTarget as HTMLElement).style.borderColor = "#1A73E8"; (e.currentTarget as HTMLElement).style.background = "#EEF4FF"; } }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "#E2E8F0"; (e.currentTarget as HTMLElement).style.background = "#F8FAFC"; }}
-            >
-              <span style={{ fontSize: 18 }}>🎮</span>
-              <div style={{ textAlign: "left" }}>
-                <p style={{ fontSize: 13.5, fontWeight: 700, color: "#0F172A", lineHeight: 1.2 }}>Demo Account</p>
-                <p style={{ fontSize: 11.5, color: "#94A3B8", marginTop: 2 }}>Pre-loaded with data · No OTP required</p>
-              </div>
-            </button>
           </form>
         </div>
       </div>

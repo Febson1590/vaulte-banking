@@ -736,9 +736,6 @@ export default function TransferPage() {
                       </div>
                     )}
 
-                    <p style={{ fontSize: 12, color: C.muted, lineHeight: 1.6 }}>
-                      ℹ️ This is a simulated lookup. In production, this would search the live Vaulte user directory.
-                    </p>
                   </div>
                 )}
 
@@ -890,7 +887,6 @@ export default function TransferPage() {
                         <div>
                           <p style={{ fontSize: 13, fontWeight: 700, color: verificationResult.color }}>{verificationResult.label}</p>
                           <p style={{ fontSize: 12, color: verificationResult.color, opacity: 0.85 }}>{verificationResult.sublabel}</p>
-                          <p style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>⚠ Simulated verification — not a live bank lookup</p>
                         </div>
                       </div>
                     )}
@@ -1020,7 +1016,6 @@ export default function TransferPage() {
                   <div style={{ padding: "11px 14px", background: verificationResult.bg, border: `1px solid ${verificationResult.border}`, borderRadius: 12, marginBottom: 18, display: "flex", alignItems: "flex-start", gap: 8 }}>
                     <div>
                       <p style={{ fontSize: 13, fontWeight: 700, color: verificationResult.color }}>{verificationResult.label}</p>
-                      <p style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>⚠ This is a simulated bank verification — not a live lookup</p>
                     </div>
                   </div>
                 )}
