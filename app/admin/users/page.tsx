@@ -18,6 +18,8 @@ function Badge({ label }: { label: string }) {
     Suspended:       { bg: "#FEF2F2", color: "#DC2626" },
     closed:          { bg: "#F3F4F6", color: "#6B7280" },
     Closed:          { bg: "#F3F4F6", color: "#6B7280" },
+    dormant:         { bg: "#F5F3FF", color: "#7C3AED" },
+    Dormant:         { bg: "#F5F3FF", color: "#7C3AED" },
     verified:        { bg: "#ECFDF5", color: "#059669" },
     Approved:        { bg: "#ECFDF5", color: "#059669" },
     pending:         { bg: "#FFFBEB", color: "#D97706" },
@@ -35,6 +37,7 @@ function Badge({ label }: { label: string }) {
     : label === "frozen"    ? "Frozen"
     : label === "suspended" ? "Suspended"
     : label === "closed"    ? "Closed"
+    : label === "dormant"   ? "Dormant"
     : label;
   return (
     <span style={{ background: s.bg, color: s.color, borderRadius: "20px", padding: "3px 10px", fontSize: "12px", fontWeight: 600 }}>
@@ -100,7 +103,7 @@ function ManageModal({
   };
 
   // ── Account status ─────────────────────────────────────────
-  const setAccStatus = async (status: "active" | "suspended" | "frozen" | "closed") => {
+  const setAccStatus = async (status: "active" | "suspended" | "frozen" | "closed" | "dormant") => {
     const u = { ...localUser, accountStatus: status };
     if (isDemo) { persistDemo(u, localState); showToast(`Account status updated to ${status}`); return; }
     setSaving(true); setErrorMsg(null);
@@ -276,7 +279,7 @@ function ManageModal({
         @media (max-width: 480px) {
           .admin-modal-header { padding: 16px 16px 14px !important; }
           .admin-modal-body   { padding: 16px !important; }
-          .admin-user-acct-status-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .admin-user-acct-status-grid { grid-template-columns: repeat(3, 1fr) !important; }
           .admin-user-profile-grid     { grid-template-columns: 1fr !important; }
           .admin-bal-row    { flex-wrap: wrap !important; }
           .admin-bal-toggle { flex: 0 0 100% !important; }
@@ -352,11 +355,11 @@ function ManageModal({
           {/* ── Account status ── */}
           <div>
             <p style={{ fontSize: "12px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px" }}>Account Status</p>
-            <div className="admin-user-acct-status-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" }}>
-              {(["active", "frozen", "suspended", "closed"] as const).map(s => (
+            <div className="admin-user-acct-status-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "8px" }}>
+              {(["active", "frozen", "suspended", "closed", "dormant"] as const).map(s => (
                 <button key={s} onClick={() => setAccStatus(s)} disabled={saving}
                   style={{ padding: "9px 6px", borderRadius: "10px", border: `2px solid ${acctStatus === s ? "#1A73E8" : "#E5E7EB"}`, background: acctStatus === s ? "#EEF4FF" : "#fff", color: acctStatus === s ? "#1A73E8" : "#6B7280", fontSize: "12px", fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", textTransform: "capitalize", fontFamily: "inherit", opacity: saving ? 0.6 : 1 }}>
-                  {s === "active" ? "✅" : s === "frozen" ? "❄️" : s === "suspended" ? "🚫" : "⛔"}<br />{s}
+                  {s === "active" ? "✅" : s === "frozen" ? "❄️" : s === "suspended" ? "🚫" : s === "dormant" ? "💤" : "⛔"}<br />{s}
                 </button>
               ))}
             </div>

@@ -352,12 +352,23 @@ export default function TransferPage() {
   // Confirm & process transfer
   const handleConfirm = () => {
     setStep("processing");
-    setTimeout(() => {
-      // ── Dormant account enforcement ──────────────────────────
-      // Re-read from localStorage at execution time so any admin
-      // status change takes effect without requiring a page reload.
+    void (async () => {
+      // ── 2-second processing animation ────────────────────────
+      await new Promise<void>(r => setTimeout(r, 2000));
+
+      // ── Dormant check: fetch live status from Redis ───────────
+      // localStorage may be stale if admin updated status after the
+      // user logged in — always verify against the session endpoint.
+      let serverStatus = "";
+      try {
+        const res = await fetch("/api/auth/session");
+        const dat = await res.json() as { user?: { accountStatus?: string } };
+        serverStatus = dat?.user?.accountStatus ?? "";
+      } catch { /* offline – fall through to localStorage */ }
+
       const freshUser = getCurrentUser();
-      const effectiveStatus = freshUser?.accountStatus ?? accountStatus;
+      const effectiveStatus = serverStatus || (freshUser?.accountStatus ?? accountStatus);
+
       if (effectiveStatus === "dormant") {
         const failedTx: Transaction = {
           id:           genTxId(),
@@ -432,7 +443,7 @@ export default function TransferPage() {
       setTxRef(ref);
       setNewBalance(balAfter);
       setStep("success");
-    }, 2000);
+    })();
   };
 
   // Save recipient after success
