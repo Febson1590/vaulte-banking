@@ -520,7 +520,77 @@ If you need help, contact ${SUPPORT_EMAIL}
   };
 }
 
-// ─── 6. Support Acknowledgement Email ────────────────────────
+// ─── 6. Internal Support Alert Email (sent to support team) ──
+export function internalSupportAlertEmail(opts: {
+  ticketRef: string;
+  firstName: string;
+  lastName:  string;
+  email:     string;
+  category:  string;
+  priority:  string;
+  subject:   string;
+  message:   string;
+}): { html: string; text: string } {
+  const priorityColor = opts.priority === "Urgent" ? "#DC2626" : "#059669";
+  const priorityBg    = opts.priority === "Urgent" ? "#FEF2F2" : "#ECFDF5";
+  const body = `
+    <p style="margin:0 0 16px;font-size:16px;color:${BRAND_NAVY};font-weight:700;">🎫 New Support Ticket</p>
+    ${paragraph("A new support request has been submitted through the Vaulte dashboard. Please review and respond within the SLA window.")}
+
+    ${metaTable([
+      ["Ticket Ref",   opts.ticketRef],
+      ["Customer",     `${opts.firstName} ${opts.lastName}`.trim() || "Unknown"],
+      ["Email",        opts.email],
+      ["Category",     opts.category],
+      ["Priority",     opts.priority],
+      ["Submitted",    new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }) + " UTC"],
+    ])}
+
+    <div style="margin:12px 0 6px;display:inline-block;background:${priorityBg};border:1px solid ${priorityColor}22;border-radius:8px;padding:6px 14px;">
+      <span style="font-size:12.5px;font-weight:700;color:${priorityColor};">
+        ${opts.priority === "Urgent" ? "🚨 URGENT — Prioritise this ticket" : "✅ Normal Priority"}
+      </span>
+    </div>
+
+    <p style="margin:20px 0 8px;font-size:13px;font-weight:700;color:${BRAND_NAVY};">Subject: ${opts.subject}</p>
+    <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-left:3px solid ${BRAND_PRIMARY};border-radius:0 10px 10px 0;padding:16px 18px;font-size:13.5px;color:#374151;line-height:1.7;">
+      ${opts.message}
+    </div>
+
+    ${paragraph("Reply directly to this email or log into the admin panel to manage this ticket.", { color: "#64748B" })}
+  `;
+
+  const text = `NEW SUPPORT TICKET
+
+Ticket Ref: ${opts.ticketRef}
+Customer: ${opts.firstName} ${opts.lastName}
+Email: ${opts.email}
+Category: ${opts.category}
+Priority: ${opts.priority}
+Submitted: ${new Date().toUTCString()}
+
+Subject: ${opts.subject}
+
+Message:
+${opts.message}
+
+---
+Reply to this email or manage via the admin panel.`;
+
+  return {
+    html: baseLayout({
+      preheader:   `[${opts.priority.toUpperCase()}] New ticket ${opts.ticketRef} — ${opts.category} from ${opts.email}`,
+      headerTitle: `New Support Ticket — ${opts.ticketRef}`,
+      headerSub:   `${opts.category} · ${opts.priority} Priority`,
+      body,
+      footerNote:  `This internal alert was generated automatically when a customer submitted a support request. Do not forward outside the support team.`,
+      footerFrom:  "support",
+    }),
+    text,
+  };
+}
+
+// ─── 7. Support Acknowledgement Email ────────────────────────
 export function supportAckEmail(opts: {
   firstName:  string;
   ticketRef:  string;

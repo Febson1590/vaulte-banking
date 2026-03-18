@@ -10,6 +10,7 @@ import {
   newLoginAlertEmail,
   welcomeEmail,
   supportAckEmail,
+  internalSupportAlertEmail,
 } from "./emailTemplates";
 
 // Lazy singleton — not instantiated at build/import time
@@ -166,7 +167,28 @@ export async function sendWelcomeEmail(opts: {
   });
 }
 
-// ─── 6. Send Support Acknowledgement ─────────────────────────
+// ─── 6. Send Internal Support Alert (to support team inbox) ──
+export async function sendInternalSupportAlert(opts: {
+  ticketRef: string;
+  firstName: string;
+  lastName:  string;
+  email:     string;
+  category:  string;
+  priority:  string;
+  subject:   string;
+  message:   string;
+}): Promise<{ success: boolean; error?: string }> {
+  const { html, text } = internalSupportAlertEmail(opts);
+  return sendEmail({
+    from:    NOREPLY,
+    to:      "support@vaulteapp.com",
+    subject: `[${opts.priority.toUpperCase()}] New Ticket ${opts.ticketRef} — ${opts.category}`,
+    html,
+    text,
+  });
+}
+
+// ─── 7. Send Support Acknowledgement ─────────────────────────
 export async function sendSupportAck(opts: {
   to:        string;
   firstName: string;

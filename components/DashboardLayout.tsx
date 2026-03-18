@@ -24,6 +24,7 @@ const NAV = [
   { icon: "▭", label: "Cards",        href: "/dashboard/cards" },
   { icon: "🛡", label: "Security",     href: "/dashboard/security" },
   { icon: "◎", label: "Settings",     href: "/dashboard/settings" },
+  { icon: "✉", label: "Contact",      href: "/dashboard/contact" },
 ];
 
 const KYC_BADGE: Record<string, { label: string; color: string; bg: string }> = {
