@@ -270,7 +270,20 @@ function ManageModal({
   const totalBal    = getTotalBalance(localState);
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "flex-start", justifyContent: "center", zIndex: 200, padding: "20px", overflowY: "auto" }}>
+    <>
+      <style>{`
+        .admin-modal-body { overflow-x: hidden; }
+        @media (max-width: 480px) {
+          .admin-modal-header { padding: 16px 16px 14px !important; }
+          .admin-modal-body   { padding: 16px !important; }
+          .admin-user-acct-status-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .admin-user-profile-grid     { grid-template-columns: 1fr !important; }
+          .admin-bal-row    { flex-wrap: wrap !important; }
+          .admin-bal-toggle { flex: 0 0 100% !important; }
+          .admin-del-btns   { flex-wrap: wrap !important; }
+        }
+      `}</style>
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "flex-start", justifyContent: "center", zIndex: 200, padding: "20px", overflowY: "auto", overflowX: "hidden" }}>
       <div style={{ background: "#fff", borderRadius: "18px", width: "100%", maxWidth: "580px", boxShadow: "0 24px 70px rgba(0,0,0,0.3)", marginTop: "20px", marginBottom: "20px", overflow: "hidden" }}>
 
         {/* Toast */}
@@ -296,7 +309,7 @@ function ManageModal({
         )}
 
         {/* Header */}
-        <div style={{ padding: "24px 28px 20px", borderBottom: "1px solid #F3F4F6" }}>
+        <div className="admin-modal-header" style={{ padding: "24px 28px 20px", borderBottom: "1px solid #F3F4F6" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
               <div style={{ width: "52px", height: "52px", borderRadius: "50%", background: "#EEF4FF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px", fontWeight: 700, color: "#1A73E8" }}>
@@ -316,7 +329,7 @@ function ManageModal({
         </div>
 
         {/* Scrollable body */}
-        <div style={{ padding: "22px 28px", overflowY: "auto", maxHeight: "72vh", display: "flex", flexDirection: "column", gap: "22px" }}>
+        <div className="admin-modal-body" style={{ padding: "22px 28px", overflowY: "auto", maxHeight: "72vh", display: "flex", flexDirection: "column", gap: "22px" }}>
 
           {/* ── Profile info ── */}
           <div>
@@ -392,8 +405,8 @@ function ManageModal({
                 <p style={{ fontSize: "11.5px", color: "#6B7280", marginTop: "2px" }}>Total across all accounts: {fmtUSD(totalBal)}</p>
               )}
             </div>
-            <div style={{ display: "flex", gap: "10px" }}>
-              <div style={{ display: "flex", border: "1.5px solid #E5E7EB", borderRadius: "10px", overflow: "hidden", flexShrink: 0 }}>
+            <div className="admin-bal-row" style={{ display: "flex", gap: "10px" }}>
+              <div className="admin-bal-toggle" style={{ display: "flex", border: "1.5px solid #E5E7EB", borderRadius: "10px", overflow: "hidden", flexShrink: 0 }}>
                 {(["credit", "debit"] as const).map(t => (
                   <button key={t} onClick={() => setBalType(t)}
                     style={{ padding: "10px 14px", border: "none", background: balType === t ? (t === "credit" ? "#059669" : "#DC2626") : "#fff", color: balType === t ? "#fff" : "#6B7280", fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "background 0.15s" }}>
@@ -475,7 +488,7 @@ function ManageModal({
                   This will permanently delete <strong>{localUser.firstName} {localUser.lastName}</strong> from Redis and all cached data.
                   They will be able to register again with the same email.
                 </p>
-                <div style={{ display: "flex", gap: "10px" }}>
+                <div className="admin-del-btns" style={{ display: "flex", gap: "10px" }}>
                   <button onClick={deleteUser} disabled={deleting}
                     style={{ padding: "9px 20px", borderRadius: "8px", border: "none", background: "#DC2626", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: deleting ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: deleting ? 0.7 : 1 }}>
                     {deleting ? "Deleting…" : "Yes, Delete Permanently"}
@@ -517,6 +530,7 @@ function ManageModal({
         </div>
       </div>
     </div>
+    </>
   );
 }
 
