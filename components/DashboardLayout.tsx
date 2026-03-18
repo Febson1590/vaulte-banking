@@ -224,7 +224,7 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
   // ── Loading spinner shown on first visit / refresh until server hydrates ──
   if (!serverHydrated) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+      <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
         <div style={{ textAlign: "center" }}>
           <div style={{ width: 44, height: 44, border: "3.5px solid #1A73E8", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 14px" }} />
           <style>{"@keyframes spin { to { transform: rotate(360deg); } }"}</style>
@@ -392,12 +392,19 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
   );
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: C.bg, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+    <div style={{ display: "flex", minHeight: "100dvh", background: C.bg, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+      // CRITICAL iOS Safari fix: default align-items:stretch causes the browser
+      // to resolve the flex cross-size from minHeight and locks .vaulte-main to
+      // exactly 100dvh.  Content overflows visually but never expands document
+      // scroll height → page appears frozen.  flex-start lets .vaulte-main size
+      // to its own content height instead of being stretched to the container.
+      alignItems: "flex-start",
+    }}>
 
       {/* ═══════════ DESKTOP SIDEBAR ═══════════ */}
       <aside className="vaulte-sidebar" style={{
         width: 236, background: C.navy, position: "fixed", top: 0, left: 0,
-        height: "100vh", display: "flex", flexDirection: "column",
+        height: "100dvh", display: "flex", flexDirection: "column",
         zIndex: 100, boxShadow: "2px 0 32px rgba(15,23,42,0.2)", overflowY: "auto",
       }}>
         <SidebarContent />
@@ -414,7 +421,7 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
       {/* ═══════════ MOBILE DRAWER ═══════════ */}
       <aside className="vaulte-mobile-sidebar" style={{
         width: 260, background: C.navy, position: "fixed", top: 0, left: 0,
-        height: "100vh", display: "flex", flexDirection: "column",
+        height: "100dvh", display: "flex", flexDirection: "column",
         zIndex: 150, boxShadow: "2px 0 32px rgba(15,23,42,0.3)",
         transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)",
         transition: "transform 0.28s cubic-bezier(0.4,0,0.2,1)",
@@ -433,7 +440,7 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
       </aside>
 
       {/* ═══════════ MAIN ═══════════ */}
-      <div className="vaulte-main" style={{ flex: 1, marginLeft: 236, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <div className="vaulte-main" style={{ flex: 1, minWidth: 0, marginLeft: 236, display: "flex", flexDirection: "column", minHeight: "100dvh" }}>
 
         {/* Topbar */}
         <header className="vaulte-topbar" style={{
