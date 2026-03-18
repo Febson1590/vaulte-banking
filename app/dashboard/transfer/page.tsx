@@ -343,7 +343,7 @@ export default function TransferPage() {
     if (n < 0.01) { setAmountErr("Minimum transfer amount is $0.01."); return; }
     if (fromAccount && n + feeInfo.fee > fromAccount.balance) {
       const avail = fromAccount.balance - feeInfo.fee;
-      setAmountErr(`Insufficient balance. Max you can send: ${fromAccount.symbol}${Math.max(0, avail).toFixed(2)}.`);
+      setAmountErr(`Insufficient balance. Max you can send: ${fromAccount.symbol}${Math.max(0, avail).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`);
       return;
     }
     setAmountErr("");
@@ -952,9 +952,9 @@ export default function TransferPage() {
                 {/* Fee summary */}
                 <div style={{ background: C.bg, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: 22 }}>
                   {[
-                    { label: "Amount",       value: numAmount > 0 ? `${fromAccount?.symbol ?? "$"}${numAmount.toFixed(2)}` : "—" },
+                    { label: "Amount",       value: numAmount > 0 ? `${fromAccount?.symbol ?? "$"}${numAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—" },
                     { label: "Transfer fee", value: feeInfo.feeLabel, color: feeInfo.fee === 0 ? "#059669" : "#D97706" },
-                    { label: "You send",     value: numAmount > 0 ? `${fromAccount?.symbol ?? "$"}${totalSend.toFixed(2)}` : "—", bold: true },
+                    { label: "You send",     value: numAmount > 0 ? `${fromAccount?.symbol ?? "$"}${totalSend.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—", bold: true },
                     { label: "Delivery",     value: feeInfo.deliveryLabel },
                   ].map((row, i, arr) => (
                     <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 16px", borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : "none", background: row.bold ? "#EEF4FF" : "transparent" }}>
@@ -990,9 +990,9 @@ export default function TransferPage() {
                     { label: "Bank",             value: recipientBankName },
                     { label: "Account",          value: recipientAcctMasked },
                     ...(transferType !== "internal_vaulte" ? [{ label: "Account Type", value: bankForm.accountType === "checking" ? "Checking" : "Savings" }] : []),
-                    { label: "Amount",           value: `${fromAccount?.symbol ?? "$"}${numAmount.toFixed(2)}` },
+                    { label: "Amount",           value: `${fromAccount?.symbol ?? "$"}${numAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
                     { label: "Transfer Fee",     value: feeInfo.feeLabel, valueColor: feeInfo.fee === 0 ? "#059669" : "#D97706" },
-                    { label: "Total Deducted",   value: `${fromAccount?.symbol ?? "$"}${totalSend.toFixed(2)}`, highlight: true },
+                    { label: "Total Deducted",   value: `${fromAccount?.symbol ?? "$"}${totalSend.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, highlight: true },
                     { label: "Est. Delivery",    value: feeInfo.deliveryLabel },
                     ...(memo ? [{ label: "Memo", value: memo }] : []),
                   ].map((row, i, arr) => (
@@ -1037,7 +1037,7 @@ export default function TransferPage() {
                 <div style={{ width: 76, height: 76, borderRadius: "50%", background: "linear-gradient(135deg,#22C55E,#16A34A)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", boxShadow: "0 8px 28px rgba(34,197,94,0.28)", fontSize: 34, color: "#fff" }}>✓</div>
                 <p style={{ fontSize: 24, fontWeight: 800, color: C.text, marginBottom: 6, letterSpacing: "-0.5px" }}>Transfer Sent!</p>
                 <p style={{ fontSize: 14, color: C.muted, marginBottom: 28 }}>
-                  {fromAccount?.symbol ?? "$"}{numAmount.toFixed(2)} sent to {recipientName}
+                  {fromAccount?.symbol ?? "$"}{numAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} sent to {recipientName}
                 </p>
 
                 {/* Transaction summary */}
@@ -1132,7 +1132,7 @@ export default function TransferPage() {
                     <p style={{ fontSize: 11, color: C.muted }}>{fmtDate(tx.date)}</p>
                   </div>
                 </div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: C.text, flexShrink: 0 }}>−${tx.amount.toFixed(2)}</p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: C.text, flexShrink: 0 }}>−${tx.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
             ))}
             {state.transactions.filter(t => t.category === "Transfer" && t.type === "debit").length === 0 && (

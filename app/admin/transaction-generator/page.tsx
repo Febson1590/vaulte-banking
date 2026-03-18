@@ -381,9 +381,9 @@ export default function AdminTxGenerator() {
                       </span>
                     </td>
                     <td style={{ padding: "10px 16px", fontSize: "13px", fontWeight: 700, color: tx.type === "credit" ? "#059669" : "#DC2626" }}>
-                      {tx.type === "credit" ? "+" : "-"}${tx.amount.toFixed(2)}
+                      {tx.type === "credit" ? "+" : "-"}${tx.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
-                    <td style={{ padding: "10px 16px", fontSize: "13px", fontWeight: 700, color: "#0A1628" }}>${tx.balance.toFixed(2)}</td>
+                    <td style={{ padding: "10px 16px", fontSize: "13px", fontWeight: 700, color: "#0A1628" }}>${tx.balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td style={{ padding: "10px 16px", fontSize: "11px", color: "#9CA3AF", fontFamily: "monospace" }}>{tx.reference}</td>
                   </tr>
                 ))}
@@ -437,7 +437,7 @@ export default function AdminTxGenerator() {
                       >
                         {(selectedUser.bankingState?.accounts ?? []).map(a => (
                           <option key={a.id} value={a.id}>
-                            {a.name} ({a.currency}) — Current: {a.symbol}{a.currency === "BTC" ? a.balance.toFixed(4) : a.balance.toFixed(2)}
+                            {a.name} ({a.currency}) — Current: {a.symbol}{a.currency === "BTC" ? a.balance.toFixed(4) : a.balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </option>
                         ))}
                       </select>

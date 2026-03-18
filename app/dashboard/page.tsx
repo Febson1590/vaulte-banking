@@ -200,7 +200,7 @@ export default function Dashboard() {
                 <span style={{ fontSize: 7, color: "rgba(255,255,255,0.4)" }}>⚙</span>
               </div>
               <p style={{ fontSize: 7, color: "rgba(255,255,255,0.5)", marginBottom: 1 }}>Balance</p>
-              <p style={{ fontSize: 12, fontWeight: 900, color: "#fff", marginBottom: 7 }}>${mounted ? totalUSD.toFixed(2) : "0.00"}</p>
+              <p style={{ fontSize: 12, fontWeight: 900, color: "#fff", marginBottom: 7 }}>${mounted ? totalUSD.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}</p>
               {state.accounts.slice(0, 3).map((a, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                   <span style={{ fontSize: 7, color: "rgba(255,255,255,0.7)" }}>{a.flag} {a.currency === "BTC" ? a.balance.toFixed(3) : a.symbol + a.balance.toFixed(0)}</span>
@@ -460,7 +460,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="tx-right" style={{ textAlign: "right", flexShrink: 0 }}>
-                      <p className="tx-amount" style={{ fontSize: 15, fontWeight: 700, color: tx.type === "credit" ? "#059669" : "#EF4444", letterSpacing: "-0.3px" }}>{tx.type === "credit" ? "+" : "−"}${tx.amount.toFixed(2)}</p>
+                      <p className="tx-amount" style={{ fontSize: 15, fontWeight: 700, color: tx.type === "credit" ? "#059669" : "#EF4444", letterSpacing: "-0.3px" }}>{tx.type === "credit" ? "+" : "−"}${tx.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4, marginTop: 3 }}>
                         <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#22C55E", boxShadow: "0 0 0 2px rgba(34,197,94,0.18)" }} />
                         <p style={{ fontSize: 11, color: C.muted, fontWeight: 500 }}>Completed</p>

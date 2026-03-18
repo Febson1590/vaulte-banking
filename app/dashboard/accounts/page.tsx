@@ -425,7 +425,7 @@ export default function AccountsPage() {
                           </div>
                         </div>
                         <p className="tx-right tx-amount" style={{ fontSize: 13.5, fontWeight: 700, color: tx.type === "credit" ? "#059669" : C.text }}>
-                          {tx.type === "credit" ? "+" : "−"}${tx.amount.toFixed(2)}
+                          {tx.type === "credit" ? "+" : "−"}${tx.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                       </div>
                     ))}

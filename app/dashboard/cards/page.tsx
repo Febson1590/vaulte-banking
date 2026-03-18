@@ -310,7 +310,7 @@ export default function CardsPage() {
 
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontSize: 12, color: C.muted }}>{usedPct.toFixed(0)}% used</span>
-              <span style={{ fontSize: 12, color: usedPct > 85 ? "#EF4444" : C.muted }}>${(card.spendingLimit - card.spentThisMonth).toFixed(2)} remaining</span>
+              <span style={{ fontSize: 12, color: usedPct > 85 ? "#EF4444" : C.muted }}>${(card.spendingLimit - card.spentThisMonth).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} remaining</span>
             </div>
           </div>
 
@@ -338,7 +338,7 @@ export default function CardsPage() {
                   </div>
                 </div>
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: tx.type === "credit" ? "#059669" : C.text }}>{tx.type === "credit" ? "+" : "−"}${tx.amount.toFixed(2)}</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: tx.type === "credit" ? "#059669" : C.text }}>{tx.type === "credit" ? "+" : "−"}${tx.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4, marginTop: 2 }}>
                     <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#22C55E", boxShadow: "0 0 0 2px rgba(34,197,94,0.18)" }} />
                     <p style={{ fontSize: 11, color: C.muted }}>Completed</p>
