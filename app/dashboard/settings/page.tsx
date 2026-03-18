@@ -258,7 +258,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Content panel */}
-        <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.border}`, boxShadow: C.shadow, padding: "30px 32px" }}>
+        <div className="settings-content-panel" style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.border}`, boxShadow: C.shadow, padding: "30px 32px", overflow: "hidden" }}>
 
           {/* ──────────── PROFILE ──────────── */}
           {tab === "profile" && (
@@ -267,7 +267,7 @@ export default function SettingsPage() {
               <p style={{ fontSize: 13, color: C.muted, marginBottom: 28 }}>Update your name, contact details, and address.</p>
 
               {/* Avatar with photo upload */}
-              <div style={{ display: "flex", alignItems: "center", gap: 18, marginBottom: 30, padding: "18px 20px", background: C.bg, borderRadius: 16, border: `1px solid ${C.border}`, flexWrap: "wrap" }}>
+              <div className="settings-profile-card" style={{ display: "flex", alignItems: "center", gap: 18, marginBottom: 30, padding: "18px 20px", background: C.bg, borderRadius: 16, border: `1px solid ${C.border}`, flexWrap: "wrap", overflow: "hidden" }}>
                 {/* Avatar circle + edit button */}
                 <div style={{ position: "relative", flexShrink: 0 }}>
                   {profilePhoto ? (
@@ -299,9 +299,9 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Name + email + KYC badge */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{firstName} {lastName}</p>
-                  <p style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>{email}</p>
+                <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+                  <p style={{ fontSize: 15, fontWeight: 700, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{firstName} {lastName}</p>
+                  <p style={{ fontSize: 12.5, color: C.muted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</p>
                   <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
                     {kycStatus === "verified"   && <span style={{ fontSize: 11, fontWeight: 600, color: "#059669", background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 20, padding: "2px 10px" }}>✓ ID Verified</span>}
                     {kycStatus === "pending"    && <span style={{ fontSize: 11, fontWeight: 600, color: "#D97706", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 20, padding: "2px 10px" }}>⏳ Verification Pending</span>}
@@ -313,7 +313,8 @@ export default function SettingsPage() {
                 {/* Remove photo button — only shown when photo exists */}
                 {profilePhoto && (
                   <button onClick={handleRemovePhoto} disabled={photoLoading}
-                    style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #FECACA", background: "transparent", color: "#DC2626", fontSize: 12.5, fontWeight: 600, cursor: photoLoading ? "not-allowed" : "pointer", fontFamily: "inherit", flexShrink: 0, transition: "background 0.15s" }}
+                    className="settings-remove-photo"
+                    style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #FECACA", background: "transparent", color: "#DC2626", fontSize: 12.5, fontWeight: 600, cursor: photoLoading ? "not-allowed" : "pointer", fontFamily: "inherit", flexShrink: 0, whiteSpace: "nowrap", maxWidth: "100%", transition: "background 0.15s" }}
                     onMouseEnter={e => { if (!photoLoading) (e.currentTarget as HTMLElement).style.background = "#FEF2F2"; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
                   >Remove Photo</button>

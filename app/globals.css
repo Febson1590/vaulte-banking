@@ -67,7 +67,17 @@ body {
 
 /* ─── Settings Page ─── */
 @media (max-width: 768px) {
-  .settings-main-grid { grid-template-columns: 1fr !important; }
+  .settings-main-grid    { grid-template-columns: 1fr !important; }
+  .settings-content-panel { padding: 20px 16px !important; overflow-x: hidden !important; }
+  .settings-profile-card {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  .settings-remove-photo {
+    flex-shrink: 0 !important;
+    align-self: flex-start !important;
+  }
 }
 @media (max-width: 600px) {
   .settings-form-grid { grid-template-columns: 1fr !important; }
