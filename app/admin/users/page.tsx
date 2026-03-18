@@ -518,11 +518,11 @@ function ManageModal({
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {localState.transactions.slice(0, 8).map(tx => (
                   <div key={tx.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "#F8FAFC", borderRadius: "10px" }}>
-                    <div>
-                      <p style={{ fontSize: "13px", fontWeight: 600, color: "#0A1628" }}>{tx.name}</p>
+                    <div className="tx-left tx-meta">
+                      <p className="tx-name" style={{ fontSize: "13px", fontWeight: 600, color: "#0A1628", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.name}</p>
                       <p style={{ fontSize: "11px", color: "#9CA3AF" }}>{tx.sub} · {new Date(tx.date).toLocaleDateString()}</p>
                     </div>
-                    <p style={{ fontSize: "13px", fontWeight: 700, color: tx.type === "credit" ? "#059669" : "#DC2626" }}>
+                    <p className="tx-right tx-amount" style={{ fontSize: "13px", fontWeight: 700, color: tx.type === "credit" ? "#059669" : "#DC2626" }}>
                       {tx.type === "credit" ? "+" : "-"}{tx.currency === "BTC" ? `₿${tx.amount}` : `$${tx.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
                     </p>
                   </div>

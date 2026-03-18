@@ -449,18 +449,18 @@ export default function Dashboard() {
                     onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.bg}
                     onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    <div className="tx-left" style={{ display: "flex", alignItems: "center", gap: 14 }}>
                       <div style={{ width: 44, height: 44, borderRadius: 14, background: tx.iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: tx.iconColor, flexShrink: 0, boxShadow: "0 2px 8px rgba(15,23,42,0.07)" }}>{tx.icon}</div>
-                      <div>
+                      <div className="tx-meta">
                         <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4, minWidth: 0 }}>
-                          <p style={{ fontSize: 14, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200 }}>{tx.name}</p>
-                          <span style={{ fontSize: 10.5, fontWeight: 600, color: tx.badgeColor, background: tx.badgeBg, border: `1px solid ${tx.badgeBorder}`, borderRadius: 6, padding: "2px 7px" }}>{tx.badge}</span>
+                          <p className="tx-name" style={{ fontSize: 14, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200 }}>{tx.name}</p>
+                          <span style={{ fontSize: 10.5, fontWeight: 600, color: tx.badgeColor, background: tx.badgeBg, border: `1px solid ${tx.badgeBorder}`, borderRadius: 6, padding: "2px 7px", flexShrink: 0 }}>{tx.badge}</span>
                         </div>
                         <p style={{ fontSize: 12, color: C.muted }}>{tx.sub} · {fmtDate(tx.date)}</p>
                       </div>
                     </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <p style={{ fontSize: 15, fontWeight: 700, color: tx.type === "credit" ? "#059669" : "#EF4444", letterSpacing: "-0.3px" }}>{tx.type === "credit" ? "+" : "−"}${tx.amount.toFixed(2)}</p>
+                    <div className="tx-right" style={{ textAlign: "right", flexShrink: 0 }}>
+                      <p className="tx-amount" style={{ fontSize: 15, fontWeight: 700, color: tx.type === "credit" ? "#059669" : "#EF4444", letterSpacing: "-0.3px" }}>{tx.type === "credit" ? "+" : "−"}${tx.amount.toFixed(2)}</p>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4, marginTop: 3 }}>
                         <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#22C55E", boxShadow: "0 0 0 2px rgba(34,197,94,0.18)" }} />
                         <p style={{ fontSize: 11, color: C.muted, fontWeight: 500 }}>Completed</p>

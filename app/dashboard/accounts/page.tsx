@@ -316,18 +316,18 @@ export default function AccountsPage() {
                 onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.bg}
                 onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
+                <div className="tx-left" style={{ display: "flex", alignItems: "center", gap: 13 }}>
                   <div style={{ width: 40, height: 40, borderRadius: 13, background: tx.iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: tx.iconColor, flexShrink: 0, boxShadow: "0 2px 6px rgba(15,23,42,0.08)" }}>{tx.icon}</div>
-                  <div>
+                  <div className="tx-meta">
                     <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 3 }}>
-                      <p style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>{tx.name}</p>
-                      <span style={{ fontSize: 10, fontWeight: 600, color: tx.badgeColor, background: tx.badgeBg, border: `1px solid ${tx.badgeBorder}`, borderRadius: 5, padding: "1px 6px" }}>{tx.badge}</span>
+                      <p className="tx-name" style={{ fontSize: 13.5, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.name}</p>
+                      <span style={{ fontSize: 10, fontWeight: 600, color: tx.badgeColor, background: tx.badgeBg, border: `1px solid ${tx.badgeBorder}`, borderRadius: 5, padding: "1px 6px", flexShrink: 0 }}>{tx.badge}</span>
                     </div>
                     <p style={{ fontSize: 11.5, color: C.muted }}>{tx.sub} · {fmtDate(tx.date)}</p>
                   </div>
                 </div>
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: tx.type === "credit" ? "#059669" : C.text }}>{tx.type === "credit" ? "+" : "−"}${tx.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
+                <div className="tx-right" style={{ textAlign: "right", flexShrink: 0 }}>
+                  <p className="tx-amount" style={{ fontSize: 14, fontWeight: 700, color: tx.type === "credit" ? "#059669" : C.text }}>{tx.type === "credit" ? "+" : "−"}${tx.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4, marginTop: 2 }}>
                     <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#22C55E", boxShadow: "0 0 0 2px rgba(34,197,94,0.18)" }} />
                     <p style={{ fontSize: 11, color: C.muted }}>Completed</p>
@@ -417,14 +417,14 @@ export default function AccountsPage() {
                     <p style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.1em", margin: "18px 0 12px" }}>Recent Transactions</p>
                     {accountTxns(selected.id).map((tx, i) => (
                       <div key={tx.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: i < accountTxns(selected.id).length - 1 ? `1px solid ${C.border}` : "none" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div className="tx-left" style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <div style={{ width: 34, height: 34, borderRadius: 11, background: tx.iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: tx.iconColor, flexShrink: 0 }}>{tx.icon}</div>
-                          <div>
-                            <p style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{tx.name}</p>
+                          <div className="tx-meta">
+                            <p className="tx-name" style={{ fontSize: 13, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.name}</p>
                             <p style={{ fontSize: 11, color: C.muted }}>{fmtDate(tx.date)}</p>
                           </div>
                         </div>
-                        <p style={{ fontSize: 13.5, fontWeight: 700, color: tx.type === "credit" ? "#059669" : C.text }}>
+                        <p className="tx-right tx-amount" style={{ fontSize: 13.5, fontWeight: 700, color: tx.type === "credit" ? "#059669" : C.text }}>
                           {tx.type === "credit" ? "+" : "−"}${tx.amount.toFixed(2)}
                         </p>
                       </div>

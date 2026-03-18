@@ -42,6 +42,21 @@ body {
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
+/* ─── Transaction Rows (dashboard, accounts, admin modal) ─── */
+/* Left section shrinks to give room to the amount on the right  */
+.tx-left  { min-width: 0; flex: 1 1 0%; overflow: hidden; }
+/* Text/meta block inside left — prevents fixed content from widening the row */
+.tx-meta  { min-width: 0; overflow: hidden; }
+/* Transaction title — override inline maxWidth: 200 so it adapts to parent */
+.tx-name  { min-width: 0; max-width: 100% !important; }
+/* Right amount column — never shrinks so the number is always fully visible */
+.tx-right { flex-shrink: 0; margin-left: 8px; }
+
+@media (max-width: 480px) {
+  /* Slightly tighter amount font on very small screens */
+  .tx-amount { font-size: 13px !important; letter-spacing: 0 !important; }
+}
+
 /* ─── Transfer Page ─── */
 @media (max-width: 900px) {
   .transfer-main-grid { grid-template-columns: 1fr !important; }
