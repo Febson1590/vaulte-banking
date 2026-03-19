@@ -172,6 +172,8 @@ export default function TransactionsPage() {
                   <div style={{ minWidth: 0 }}>
                     <p style={{ fontSize: 13.5, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tx.name}</p>
                     <p style={{ fontSize: 11.5, color: C.muted, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tx.sub}</p>
+                    {/* Mobile-only date line — hidden on desktop where the Date column already shows it */}
+                    {tx.date && <p className="tx-date-mobile" style={{ fontSize: 11, color: C.sub, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{fmtDate(tx.date)}</p>}
                   </div>
                 </div>
 
@@ -229,6 +231,9 @@ export default function TransactionsPage() {
       </div>
 
       <style>{`
+        /* Desktop: date is shown in its own column — hide the inline copy */
+        .tx-date-mobile { display: none; }
+
         @media (max-width: 768px) {
           .tx-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
         }
@@ -238,9 +243,12 @@ export default function TransactionsPage() {
         @media (max-width: 640px) {
           .tx-table-header { display: none !important; }
           .tx-table-row { grid-template-columns: 1fr auto !important; padding: 12px 16px !important; }
+          /* Hide the standalone Date / Account / Status columns on mobile */
           .tx-table-row > *:nth-child(2),
           .tx-table-row > *:nth-child(3),
           .tx-table-row > *:nth-child(4) { display: none !important; }
+          /* Show the inline date line that lives inside the name column */
+          .tx-date-mobile { display: block !important; }
         }
       `}</style>
     </DashboardLayout>
