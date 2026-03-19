@@ -48,6 +48,92 @@ function splitAmount(total: number, count: number): number[] {
   return amounts;
 }
 
+// ── Realistic date generator ─────────────────────────────────
+//
+// Replaces the old linear-interpolation approach:
+//   OLD:  dayIndex = floor(i / N × M)  →  perfectly even steps every few days
+//   NEW:  month-stratified + geometric-decay random placement
+//
+// Strategy:
+//   1. Group the valid-day pool by calendar month (preserves chronological order).
+//   2. Phase 1 — give every month at least 1 transaction slot (if budget allows).
+//      This ensures no month is completely silent unless count < months.length.
+//   3. Phase 2 — top up randomly using geometric-decay probability:
+//      P(add another tx to a month already at k) = 1 / (k + 1)
+//      · k=0 → p=1.00 (always add if empty, already handled in phase 1)
+//      · k=1 → p=0.50 (coin flip for a 2nd tx in a month)
+//      · k=2 → p=0.33 (unlikely 3rd)
+//      · k=3 → p=0.25 (rare 4th)
+//      This naturally produces mostly 1-2 tx/month with occasional 3-4 bursts.
+//   4. Phase 3 — force-place any remainder (edge case: very many transactions).
+//   5. Within each month, pick random valid days with replacement so
+//      same-day transactions are allowed (realistic for debits).
+//   6. Final sort ensures strict chronological order.
+//
+function generateRealisticDates(days: Date[], count: number): Date[] {
+  if (count === 0 || days.length === 0) return [];
+
+  // Group available days by calendar month, insertion-ordered → chronological
+  const byMonth = new Map<string, Date[]>();
+  for (const d of days) {
+    const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, "0")}`;
+    if (!byMonth.has(key)) byMonth.set(key, []);
+    byMonth.get(key)!.push(d);
+  }
+  const months = [...byMonth.values()];
+  if (months.length === 0) return [];
+
+  // Per-month cap — always high enough to hold all transactions if needed,
+  // but the geometric probability keeps most months well below this ceiling.
+  const dynCap = Math.max(5, Math.ceil(count / months.length) + 2);
+
+  // Phase 1: one slot per month until budget runs out
+  const slots = new Array<number>(months.length).fill(0);
+  let remaining = count;
+  for (let mi = 0; mi < months.length && remaining > 0; mi++) {
+    const cap = Math.min(dynCap, months[mi].length);
+    if (cap >= 1) { slots[mi] = 1; remaining--; }
+  }
+
+  // Phase 2: geometric-decay top-up — produces natural monthly variation
+  let guard = count * 20; // safety valve; exits if loop is thrashing
+  while (remaining > 0 && guard-- > 0) {
+    const mi  = Math.floor(Math.random() * months.length);
+    const cap = Math.min(dynCap, months[mi].length);
+    const cur = slots[mi];
+    // Probability drops off as month count rises → organic 1–4 range
+    if (cur < cap && Math.random() < 1 / (cur + 1)) {
+      slots[mi]++;
+      remaining--;
+    }
+  }
+
+  // Phase 3: force-place any stragglers (hits only when count is very large)
+  for (let mi = 0; remaining > 0 && mi < months.length; mi++) {
+    const cap = Math.min(dynCap, months[mi].length);
+    while (slots[mi] < cap && remaining > 0) { slots[mi]++; remaining--; }
+  }
+
+  // Pick random days within each month (with replacement — same day is fine)
+  const result: Date[] = [];
+  months.forEach((monthDays, mi) => {
+    for (let j = 0; j < slots[mi]; j++) {
+      const base = monthDays[Math.floor(Math.random() * monthDays.length)];
+      const date = new Date(base);
+      date.setHours(
+        Math.floor(Math.random() * 14) + 7,  // 07:00 – 20:59
+        Math.floor(Math.random() * 60),
+        Math.floor(Math.random() * 60),
+        0,
+      );
+      result.push(date);
+    }
+  });
+
+  result.sort((a, b) => a.getTime() - b.getTime());
+  return result;
+}
+
 // ── Core generator ───────────────────────────────────────────
 // Generates exactly creditCount credit transactions and debitCount debit
 // transactions.  Descriptions are strictly drawn from the matching pool:
@@ -62,13 +148,13 @@ function generateTransactions(
   includeWeekends: boolean,
   creditDescs: string[], debitDescs: string[]
 ): GeneratedTx[] {
-  // Build available date pool
+  // Build available date pool (weekday filter applied here if needed)
   const start = new Date(startDate);
   const end   = new Date(endDate);
   const days: Date[] = [];
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    const day = d.getDay();
-    if (!includeWeekends && (day === 0 || day === 6)) continue;
+    const dow = d.getDay();
+    if (!includeWeekends && (dow === 0 || dow === 6)) continue;
     days.push(new Date(d));
   }
 
@@ -76,21 +162,19 @@ function generateTransactions(
   const creditAmounts = splitAmount(totalCredits, creditCount);
   const debitAmounts  = splitAmount(totalDebits,  debitCount);
 
-  // Interleave types then shuffle so dates are spread naturally
+  // Shuffle the combined list — type order has no effect on dates any more
   const allAmounts: { type: "credit" | "debit"; amount: number }[] = [
     ...creditAmounts.map(a => ({ type: "credit" as const, amount: a })),
     ...debitAmounts.map(a  => ({ type: "debit"  as const, amount: a })),
   ].sort(() => Math.random() - 0.5);
 
-  // Assign dates and build transactions
+  // Generate realistic, naturally-spaced dates for every transaction
+  const realisticDates = generateRealisticDates(days, allAmounts.length);
+
+  // Build transactions — dates come from the pre-generated array
   let balance = openingBalance;
   const transactions: GeneratedTx[] = allAmounts.map((tx, i) => {
-    const dayIndex = Math.floor((i / allAmounts.length) * days.length);
-    const day      = days[Math.min(dayIndex, days.length - 1)];
-    const hour     = Math.floor(Math.random() * 14) + 7;
-    const min      = Math.floor(Math.random() * 60);
-    const date     = new Date(day);
-    date.setHours(hour, min, 0, 0);
+    const date = realisticDates[i] ?? new Date(); // ?? only fires on bad edge cases
 
     balance = tx.type === "credit"
       ? Math.round((balance + tx.amount) * 100) / 100
