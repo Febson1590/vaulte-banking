@@ -2,22 +2,6 @@
 import { useState, useEffect, useCallback } from "react";
 import AdminLayout from "@/components/AdminLayout";
 
-// ── System description pools ─────────────────────────────────
-const CREDIT_DESCS = [
-  "Salary Payment – March", "Freelance Invoice – Web Project",
-  "Client Transfer – Michael Turner", "Contract Settlement – Apex Corp",
-  "Invoice Payment – Redwood Forestry", "Timber Supply Payment – Weyerhaeuser",
-  "Consulting Fee – Strategy Review", "Dividend Income",
-  "Transfer Received – James Wilson", "Wire Receipt – Georgia-Pacific",
-];
-const DEBIT_DESCS = [
-  "Netflix", "Spotify Premium", "Amazon Purchase", "Whole Foods Market",
-  "AT&T Wireless", "Utility Bill", "Uber Ride", "Truck Fleet Diesel Payment",
-  "Equipment Maintenance", "Office Rent", "Grocery Store",
-  "Payroll Transfer", "Hotel Booking", "Flight – Delta Airlines",
-  "Insurance Premium", "Restaurant Payment", "Starbucks",
-];
-
 // ── User/account types from the API ──────────────────────────
 interface ApiAccount {
   id: string;
@@ -49,6 +33,7 @@ interface GeneratedTx {
 function generateRef() {
   return "VLT-" + Math.random().toString(36).substr(2, 8).toUpperCase();
 }
+
 function splitAmount(total: number, count: number): number[] {
   if (count === 0) return [];
   const amounts: number[] = [];
@@ -62,12 +47,22 @@ function splitAmount(total: number, count: number): number[] {
   amounts.push(Math.round(remaining * 100) / 100);
   return amounts;
 }
+
+// ── Core generator ───────────────────────────────────────────
+// Generates exactly creditCount credit transactions and debitCount debit
+// transactions.  Descriptions are strictly drawn from the matching pool:
+//   · creditDescs → only used for credit transactions
+//   · debitDescs  → only used for debit transactions
+// If the pool has fewer entries than the transaction count, descriptions are
+// reused randomly within the same type.  No system descriptions are ever added.
 function generateTransactions(
   startDate: string, endDate: string,
   openingBalance: number, totalCredits: number, totalDebits: number,
-  minTx: number, maxTx: number,
-  includeWeekends: boolean, customDescs: string[]
+  creditCount: number, debitCount: number,
+  includeWeekends: boolean,
+  creditDescs: string[], debitDescs: string[]
 ): GeneratedTx[] {
+  // Build available date pool
   const start = new Date(startDate);
   const end   = new Date(endDate);
   const days: Date[] = [];
@@ -76,20 +71,18 @@ function generateTransactions(
     if (!includeWeekends && (day === 0 || day === 6)) continue;
     days.push(new Date(d));
   }
-  const txCount     = Math.floor(Math.random() * (maxTx - minTx + 1)) + minTx;
-  const creditCount = Math.ceil(txCount * 0.45);
-  const debitCount  = txCount - creditCount;
 
+  // Split amounts into exactly the admin-specified counts
   const creditAmounts = splitAmount(totalCredits, creditCount);
   const debitAmounts  = splitAmount(totalDebits,  debitCount);
+
+  // Interleave types then shuffle so dates are spread naturally
   const allAmounts: { type: "credit" | "debit"; amount: number }[] = [
     ...creditAmounts.map(a => ({ type: "credit" as const, amount: a })),
     ...debitAmounts.map(a  => ({ type: "debit"  as const, amount: a })),
   ].sort(() => Math.random() - 0.5);
 
-  const allCreditDescs = [...CREDIT_DESCS, ...customDescs.filter(Boolean)];
-  const allDebitDescs  = [...DEBIT_DESCS,  ...customDescs.filter(Boolean)];
-
+  // Assign dates and build transactions
   let balance = openingBalance;
   const transactions: GeneratedTx[] = allAmounts.map((tx, i) => {
     const dayIndex = Math.floor((i / allAmounts.length) * days.length);
@@ -103,10 +96,13 @@ function generateTransactions(
       ? Math.round((balance + tx.amount) * 100) / 100
       : Math.round(Math.max(0, balance - tx.amount) * 100) / 100;
 
-    const descs = tx.type === "credit" ? allCreditDescs : allDebitDescs;
+    // Strictly pick description from the matching type pool only
+    const pool = tx.type === "credit" ? creditDescs : debitDescs;
+    const description = pool[Math.floor(Math.random() * pool.length)];
+
     return {
       date:        date.toISOString(),
-      description: descs[Math.floor(Math.random() * descs.length)],
+      description,
       type:        tx.type,
       amount:      tx.amount,
       balance,
@@ -149,56 +145,86 @@ export default function AdminTxGenerator() {
 
   // ── Form state ─────────────────────────────────────────────
   const [form, setForm] = useState({
-    startDate:      "2025-01-01",
-    endDate:        "2025-12-31",
-    openingBalance: "1000",
-    finalBalance:   "85000",
-    totalCredits:   "120000",
-    totalDebits:    "36000",
-    minTx:          "40",
-    maxTx:          "90",
+    startDate:       "2025-01-01",
+    endDate:         "2025-12-31",
+    openingBalance:  "1000",
+    finalBalance:    "85000",
+    totalCredits:    "120000",
+    totalDebits:     "36000",
+    creditCount:     "8",
+    debitCount:      "5",
     includeWeekends: true,
-    customDescs:    "",
+    creditDescs:     "",
+    debitDescs:      "",
   });
   const set = (key: string, value: string | boolean) =>
     setForm(prev => ({ ...prev, [key]: value }));
 
   // ── UI state ───────────────────────────────────────────────
-  const [preview,    setPreview]    = useState<GeneratedTx[] | null>(null);
-  const [error,      setError]      = useState("");
-  const [saving,     setSaving]     = useState(false);
-  const [saved,      setSaved]      = useState(false);
-  const [savedResult,setSavedResult]= useState<{ count: number; balances: Record<string, number> } | null>(null);
-  const [generating, setGenerating] = useState(false);
+  const [preview,     setPreview]     = useState<GeneratedTx[] | null>(null);
+  const [error,       setError]       = useState("");
+  const [saving,      setSaving]      = useState(false);
+  const [saved,       setSaved]       = useState(false);
+  const [savedResult, setSavedResult] = useState<{ count: number; balances: Record<string, number> } | null>(null);
+  const [generating,  setGenerating]  = useState(false);
 
   // ── Validate & generate preview ────────────────────────────
   const validateAndGenerate = () => {
     setError("");
-    const opening  = parseFloat(form.openingBalance);
-    const final    = parseFloat(form.finalBalance);
-    const credits  = parseFloat(form.totalCredits);
-    const debits   = parseFloat(form.totalDebits);
+    const opening   = parseFloat(form.openingBalance);
+    const final     = parseFloat(form.finalBalance);
+    const credits   = parseFloat(form.totalCredits);
+    const debits    = parseFloat(form.totalDebits);
+    const creditCt  = parseInt(form.creditCount, 10);
+    const debitCt   = parseInt(form.debitCount, 10);
+
+    // Balance formula
     const expected = Math.round((opening + credits - debits) * 100) / 100;
     if (Math.abs(expected - final) > 0.01) {
       setError(`Balance formula mismatch: Opening ($${opening}) + Credits ($${credits}) − Debits ($${debits}) = $${expected}, but Final Balance is $${final}.`);
       return;
     }
-    if (parseInt(form.minTx) > parseInt(form.maxTx)) {
-      setError("Min transactions cannot exceed Max transactions.");
-      return;
-    }
+
+    // Date range
     if (new Date(form.startDate) >= new Date(form.endDate)) {
       setError("Start date must be before end date.");
       return;
     }
+
+    // Credit count
+    if (credits > 0 && (isNaN(creditCt) || creditCt < 1)) {
+      setError("Number of Credit Transactions must be at least 1 when Total Credits > 0.");
+      return;
+    }
+
+    // Debit count
+    if (debits > 0 && (isNaN(debitCt) || debitCt < 1)) {
+      setError("Number of Debit Transactions must be at least 1 when Total Debits > 0.");
+      return;
+    }
+
+    // Parse description pools
+    const creditDescs = form.creditDescs.split("\n").map(d => d.trim()).filter(Boolean);
+    const debitDescs  = form.debitDescs.split("\n").map(d => d.trim()).filter(Boolean);
+
+    // Descriptions required when the type has transactions
+    if (credits > 0 && creditDescs.length === 0) {
+      setError("Credit Transaction Descriptions must not be empty when Total Credits > 0. Enter at least one description.");
+      return;
+    }
+    if (debits > 0 && debitDescs.length === 0) {
+      setError("Debit Transaction Descriptions must not be empty when Total Debits > 0. Enter at least one description.");
+      return;
+    }
+
     setGenerating(true);
     setTimeout(() => {
-      const customDescs = form.customDescs.split("\n").filter(d => d.trim());
       const txs = generateTransactions(
         form.startDate, form.endDate,
         opening, credits, debits,
-        parseInt(form.minTx), parseInt(form.maxTx),
-        form.includeWeekends, customDescs
+        creditCt, debitCt,
+        form.includeWeekends,
+        creditDescs, debitDescs
       );
       setPreview(txs);
       setGenerating(false);
@@ -255,6 +281,10 @@ export default function AdminTxGenerator() {
     border: "1.5px solid #E5E7EB", borderRadius: "10px",
     fontSize: "13px", outline: "none", boxSizing: "border-box" as const,
   };
+
+  // Derived counts for the preview header
+  const previewCredits = preview?.filter(t => t.type === "credit").length ?? 0;
+  const previewDebits  = preview?.filter(t => t.type === "debit").length ?? 0;
 
   // ── Render ─────────────────────────────────────────────────
   return (
@@ -324,7 +354,15 @@ export default function AdminTxGenerator() {
           <div style={{ background: "#fff", borderRadius: "14px", padding: "20px", marginBottom: "16px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 700, color: "#0A1628" }}>Preview — {preview.length} Transactions</h2>
+                <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 700, color: "#0A1628" }}>
+                  Preview — {preview.length} Transactions
+                  <span style={{ marginLeft: "12px", fontSize: "13px", fontWeight: 600, color: "#059669" }}>
+                    {previewCredits} credits
+                  </span>
+                  <span style={{ marginLeft: "8px", fontSize: "13px", fontWeight: 600, color: "#DC2626" }}>
+                    {previewDebits} debits
+                  </span>
+                </h2>
                 <p style={{ margin: "4px 0 0", fontSize: "13px", color: "#6B7280" }}>
                   For <strong>{selectedUser?.firstName} {selectedUser?.lastName}</strong> · {selectedAcc?.currency} account · Review before committing to Redis
                 </p>
@@ -395,8 +433,9 @@ export default function AdminTxGenerator() {
       ) : (
         /* ── Input form ── */
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }} className="txgen-grid">
-          {/* Left */}
+          {/* ── LEFT COLUMN ── */}
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+
             {/* Target user */}
             <div style={{ background: "#fff", borderRadius: "14px", padding: "24px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
               <h3 style={{ margin: "0 0 16px", fontSize: "15px", fontWeight: 700, color: "#0A1628" }}>👤 Target User & Account</h3>
@@ -483,19 +522,34 @@ export default function AdminTxGenerator() {
             </div>
           </div>
 
-          {/* Right */}
+          {/* ── RIGHT COLUMN ── */}
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            {/* Generation rules */}
+
+            {/* Transaction counts + weekends */}
             <div style={{ background: "#fff", borderRadius: "14px", padding: "24px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-              <h3 style={{ margin: "0 0 16px", fontSize: "15px", fontWeight: 700, color: "#0A1628" }}>⚙️ Generation Rules</h3>
+              <h3 style={{ margin: "0 0 16px", fontSize: "15px", fontWeight: 700, color: "#0A1628" }}>⚙️ Transaction Counts</h3>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
                 <div>
-                  <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#374151", marginBottom: "6px" }}>Min Transactions</label>
-                  <input type="number" value={form.minTx} onChange={e => set("minTx", e.target.value)} style={INPUT} />
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#059669", marginBottom: "6px" }}>
+                    Number of Credit Transactions <span style={{ color: "#DC2626" }}>*</span>
+                  </label>
+                  <input
+                    type="number" min="1" value={form.creditCount}
+                    onChange={e => set("creditCount", e.target.value)}
+                    style={{ ...INPUT, border: "1.5px solid #6EE7B7" }}
+                  />
+                  <div style={{ fontSize: "11px", color: "#9CA3AF", marginTop: "4px" }}>Exact count — no randomisation</div>
                 </div>
                 <div>
-                  <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#374151", marginBottom: "6px" }}>Max Transactions</label>
-                  <input type="number" value={form.maxTx} onChange={e => set("maxTx", e.target.value)} style={INPUT} />
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#DC2626", marginBottom: "6px" }}>
+                    Number of Debit Transactions <span style={{ color: "#DC2626" }}>*</span>
+                  </label>
+                  <input
+                    type="number" min="1" value={form.debitCount}
+                    onChange={e => set("debitCount", e.target.value)}
+                    style={{ ...INPUT, border: "1.5px solid #FECACA" }}
+                  />
+                  <div style={{ fontSize: "11px", color: "#9CA3AF", marginTop: "4px" }}>Exact count — no randomisation</div>
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderTop: "1px solid #F3F4F6" }}>
@@ -510,26 +564,61 @@ export default function AdminTxGenerator() {
               </div>
             </div>
 
-            {/* Custom descriptions */}
-            <div style={{ background: "#fff", borderRadius: "14px", padding: "24px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-              <h3 style={{ margin: "0 0 4px", fontSize: "15px", fontWeight: 700, color: "#0A1628" }}>📝 Custom Descriptions</h3>
-              <p style={{ margin: "0 0 12px", fontSize: "12px", color: "#9CA3AF" }}>
-                One per line — mixed with system descriptions. Icons & badges are auto-assigned from keywords.
+            {/* Credit descriptions */}
+            <div style={{ background: "#fff", borderRadius: "14px", padding: "24px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", borderLeft: "3px solid #10B981" }}>
+              <h3 style={{ margin: "0 0 4px", fontSize: "15px", fontWeight: 700, color: "#059669" }}>
+                🟢 Credit Transaction Descriptions <span style={{ color: "#DC2626" }}>*</span>
+              </h3>
+              <p style={{ margin: "0 0 10px", fontSize: "12px", color: "#9CA3AF" }}>
+                Enter one description per line. Credit descriptions are used <strong>only for credit transactions</strong>.
+                Descriptions may be reused randomly within this type if fewer lines are provided than the transaction count.
               </p>
-              <textarea value={form.customDescs} onChange={e => set("customDescs", e.target.value)}
-                placeholder={"Timber Supply Payment – Weyerhaeuser\nContract Settlement – Georgia-Pacific\nNetflix\nTruck Fleet Diesel Payment\nEquipment Maintenance"}
-                style={{ ...INPUT, minHeight: "130px", resize: "vertical" }} />
-              <div style={{ marginTop: "10px", background: "#F8FAFC", borderRadius: "8px", padding: "10px 12px" }}>
-                <div style={{ fontSize: "11.5px", color: "#6B7280", fontWeight: 600, marginBottom: "6px" }}>Example credit descriptions:</div>
-                <div style={{ fontSize: "11px", color: "#9CA3AF", lineHeight: 1.7 }}>
-                  Timber Supply Payment – Weyerhaeuser · Contract Settlement – Georgia-Pacific<br />
-                  Invoice Payment – Redwood Forestry · Client Transfer – Michael Turner
+              <textarea
+                value={form.creditDescs}
+                onChange={e => set("creditDescs", e.target.value)}
+                placeholder={"Salary Payment – March\nFreelance Invoice – Web Project\nClient Transfer – Michael Turner\nContract Settlement – Apex Corp\nTimber Supply Payment – Weyerhaeuser"}
+                style={{ ...INPUT, minHeight: "130px", resize: "vertical", borderColor: "#6EE7B7" }}
+              />
+              <div style={{ marginTop: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ fontSize: "11px", color: "#9CA3AF" }}>
+                  {form.creditDescs.split("\n").filter(d => d.trim()).length} description(s) entered
+                  {form.creditCount && ` · ${form.creditCount} transactions to generate`}
                 </div>
-                <div style={{ fontSize: "11.5px", color: "#6B7280", fontWeight: 600, margin: "8px 0 6px" }}>Example debit descriptions:</div>
-                <div style={{ fontSize: "11px", color: "#9CA3AF", lineHeight: 1.7 }}>
-                  Netflix · AT&T Wireless · Payroll Transfer · Truck Fleet Diesel Payment<br />
-                  Equipment Maintenance · Amazon · Utility Bill
+                {form.creditDescs.split("\n").filter(d => d.trim()).length > 0 &&
+                  parseInt(form.creditCount, 10) > form.creditDescs.split("\n").filter(d => d.trim()).length && (
+                  <div style={{ fontSize: "11px", color: "#059669", background: "#ECFDF5", borderRadius: "6px", padding: "2px 8px" }}>
+                    ♻️ Descriptions will be reused
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Debit descriptions */}
+            <div style={{ background: "#fff", borderRadius: "14px", padding: "24px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", borderLeft: "3px solid #F87171" }}>
+              <h3 style={{ margin: "0 0 4px", fontSize: "15px", fontWeight: 700, color: "#DC2626" }}>
+                🔴 Debit Transaction Descriptions <span style={{ color: "#DC2626" }}>*</span>
+              </h3>
+              <p style={{ margin: "0 0 10px", fontSize: "12px", color: "#9CA3AF" }}>
+                Enter one description per line. Debit descriptions are used <strong>only for debit transactions</strong>.
+                Descriptions may be reused randomly within this type if fewer lines are provided than the transaction count.
+              </p>
+              <textarea
+                value={form.debitDescs}
+                onChange={e => set("debitDescs", e.target.value)}
+                placeholder={"Netflix\nSpotify Premium\nAmazon Purchase\nUtility Bill\nTruck Fleet Diesel Payment\nEquipment Maintenance"}
+                style={{ ...INPUT, minHeight: "130px", resize: "vertical", borderColor: "#FECACA" }}
+              />
+              <div style={{ marginTop: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ fontSize: "11px", color: "#9CA3AF" }}>
+                  {form.debitDescs.split("\n").filter(d => d.trim()).length} description(s) entered
+                  {form.debitCount && ` · ${form.debitCount} transactions to generate`}
                 </div>
+                {form.debitDescs.split("\n").filter(d => d.trim()).length > 0 &&
+                  parseInt(form.debitCount, 10) > form.debitDescs.split("\n").filter(d => d.trim()).length && (
+                  <div style={{ fontSize: "11px", color: "#DC2626", background: "#FEF2F2", borderRadius: "6px", padding: "2px 8px" }}>
+                    ♻️ Descriptions will be reused
+                  </div>
+                )}
               </div>
             </div>
 
