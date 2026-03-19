@@ -591,6 +591,165 @@ Your reply will be delivered to: ${opts.email}`;
   };
 }
 
+// ─── 8. Branded Support Reply Email ──────────────────────────
+//
+// Gmail-safe human reply template for support communication.
+// — No ticket IDs, no SLA blocks, no automated receipt copy.
+// — Table-based layout, inline CSS only, solid colours only.
+// — Text-based VAULTE header (logo + CSS filter unreliable in Gmail).
+// — Use for: support responses, account updates, general user comms.
+export function supportReplyEmail(opts: {
+  customerName: string;  // e.g. "Samson"
+  subject:      string;  // e.g. "Account Status Update"
+  messageText:  string;  // plain text; blank lines become paragraph breaks
+}): { html: string; text: string } {
+  // Convert plain text → safe HTML paragraphs
+  // Double (or more) newlines = paragraph break; single newline = <br>
+  const messageHtml = opts.messageText
+    .trim()
+    .split(/\n{2,}/)
+    .map(para =>
+      `<p style="margin:0 0 16px;font-size:14.5px;line-height:1.75;color:#374151;">${
+        para.trim().replace(/\n/g, "<br>")
+      }</p>`
+    )
+    .join("\n");
+
+  const year = new Date().getFullYear();
+
+  const html = `<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="x-apple-disable-message-reformatting" />
+  <title>${opts.subject} — Vaulte Support</title>
+</head>
+<body style="margin:0;padding:0;background-color:#F3F5FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+
+  <!-- Hidden preheader text -->
+  <div style="display:none;max-height:0;overflow:hidden;font-size:1px;color:#F3F5FA;">
+    Vaulte Support — ${opts.subject}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
+  </div>
+
+  <!-- Outer wrapper -->
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%"
+         style="background-color:#F3F5FA;margin:0;padding:0;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+
+        <!-- Email card — solid border instead of box-shadow (Gmail-safe) -->
+        <table role="presentation" cellpadding="0" cellspacing="0" width="580"
+               style="max-width:580px;width:100%;border:1px solid #D1D9E6;border-radius:12px;overflow:hidden;background-color:#ffffff;">
+
+          <!-- ── HEADER: solid navy (replaces gradient — Gmail strips gradients) -->
+          <tr>
+            <td style="background-color:#0F172A;padding:30px 40px;text-align:center;">
+              <!-- Text-based logo — reliable in all email clients -->
+              <p style="margin:0;font-size:27px;font-weight:800;color:#ffffff;
+                         letter-spacing:4px;line-height:1;
+                         font-family:'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">VAULTE</p>
+              <p style="margin:10px 0 0;font-size:10.5px;font-weight:600;
+                         letter-spacing:2.5px;text-transform:uppercase;
+                         color:rgba(255,255,255,0.42);">Digital Banking Platform</p>
+            </td>
+          </tr>
+
+          <!-- ── SUBJECT BANNER: solid blue (replaces gradient) -->
+          <tr>
+            <td style="background-color:#1A73E8;padding:20px 40px;text-align:center;">
+              <p style="margin:0;font-size:18px;font-weight:700;color:#ffffff;
+                         letter-spacing:-0.2px;line-height:1.35;">${opts.subject}</p>
+            </td>
+          </tr>
+
+          <!-- ── BODY -->
+          <tr>
+            <td style="padding:36px 40px 24px;background-color:#ffffff;">
+
+              <!-- Greeting -->
+              <p style="margin:0 0 22px;font-size:16px;font-weight:600;
+                          color:#0F172A;line-height:1.4;">Dear ${opts.customerName},</p>
+
+              <!-- Message content -->
+              ${messageHtml}
+
+            </td>
+          </tr>
+
+          <!-- ── DIVIDER -->
+          <tr>
+            <td style="padding:0 40px;background-color:#ffffff;">
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td style="border-top:1px solid #E2E8F0;font-size:0;line-height:0;">&nbsp;</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ── SIGN-OFF -->
+          <tr>
+            <td style="padding:22px 40px 28px;background-color:#ffffff;">
+              <p style="margin:0 0 3px;font-size:14px;font-weight:700;color:#0F172A;">Vaulte Support Team</p>
+              <a href="mailto:support@vaulteapp.com"
+                 style="font-size:13px;color:#1A73E8;text-decoration:none;font-weight:500;">support@vaulteapp.com</a>
+            </td>
+          </tr>
+
+          <!-- ── SECURITY NOTICE -->
+          <tr>
+            <td style="padding:16px 40px;background-color:#EFF6FF;border-top:1px solid #BFDBFE;">
+              <p style="margin:0;font-size:12px;color:#1e3a5f;line-height:1.65;">
+                <strong>🔒 Security reminder:</strong>&nbsp;
+                Vaulte will never ask you to share your password, OTP, PIN, or any sensitive credentials.
+                If you receive suspicious communication claiming to be from Vaulte, please contact us immediately.
+              </p>
+            </td>
+          </tr>
+
+          <!-- ── FOOTER -->
+          <tr>
+            <td style="padding:20px 40px 26px;background-color:#F8FAFC;
+                        border-top:1px solid #E2E8F0;text-align:center;">
+              <p style="margin:0 0 6px;font-size:12px;color:#94A3B8;line-height:1.5;">
+                Sent from&nbsp;<strong style="color:#64748B;">support@vaulteapp.com</strong>
+                &nbsp;·&nbsp;Vaulte Digital Banking
+              </p>
+              <p style="margin:0;font-size:11px;color:#CBD5E1;">
+                © ${year} Vaulte Financial Ltd. All rights reserved.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+        <!-- end email card -->
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>`;
+
+  const text = `Dear ${opts.customerName},
+
+${opts.messageText.trim()}
+
+---
+Vaulte Support Team
+support@vaulteapp.com
+
+Security reminder: Vaulte will never ask you to share your password, OTP, PIN,
+or any sensitive credentials. Contact us immediately if you receive suspicious
+communications claiming to be from Vaulte.
+
+© ${year} Vaulte Financial Ltd. All rights reserved.`;
+
+  return { html, text };
+}
+
 // ─── 7. Support Acknowledgement Email ────────────────────────
 export function supportAckEmail(opts: {
   firstName:  string;

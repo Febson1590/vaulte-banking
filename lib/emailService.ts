@@ -11,6 +11,7 @@ import {
   welcomeEmail,
   supportAckEmail,
   internalSupportAlertEmail,
+  supportReplyEmail,
 } from "./emailTemplates";
 
 // Lazy singleton — not instantiated at build/import time
@@ -192,6 +193,31 @@ export async function sendInternalSupportAlert(opts: {
     to:      "support@vaulteapp.com",
     replyTo: opts.email,   // ← one-click reply to the customer from any mail client
     subject: `[${opts.priority.toUpperCase()}] ${opts.ticketRef} — ${opts.category} | ${customerName}`,
+    html,
+    text,
+  });
+}
+
+// ─── 8. Send Branded Support Reply (human agent → customer) ──
+//
+// Gmail-safe branded reply template. Use this when responding to a
+// customer directly — no ticket IDs, no automation copy.
+export async function sendSupportReply(opts: {
+  to:           string;
+  customerName: string;
+  subject:      string;
+  messageText:  string;
+}): Promise<{ success: boolean; error?: string }> {
+  const { html, text } = supportReplyEmail({
+    customerName: opts.customerName,
+    subject:      opts.subject,
+    messageText:  opts.messageText,
+  });
+  return sendEmail({
+    from:    SUPPORT,
+    to:      opts.to,
+    replyTo: "support@vaulteapp.com",
+    subject: opts.subject,
     html,
     text,
   });
