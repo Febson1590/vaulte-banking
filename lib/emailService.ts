@@ -34,11 +34,12 @@ const SUPPORT = "Vaulte Support <support@vaulteapp.com>";
 
 // ─── Generic send wrapper ────────────────────────────────────
 async function sendEmail(opts: {
-  from:    string;
-  to:      string;
-  subject: string;
-  html:    string;
-  text:    string;
+  from:     string;
+  to:       string;
+  subject:  string;
+  html:     string;
+  text:     string;
+  replyTo?: string;   // sets Reply-To header so recipients reply to the right inbox
 }): Promise<{ success: boolean; error?: string }> {
   try {
     const resend = getResend();
@@ -48,6 +49,7 @@ async function sendEmail(opts: {
       subject: opts.subject,
       html:    opts.html,
       text:    opts.text,
+      ...(opts.replyTo ? { replyTo: opts.replyTo } : {}),
     });
     if (result.error) {
       console.error("[EmailService] Resend error:", result.error);
@@ -168,6 +170,11 @@ export async function sendWelcomeEmail(opts: {
 }
 
 // ─── 6. Send Internal Support Alert (to support team inbox) ──
+//
+// from:    Vaulte Support <support@vaulteapp.com>   — arrives in the inbox with the correct identity
+// to:      support@vaulteapp.com                    — the team inbox receives it
+// replyTo: customer email                           — hitting Reply in any email client goes directly
+//                                                     to the customer, not back to a no-reply address
 export async function sendInternalSupportAlert(opts: {
   ticketRef: string;
   firstName: string;
@@ -179,16 +186,22 @@ export async function sendInternalSupportAlert(opts: {
   message:   string;
 }): Promise<{ success: boolean; error?: string }> {
   const { html, text } = internalSupportAlertEmail(opts);
+  const customerName   = [opts.firstName, opts.lastName].filter(Boolean).join(" ") || opts.email;
   return sendEmail({
-    from:    NOREPLY,
+    from:    SUPPORT,
     to:      "support@vaulteapp.com",
-    subject: `[${opts.priority.toUpperCase()}] New Ticket ${opts.ticketRef} — ${opts.category}`,
+    replyTo: opts.email,   // ← one-click reply to the customer from any mail client
+    subject: `[${opts.priority.toUpperCase()}] ${opts.ticketRef} — ${opts.category} | ${customerName}`,
     html,
     text,
   });
 }
 
 // ─── 7. Send Support Acknowledgement ─────────────────────────
+//
+// from:    Vaulte Support <support@vaulteapp.com>   — customer sees a trustworthy sender
+// replyTo: support@vaulteapp.com                    — when the customer replies, it lands in
+//                                                     the support inbox (not no-reply black hole)
 export async function sendSupportAck(opts: {
   to:        string;
   firstName: string;
@@ -200,6 +213,7 @@ export async function sendSupportAck(opts: {
   return sendEmail({
     from:    SUPPORT,
     to:      opts.to,
+    replyTo: "support@vaulteapp.com",   // ← customer replies land in the support inbox
     subject: `Re: ${opts.subject} [Ref: ${opts.ticketRef}]`,
     html,
     text,

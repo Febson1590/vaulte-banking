@@ -557,17 +557,17 @@ export function internalSupportAlertEmail(opts: {
       ${opts.message}
     </div>
 
-    ${paragraph("Reply directly to this email or log into the admin panel to manage this ticket.", { color: "#64748B" })}
+    ${paragraph(`To respond to this customer, <strong>simply reply to this email</strong> — the Reply-To header is already set to <a href="mailto:${opts.email}" style="color:${BRAND_PRIMARY};">${opts.email}</a> so your reply will go directly to their inbox.`, { color: "#374151" })}
   `;
 
   const text = `NEW SUPPORT TICKET
 
-Ticket Ref: ${opts.ticketRef}
-Customer: ${opts.firstName} ${opts.lastName}
-Email: ${opts.email}
-Category: ${opts.category}
-Priority: ${opts.priority}
-Submitted: ${new Date().toUTCString()}
+Ticket Ref:  ${opts.ticketRef}
+Customer:    ${opts.firstName} ${opts.lastName}
+Email:       ${opts.email}
+Category:    ${opts.category}
+Priority:    ${opts.priority}
+Submitted:   ${new Date().toUTCString()}
 
 Subject: ${opts.subject}
 
@@ -575,7 +575,8 @@ Message:
 ${opts.message}
 
 ---
-Reply to this email or manage via the admin panel.`;
+Reply to this email to respond directly to the customer.
+Your reply will be delivered to: ${opts.email}`;
 
   return {
     html: baseLayout({
@@ -613,7 +614,7 @@ export function supportAckEmail(opts: {
       ${opts.message}
     </div>
 
-    ${paragraph("If your issue is urgent, please reply to this email and include your reference number.", { color: "#64748B" })}
+    ${paragraph(`Need to add more details or follow up urgently? <strong>Reply directly to this email</strong> — your ticket reference <strong>${opts.ticketRef}</strong> is already in the subject line so our team will pick it up immediately.`, { color: "#374151" })}
 
     ${securityBadge("Never share your password, OTP codes, or financial credentials with anyone, including Vaulte support staff.", "info")}
   `;
@@ -627,6 +628,9 @@ Subject: ${opts.subject}
 Status: Received — In Review
 
 We'll respond within 24–48 business hours.
+
+Need to follow up? Reply directly to this email — the reference number is
+already in the subject line so our team will see it instantly.
 
 Your message:
 ${opts.message}
