@@ -118,6 +118,8 @@ export default function TransferPage() {
   const [newBalance, setNewBalance]           = useState(0);
   const [saveAfter, setSaveAfter]             = useState(false);
   const [saved, setSavedDone]                 = useState(false);
+  // Dormant message — computed dynamically from the user's last transaction date
+  const [dormantMessage, setDormantMessage]   = useState("");
 
   // ── Init ──────────────────────────────────────────────────
   useEffect(() => {
@@ -370,6 +372,38 @@ export default function TransferPage() {
       const effectiveStatus = serverStatus || (freshUser?.accountStatus ?? accountStatus);
 
       if (effectiveStatus === "dormant") {
+        // ── Compute dynamic inactivity message ───────────────────
+        // Use state.transactions (before the new failed tx is prepended)
+        // and exclude any previously-failed transactions so they don't
+        // count as real account activity.
+        const activeTxns = state.transactions.filter(t => t.status !== "failed");
+        let computedDormantMsg: string;
+        if (activeTxns.length === 0) {
+          computedDormantMsg =
+            "Your account is currently in dormant status due to no transaction activity. " +
+            "To resume transfers, please contact support for account reactivation.";
+        } else {
+          const sorted   = [...activeTxns].sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+          const lastMs = new Date(sorted[0].date).getTime();
+          if (isNaN(lastMs)) {
+            computedDormantMsg =
+              "Your account is currently in dormant status due to no transaction activity. " +
+              "To resume transfers, please contact support for account reactivation.";
+          } else {
+            const daysInactive = Math.max(
+              0,
+              Math.floor((Date.now() - lastMs) / (1000 * 60 * 60 * 24))
+            );
+            computedDormantMsg =
+              `Your account is currently in dormant status due to inactivity for ${daysInactive} days. ` +
+              "To resume transfers, please contact support for account reactivation.";
+          }
+        }
+        setDormantMessage(computedDormantMsg);
+        // ─────────────────────────────────────────────────────────
+
         const failedTx: Transaction = {
           id:           genTxId(),
           txType:       "transfer_out",
@@ -1086,7 +1120,7 @@ export default function TransferPage() {
                 <div style={{ width: 76, height: 76, borderRadius: "50%", background: "linear-gradient(135deg,#FEE2E2,#FECACA)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", boxShadow: "0 8px 28px rgba(220,38,38,0.18)", fontSize: 32, color: "#DC2626" }}>✕</div>
                 <p style={{ fontSize: 22, fontWeight: 800, color: C.text, marginBottom: 10, letterSpacing: "-0.4px" }}>Transaction unsuccessful</p>
                 <p style={{ fontSize: 14, color: C.sub, lineHeight: 1.65, maxWidth: 360, margin: "0 auto 32px" }}>
-                  Your account is currently in dormant status. To resume transfers, please contact support for account reactivation.
+                  {dormantMessage}
                 </p>
                 <div style={{ display: "flex", gap: 12 }}>
                   <button onClick={resetForm} style={{ flex: 1, padding: "13px", borderRadius: 14, border: `1px solid ${C.border}`, background: "transparent", color: C.sub, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>New Transfer</button>
