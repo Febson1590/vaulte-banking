@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { getState, VaulteState, DEFAULT_STATE, Transaction, fmtDate } from "@/lib/vaulteState";
 
@@ -54,6 +54,14 @@ export default function TransactionsPage() {
   const net      = totalIn - totalOut;
 
   const resetFilters = () => { setSearch(""); setType("All"); setCat("All"); setStatus("All"); setAccount("All"); setSort("newest"); setPage(1); };
+
+  // Ref for the scrollable page-button row — used to auto-centre the active page
+  const pageButtonsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!pageButtonsRef.current) return;
+    const activeBtn = pageButtonsRef.current.querySelector<HTMLElement>('[data-active="true"]');
+    activeBtn?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, [page]);
 
   const SelectStyle: React.CSSProperties = {
     padding: "8px 12px", borderRadius: 10, border: `1.5px solid ${C.border}`,
@@ -206,23 +214,24 @@ export default function TransactionsPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div style={{ padding: "14px 20px", borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: "#FAFBFD" }}>
-            <p style={{ fontSize: 12.5, color: C.muted }}>
+          <div className="tx-pagination" style={{ padding: "14px 20px", borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: "#FAFBFD" }}>
+            <p className="tx-pagination-label" style={{ fontSize: 12.5, color: C.muted, flexShrink: 0 }}>
               Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
             </p>
-            <div style={{ display: "flex", gap: 6 }}>
+            {/* tx-page-btns is horizontally scrollable on mobile so all pages remain reachable */}
+            <div ref={pageButtonsRef} className="tx-page-btns" style={{ display: "flex", gap: 6 }}>
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                style={{ padding: "6px 14px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: "transparent", fontSize: 12.5, color: page === 1 ? C.muted : C.text, cursor: page === 1 ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+                style={{ padding: "6px 14px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: "transparent", fontSize: 12.5, color: page === 1 ? C.muted : C.text, cursor: page === 1 ? "not-allowed" : "pointer", fontFamily: "inherit", flexShrink: 0 }}>
                 ← Prev
               </button>
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                <button key={p} onClick={() => setPage(p)}
-                  style={{ padding: "6px 12px", borderRadius: 8, border: `1.5px solid ${p === page ? C.blue : C.border}`, background: p === page ? C.blue : "transparent", fontSize: 12.5, fontWeight: p === page ? 700 : 400, color: p === page ? "#fff" : C.text, cursor: "pointer", fontFamily: "inherit" }}>
+                <button key={p} onClick={() => setPage(p)} data-active={p === page ? "true" : "false"}
+                  style={{ padding: "6px 12px", borderRadius: 8, border: `1.5px solid ${p === page ? C.blue : C.border}`, background: p === page ? C.blue : "transparent", fontSize: 12.5, fontWeight: p === page ? 700 : 400, color: p === page ? "#fff" : C.text, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
                   {p}
                 </button>
               ))}
               <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                style={{ padding: "6px 14px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: "transparent", fontSize: 12.5, color: page === totalPages ? C.muted : C.text, cursor: page === totalPages ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+                style={{ padding: "6px 14px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: "transparent", fontSize: 12.5, color: page === totalPages ? C.muted : C.text, cursor: page === totalPages ? "not-allowed" : "pointer", fontFamily: "inherit", flexShrink: 0 }}>
                 Next →
               </button>
             </div>
@@ -249,6 +258,23 @@ export default function TransactionsPage() {
           .tx-table-row > *:nth-child(4) { display: none !important; }
           /* Show the inline date line that lives inside the name column */
           .tx-date-mobile { display: block !important; }
+
+          /* ── Pagination: stack label above scrollable button row ── */
+          .tx-pagination {
+            flex-direction: column !important;
+            align-items:    center   !important;
+            gap:            10px;
+            padding:        12px 12px !important;
+          }
+          /* Horizontally scrollable button strip — all pages reachable by swiping */
+          .tx-page-btns {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            max-width:  100%;
+            padding-bottom: 2px; /* prevents border-radius clipping on scroll */
+            scrollbar-width: none; /* Firefox */
+          }
+          .tx-page-btns::-webkit-scrollbar { display: none; }
         }
       `}</style>
     </DashboardLayout>

@@ -285,11 +285,21 @@ export default function TawkToChat() {
           }
         }
 
+        @media (max-width: 640px) {
+          /* Raise the widget on narrow phones so it clears the iOS Safari
+             bottom bar (~49 px) and sits above pagination / bottom buttons.
+             72 px provides comfortable clearance without hiding the widget. */
+          .vaulte-chat-btn {
+            bottom: 72px;
+            bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+          }
+        }
+
         @media (max-width: 480px) {
           .vaulte-chat-btn {
             right:  16px;
-            bottom: 16px;
-            bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+            bottom: 72px;
+            bottom: calc(72px + env(safe-area-inset-bottom, 0px));
             /* Slightly reduced size keeps it within the safe zone on narrow
                phones without blocking the hero buttons or login form inputs. */
             width:  48px;
