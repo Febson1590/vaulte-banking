@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     siteName: "Vaulte",
     images: [
       {
-        url: "https://www.vaulteapp.com/assets/og-image.png",
+        url: "https://www.vaulteapp.com/assets/og-image.jpg",
         width: 1200,
         height: 630,
         alt: "Vaulte — Global Digital Banking",
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Vaulte — Global Digital Banking",
     description: "Borderless banking for everyone. Send, save, and manage money worldwide with Vaulte.",
-    images: ["https://www.vaulteapp.com/assets/og-image.png"],
+    images: ["https://www.vaulteapp.com/assets/og-image.jpg"],
   },
   icons: {
     icon: [
