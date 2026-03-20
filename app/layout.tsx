@@ -12,34 +12,41 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.vaulteapp.com"),
   title: "Vaulte — Global Digital Banking",
   description: "Borderless banking for everyone. Send, save, and manage money worldwide with Vaulte.",
+  alternates: {
+    canonical: "https://www.vaulteapp.com",
+  },
   openGraph: {
     title: "Vaulte — Global Digital Banking",
     description: "Borderless banking for everyone. Send, save, and manage money worldwide with Vaulte.",
-    url: "https://vaulteapp.com",
+    url: "https://www.vaulteapp.com",
     siteName: "Vaulte",
     images: [
       {
-        url: "https://vaulteapp.com/assets/logo-vaulte.png",
-        width: 800,
-        height: 800,
+        url: "https://www.vaulteapp.com/assets/og-image.png",
+        width: 1200,
+        height: 630,
         alt: "Vaulte — Global Digital Banking",
       },
     ],
     type: "website",
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Vaulte — Global Digital Banking",
     description: "Borderless banking for everyone. Send, save, and manage money worldwide with Vaulte.",
-    images: ["https://vaulteapp.com/assets/logo-vaulte.png"],
+    images: ["https://www.vaulteapp.com/assets/og-image.png"],
   },
   icons: {
-    icon:     [{ url: "/icon.png",       type: "image/png", sizes: "32x32"   }],
-    apple:    [{ url: "/apple-icon.png", type: "image/png", sizes: "180x180" }],
+    icon: [
+      { url: "/favicon.ico",       sizes: "any" },
+      { url: "/favicon-32x32.png", type: "image/png", sizes: "32x32" },
+      { url: "/icon-192.png",      type: "image/png", sizes: "192x192" },
+    ],
+    apple:    [{ url: "/apple-touch-icon.png", type: "image/png", sizes: "180x180" }],
     shortcut: [{ url: "/favicon.ico" }],
-    other:    [{ rel: "icon",            url: "/icon-192.png", sizes: "192x192" }],
   },
 };
 
