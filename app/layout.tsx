@@ -14,6 +14,27 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Vaulte — Global Digital Banking",
   description: "Borderless banking for everyone. Send, save, and manage money worldwide with Vaulte.",
+  openGraph: {
+    title: "Vaulte — Global Digital Banking",
+    description: "Borderless banking for everyone. Send, save, and manage money worldwide with Vaulte.",
+    url: "https://vaulteapp.com",
+    siteName: "Vaulte",
+    images: [
+      {
+        url: "https://vaulteapp.com/assets/logo-vaulte.png",
+        width: 800,
+        height: 800,
+        alt: "Vaulte — Global Digital Banking",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Vaulte — Global Digital Banking",
+    description: "Borderless banking for everyone. Send, save, and manage money worldwide with Vaulte.",
+    images: ["https://vaulteapp.com/assets/logo-vaulte.png"],
+  },
   icons: {
     icon:     [{ url: "/icon.png",       type: "image/png", sizes: "32x32"   }],
     apple:    [{ url: "/apple-icon.png", type: "image/png", sizes: "180x180" }],
