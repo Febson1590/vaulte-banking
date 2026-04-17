@@ -357,6 +357,9 @@ export default function ContactPage() {
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         select:focus { border-color: ${C.blue} !important; box-shadow: 0 0 0 3px rgba(26,115,232,0.08) !important; background: #fff !important; outline: none; }
+        @media (max-width: 900px) {
+          .contact-main-grid { grid-template-columns: 1fr !important; }
+        }
       `}</style>
     </DashboardLayout>
   );

@@ -133,6 +133,14 @@ export default function AdminSettings() {
             style={{ width: "100%", padding: "10px 14px", border: "1.5px solid #E5E7EB", borderRadius: "10px", fontSize: "13px", minHeight: "80px", resize: "vertical", outline: "none", boxSizing: "border-box" }} />
         </div>
       </div>
+      <style>{`
+        @media (max-width: 900px) {
+          .admin-settings-grid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 480px) {
+          .admin-settings-currency-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </AdminLayout>
   );
 }

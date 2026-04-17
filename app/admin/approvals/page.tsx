@@ -252,6 +252,14 @@ export default function AdminApprovals() {
           </div>
         </div>
       )}
+      <style>{`
+        @media (max-width: 900px) {
+          .admin-approvals-cards-grid { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+        }
+        @media (max-width: 560px) {
+          .admin-approvals-cards-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </AdminLayout>
   );
 }

@@ -120,16 +120,22 @@ export default function AdminReports() {
       </div>
 
       {/* Export options */}
-      <div className="admin-export-section" style={{ background: "#0A1628", borderRadius: "14px", padding: "24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div>
+      <div className="admin-export-section" style={{ background: "#0A1628", borderRadius: "14px", padding: "24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: "16px", fontWeight: 700, color: "#fff", marginBottom: "4px" }}>Export Full Report</div>
           <div style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)" }}>Download all reports in PDF or CSV format</div>
         </div>
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
           <button style={{ padding: "10px 20px", background: "#1A73E8", color: "#fff", border: "none", borderRadius: "10px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>📄 PDF Report</button>
           <button style={{ padding: "10px 20px", background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "10px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>📊 CSV Export</button>
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 900px) {
+          .admin-reports-two-col { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </AdminLayout>
   );
 }

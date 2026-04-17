@@ -467,7 +467,12 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <style>{`@keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }`}</style>
+      <style>{`
+        @keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+        @media (max-width: 900px) {
+          .settings-main-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </DashboardLayout>
   );
 }

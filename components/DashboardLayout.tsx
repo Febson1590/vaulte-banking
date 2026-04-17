@@ -588,6 +588,18 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
         @keyframes slideIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
         @keyframes fadeIn  { from { opacity:0; transform: translateY(8px); }  to { opacity:1; transform: translateY(0); } }
 
+        /* ── Global responsive safety net for all dashboard child pages ──────
+           Every <table> inside the dashboard content area is automatically
+           made horizontally scrollable at narrow widths.  Pages can opt-in
+           explicitly by wrapping a grid/table with .scroll-x or .table-wrap. */
+        .vaulte-main-content { min-width: 0; }
+        .vaulte-main-content table { width: 100%; border-collapse: collapse; }
+        .vaulte-main-content .scroll-x,
+        .vaulte-main-content .table-wrap {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+
         @media (max-width: 900px) {
           .vaulte-search { display: none !important; }
           .vaulte-profile-name { display: none !important; }
@@ -604,11 +616,25 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
           .vaulte-hamburger { display: flex !important; }
           .vaulte-overlay { display: block !important; }
           .vaulte-topbar { padding: 0 16px !important; height: 60px !important; }
-          .vaulte-main-content { padding: 16px 16px 32px !important; }
+          .vaulte-main-content { padding: 16px 14px 32px !important; }
           /* Header hierarchy fix: subtitle and button move to action strip */
           .vaulte-subtitle-inline { display: none !important; }
           .vaulte-topright-desktop { display: none !important; }
           .vaulte-mobile-header-row2 { display: flex !important; }
+
+          /* Auto-wrap any <table> that wasn't explicitly wrapped.  The shadow
+             parent gets horizontal scroll if columns don't fit. */
+          .vaulte-main-content table {
+            display: block;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            white-space: nowrap;
+          }
+        }
+
+        /* ── Small phones (<= 420) — tighter still ───────────────────────── */
+        @media (max-width: 420px) {
+          .vaulte-main-content { padding: 14px 12px 28px !important; }
         }
       `}</style>
     </div>

@@ -1195,6 +1195,9 @@ export default function TransferPage() {
         input[type=number]::-webkit-inner-spin-button,
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
+        @media (max-width: 900px) {
+          .transfer-main-grid { grid-template-columns: 1fr !important; }
+        }
       `}</style>
     </DashboardLayout>
   );
