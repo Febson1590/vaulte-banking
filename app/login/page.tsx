@@ -130,7 +130,7 @@ function LoginPageInner() {
             <div style={{ position: "absolute", top: 0, left: "10%", right: "10%", height: 1, background: "linear-gradient(90deg, transparent, rgba(96,165,250,0.5), rgba(167,139,250,0.5), transparent)" }} />
             <div style={{ position: "absolute", top: -30, right: -30, width: 120, height: 120, background: "rgba(96,165,250,0.08)", borderRadius: "50%", filter: "blur(20px)" }} />
             <div style={{ position: "absolute", bottom: -20, left: -20, width: 100, height: 100, background: "rgba(167,139,250,0.06)", borderRadius: "50%", filter: "blur(20px)" }} />
-            <img src="/assets/logo-vaulte.png" alt="Vaulte" style={{ height: 200, objectFit: "contain", mixBlendMode: "screen", display: "block", margin: "0 auto", position: "relative" }} />
+            <img className="auth-logo" src="/assets/logo-vaulte.png" alt="Vaulte" style={{ height: 200, objectFit: "contain", mixBlendMode: "screen", display: "block", margin: "0 auto", position: "relative" }} />
           </div>
 
           <div style={{ padding: "32px 32px 28px" }}>
@@ -225,6 +225,16 @@ function LoginPageInner() {
           <span style={{ color: "#34D399" }}>🔒</span> 256-bit SSL encryption · Bank-grade security
         </p>
       </div>
+
+      <style>{`
+        @media (max-width: 480px) {
+          .auth-logo { height: 140px !important; }
+        }
+        @media (max-width: 360px) {
+          .auth-logo { height: 120px !important; }
+        }
+        input::placeholder { color: rgba(255,255,255,0.25) !important; }
+      `}</style>
     </div>
   );
 }

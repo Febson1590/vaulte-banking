@@ -21,11 +21,11 @@ export default function Navbar() {
       borderBottom: scrolled ? "1px solid rgba(255,255,255,0.06)" : "none",
       transition: "all 0.3s ease",
     }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 32px", height: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div className="nav-inner" style={{ maxWidth: 1200, margin: "0 auto", padding: "0 32px", height: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
 
         {/* Logo */}
-        <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
-          <img src="/assets/logo-vaulte.png" alt="Vaulte" style={{ height: 200, objectFit: "contain", mixBlendMode: "screen" }} />
+        <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", flexShrink: 0 }}>
+          <img className="nav-logo" src="/assets/logo-vaulte.png" alt="Vaulte" style={{ height: 200, objectFit: "contain", mixBlendMode: "screen" }} />
         </Link>
 
         {/* Desktop nav links */}
@@ -91,6 +91,12 @@ export default function Navbar() {
         @media (max-width: 768px) {
           .nav-links { display: none !important; }
           .nav-mobile-right { display: flex !important; }
+          .nav-inner { padding: 0 18px !important; }
+          .nav-logo { height: 110px !important; }
+        }
+        @media (max-width: 420px) {
+          .nav-inner { padding: 0 14px !important; }
+          .nav-logo { height: 95px !important; }
         }
         @media (min-width: 769px) {
           .nav-mobile-right { display: none !important; }

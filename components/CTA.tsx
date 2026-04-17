@@ -3,9 +3,9 @@ import Link from "next/link";
 
 export default function CTA() {
   return (
-    <section style={{ padding: "80px 5%", background: "#080D20" }}>
+    <section className="cta-section" style={{ padding: "80px 5%", background: "#080D20" }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        <div style={{
+        <div className="cta-card" style={{
           background: "linear-gradient(135deg, #0B1527 0%, #0F1E3D 50%, #0B1527 100%)",
           borderRadius: 28,
           padding: "72px 56px",
@@ -69,7 +69,7 @@ export default function CTA() {
             </div>
 
             {/* Trust note */}
-            <p style={{ marginTop: 32, fontSize: 13, color: "rgba(255,255,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <p className="cta-trust" style={{ marginTop: 32, fontSize: 13, color: "rgba(255,255,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
               <span style={{ color: "#34D399" }}>✓</span> No credit card required
               <span style={{ opacity: 0.4 }}>•</span>
               <span style={{ color: "#34D399" }}>✓</span> Free forever plan
@@ -79,6 +79,17 @@ export default function CTA() {
           </div>
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 640px) {
+          .cta-section { padding: 60px 4% !important; }
+          .cta-card { padding: 48px 24px !important; border-radius: 22px !important; }
+          .cta-card h2 { font-size: 30px !important; letter-spacing: -1px !important; }
+          .cta-card > div > div > p { font-size: 15px !important; margin-bottom: 30px !important; }
+          .cta-card a { flex: 1 1 auto; justify-content: center; }
+          .cta-trust { font-size: 12px !important; gap: 6px !important; margin-top: 24px !important; }
+        }
+      `}</style>
     </section>
   );
 }

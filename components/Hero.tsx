@@ -153,7 +153,7 @@ export default function Hero() {
 
       <div className="hero-grid" style={{ maxWidth: 1200, margin: "0 auto", width: "100%", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "center" }}>
         {/* LEFT */}
-        <div style={{ opacity: visible?1:0, transform: visible?"translateY(0)":"translateY(24px)", transition: "all 0.7s ease" }}>
+        <div className="hero-left" style={{ minWidth: 0, opacity: visible?1:0, transform: visible?"translateY(0)":"translateY(24px)", transition: "all 0.7s ease" }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 999, padding: "5px 14px", marginBottom: 16 }}>
             <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22C55E", display: "inline-block" }} />
             <span style={{ fontSize: 12, color: "#22C55E", fontWeight: 600, letterSpacing: "0.04em" }}>Now live in 190+ countries</span>
@@ -176,16 +176,16 @@ export default function Hero() {
           </div>
           <div className="hero-stats" style={{ display: "flex", gap: 0, flexWrap: "nowrap" }}>
             {stats.map((s, i) => (
-              <div key={i} style={{ paddingRight: 32, paddingLeft: i>0?32:0, borderLeft: i>0?"1px solid rgba(255,255,255,0.15)":"none" }}>
-                <div style={{ fontSize: 26, fontWeight: 900, color: "#fff", letterSpacing: "-0.5px" }}>{s.value}</div>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 3 }}>{s.label}</div>
+              <div key={i} className="hero-stat" style={{ paddingRight: 32, paddingLeft: i>0?32:0, borderLeft: i>0?"1px solid rgba(255,255,255,0.15)":"none", minWidth: 0 }}>
+                <div className="hero-stat-val" style={{ fontSize: 26, fontWeight: 900, color: "#fff", letterSpacing: "-0.5px" }}>{s.value}</div>
+                <div className="hero-stat-label" style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 3 }}>{s.label}</div>
               </div>
             ))}
           </div>
         </div>
 
         {/* RIGHT — mockups */}
-        <div className="hero-right" style={{ opacity: visible?1:0, transform: visible?"translateY(0)":"translateY(32px)", transition: "all 0.9s ease 0.15s", display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 16, position: "relative" }}>
+        <div className="hero-right" style={{ minWidth: 0, opacity: visible?1:0, transform: visible?"translateY(0)":"translateY(32px)", transition: "all 0.9s ease 0.15s", display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 16, position: "relative" }}>
           <div className="hero-mockups" style={{ display: "flex", alignItems: "flex-end", gap: 16 }}>
             <div style={{ marginBottom: 28, position: "relative", zIndex: 2 }}><PhoneMockup /></div>
             <div style={{ position: "relative", zIndex: 1 }}><LaptopMockup /></div>
@@ -237,6 +237,12 @@ export default function Hero() {
           }
         }
 
+        @media (max-width: 900px) {
+          /* Stats row: shrink paddings so they fit side-by-side in narrow viewports */
+          .hero-stat { padding-right: 18px !important; }
+          .hero-stat + .hero-stat { padding-left: 18px !important; }
+        }
+
         @media (max-width: 480px) {
           .hero-section {
             padding: 100px 5% 40px !important;
@@ -244,20 +250,36 @@ export default function Hero() {
           }
 
           .hero-heading {
+            font-size: 38px !important;
             margin-bottom: 8px !important;
+            letter-spacing: -1.5px !important;
           }
           .hero-desc {
             font-size: 14px !important;
             margin-bottom: 16px !important;
             line-height: 1.6 !important;
           }
-          .hero-cta { margin-bottom: 28px !important; }
+          .hero-cta { margin-bottom: 28px !important; gap: 10px !important; }
+          .hero-cta a { flex: 1 1 auto; justify-content: center; }
+
+          /* Stats: 3-up compact on phones */
+          .hero-stats { gap: 0 !important; justify-content: flex-start !important; }
+          .hero-stat { padding-right: 10px !important; }
+          .hero-stat + .hero-stat { padding-left: 10px !important; }
+          .hero-stat-val { font-size: 20px !important; }
+          .hero-stat-label { font-size: 11px !important; }
 
           .hero-mockups {
             transform: scale(0.46);
             margin-left: -280px;
           }
           .hero-right { height: 170px !important; }
+        }
+
+        @media (max-width: 360px) {
+          .hero-heading { font-size: 34px !important; }
+          .hero-stat-val { font-size: 18px !important; }
+          .hero-stat-label { font-size: 10px !important; }
         }
       `}</style>
     </section>

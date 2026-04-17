@@ -104,8 +104,15 @@ export default function HowItWorks() {
 
       <style>{`
         @media(max-width:768px) {
-          .steps-grid { grid-template-columns: 1fr !important; }
+          .steps-grid { grid-template-columns: 1fr !important; gap: 16px !important; }
           .step-arrow { display: none !important; }
+        }
+        @media(max-width:560px) {
+          #how-it-works { padding: 70px 5% !important; }
+          #how-it-works h2 { font-size: 30px !important; letter-spacing: -0.5px !important; }
+          #how-it-works > div > div:first-child { margin-bottom: 40px !important; }
+          #how-it-works > div > div:first-child > p { font-size: 15px !important; line-height: 1.7 !important; }
+          .steps-grid > div { padding: 32px 24px !important; }
         }
       `}</style>
     </section>

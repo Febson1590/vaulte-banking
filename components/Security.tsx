@@ -96,7 +96,16 @@ export default function Security() {
         </div>
       </div>
 
-      <style>{`@media(max-width:768px){ .security-grid { grid-template-columns: 1fr !important; } }`}</style>
+      <style>{`
+        @media(max-width:768px){ .security-grid { grid-template-columns: 1fr !important; } }
+        @media(max-width:560px){
+          #security { padding: 70px 5% !important; }
+          #security h2 { font-size: 30px !important; letter-spacing: -0.5px !important; }
+          #security > div > div:first-child { margin-bottom: 40px !important; }
+          #security > div > div:first-child > p { font-size: 15px !important; line-height: 1.7 !important; }
+          .security-grid > div { padding: 32px 24px !important; }
+        }
+      `}</style>
     </section>
   );
 }

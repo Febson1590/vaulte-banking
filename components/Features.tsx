@@ -86,7 +86,13 @@ export default function Features() {
 
       <style>{`
         @media(max-width:900px){ .features-grid { grid-template-columns: 1fr 1fr !important; } }
-        @media(max-width:560px){ .features-grid { grid-template-columns: 1fr !important; } }
+        @media(max-width:560px){
+          .features-grid { grid-template-columns: 1fr !important; }
+          #features { padding: 70px 5% !important; }
+          #features h2 { font-size: 30px !important; letter-spacing: -0.5px !important; }
+          #features > div > div:first-child { margin-bottom: 40px !important; }
+          #features > div > div:first-child > p { font-size: 15px !important; line-height: 1.7 !important; }
+        }
       `}</style>
     </section>
   );
