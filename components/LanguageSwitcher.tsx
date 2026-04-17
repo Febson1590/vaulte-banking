@@ -210,8 +210,9 @@ export default function LanguageSwitcher() {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
 
-  // Skip on authenticated areas — those have their own in-sidebar selector.
-  const skip = pathname?.startsWith("/dashboard") || pathname?.startsWith("/admin");
+  // Only skip on the admin login page — everywhere else (marketing, auth,
+  // user dashboard and admin dashboard) the floating switcher appears.
+  const skip = pathname === "/admin/login";
 
   // Filtered list — starred languages bubble to the top when no query.
   const visibleLanguages = useMemo(() => {
@@ -311,18 +312,8 @@ export default function LanguageSwitcher() {
             WebkitBackdropFilter: "blur(14px)",
           }}
         >
-          {/* Header: title + search */}
+          {/* Header: search only (no title bar) */}
           <div style={{ borderBottom: "1px solid rgba(96,165,250,0.1)", padding: "12px 16px" }}>
-            <p style={{
-              marginBottom: 8,
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: "0.16em",
-              textTransform: "uppercase",
-              color: "#60A5FA",
-            }}>
-              Choose Language · {LANGUAGES.length}
-            </p>
             <div style={{ position: "relative" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
                 <circle cx="11" cy="11" r="8" />
