@@ -141,14 +141,15 @@ export default function Hero() {
 
   return (
     <section className="hero-section" style={{
-      background: "linear-gradient(145deg,#0F172A 0%,#1a3a7a 45%,#1A73E8 100%)",
+      background: "linear-gradient(145deg,#06091A 0%,#0B1836 50%,#0D2060 100%)",
       minHeight: "100vh", display: "flex", flexDirection: "column",
       // justifyContent is intentionally NOT set here — it lives in CSS (.hero-section)
       // so that media queries can override it on mobile (inline styles block CSS overrides).
       padding: "40px 5% 20px", position: "relative", overflow: "hidden",
     }}>
-      <div style={{ position: "absolute", inset: 0, opacity: 0.03, backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,1) 1px,transparent 1px)", backgroundSize: "44px 44px" }} />
-      <div style={{ position: "absolute", top: "10%", right: "5%", width: 480, height: 480, borderRadius: "50%", background: "rgba(26,115,232,0.12)", filter: "blur(80px)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", inset: 0, opacity: 0.025, backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,1) 1px,transparent 1px)", backgroundSize: "48px 48px" }} />
+      <div style={{ position: "absolute", top: "10%", right: "5%", width: 560, height: 560, borderRadius: "50%", background: "rgba(37,99,235,0.14)", filter: "blur(100px)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: "10%", left: "0%", width: 400, height: 400, borderRadius: "50%", background: "rgba(167,139,250,0.08)", filter: "blur(90px)", pointerEvents: "none" }} />
 
       <div className="hero-grid" style={{ maxWidth: 1200, margin: "0 auto", width: "100%", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "center" }}>
         {/* LEFT */}
@@ -164,9 +165,9 @@ export default function Hero() {
             Borderless banking for everyone. Send, save, and manage money worldwide with bank-level security.
           </p>
           <div className="hero-cta" style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 40 }}>
-            <Link href="/register" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "13px 26px", background: "#1A73E8", color: "#fff", borderRadius: 10, fontWeight: 700, fontSize: 15, textDecoration: "none", boxShadow: "0 4px 18px rgba(26,115,232,0.55)", transition: "all 0.2s" }}
-              onMouseEnter={e => { e.currentTarget.style.background = "#1557b0"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "#1A73E8"; e.currentTarget.style.transform = "translateY(0)"; }}
+            <Link href="/register" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "13px 26px", background: "linear-gradient(135deg,#2563EB,#1D4ED8)", color: "#fff", borderRadius: 10, fontWeight: 700, fontSize: 15, textDecoration: "none", boxShadow: "0 4px 24px rgba(37,99,235,0.5)", transition: "all 0.2s", letterSpacing: "0.01em" }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 32px rgba(37,99,235,0.65)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 24px rgba(37,99,235,0.5)"; }}
             >Open Free Account <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></Link>
             <Link href="#how-it-works" style={{ display: "inline-flex", alignItems: "center", padding: "13px 24px", border: "2px solid rgba(255,255,255,0.28)", color: "#fff", borderRadius: 10, fontWeight: 600, fontSize: 15, textDecoration: "none", background: "rgba(255,255,255,0.06)", transition: "all 0.2s" }}
               onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.13)"; }}

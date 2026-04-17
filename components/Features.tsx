@@ -1,37 +1,93 @@
 "use client";
 
 const features = [
-  { icon: "🌍", title: "Global Transfers", description: "Send money to anyone, anywhere in the world instantly with no hidden fees.", color: "#1A73E8", bg: "#EFF6FF" },
-  { icon: "💱", title: "Multi-Currency Accounts", description: "Hold USD, EUR, GBP and more. Always get the real exchange rate.", color: "#8B5CF6", bg: "#F5F3FF" },
-  { icon: "🔒", title: "Secure Banking", description: "Advanced encryption & 24/7 protection keep your money and data safe.", color: "#0F172A", bg: "#F1F5F9" },
-  { icon: "⚡", title: "Instant Notifications", description: "Real-time alerts on your phone for every transaction and account activity.", color: "#22C55E", bg: "#F0FDF4" },
+  {
+    icon: "🌍",
+    title: "Global Transfers",
+    description: "Send money to anyone, anywhere in the world instantly with zero hidden fees and real exchange rates.",
+    color: "#60A5FA",
+    glow: "rgba(96,165,250,0.15)",
+    border: "rgba(96,165,250,0.2)",
+  },
+  {
+    icon: "💱",
+    title: "Multi-Currency Accounts",
+    description: "Hold USD, EUR, GBP and 50+ more currencies. Switch between them instantly at interbank rates.",
+    color: "#A78BFA",
+    glow: "rgba(167,139,250,0.15)",
+    border: "rgba(167,139,250,0.2)",
+  },
+  {
+    icon: "🔒",
+    title: "Bank-Level Security",
+    description: "AES-256 military-grade encryption, biometric auth, and 24/7 fraud monitoring protect every transaction.",
+    color: "#34D399",
+    glow: "rgba(52,211,153,0.15)",
+    border: "rgba(52,211,153,0.2)",
+  },
+  {
+    icon: "⚡",
+    title: "Instant Notifications",
+    description: "Real-time alerts for every transaction. Stay in control of your money the moment anything happens.",
+    color: "#FBBF24",
+    glow: "rgba(251,191,36,0.15)",
+    border: "rgba(251,191,36,0.2)",
+  },
 ];
 
 export default function Features() {
   return (
-    <section id="features" style={{ padding: "24px 5%", background: "#fff" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 14 }}>
-          <span style={{ display: "inline-block", background: "#EFF6FF", color: "#1A73E8", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", padding: "5px 14px", borderRadius: 999, textTransform: "uppercase" }}>Features</span>
+    <section id="features" style={{ padding: "100px 5%", background: "#06091A", position: "relative", overflow: "hidden" }}>
+      {/* Background glow */}
+      <div style={{ position: "absolute", top: "30%", left: "50%", transform: "translateX(-50%)", width: 600, height: 400, background: "rgba(37,99,235,0.06)", borderRadius: "50%", filter: "blur(100px)", pointerEvents: "none" }} />
+
+      <div style={{ maxWidth: 1200, margin: "0 auto", position: "relative" }}>
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: 64 }}>
+          <span style={{ display: "inline-block", background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.25)", color: "#60A5FA", fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", padding: "5px 16px", borderRadius: 999, textTransform: "uppercase", marginBottom: 20 }}>Platform Features</span>
+          <h2 style={{ fontSize: "clamp(28px,3.8vw,46px)", fontWeight: 900, color: "#fff", letterSpacing: "-1px", marginBottom: 16, lineHeight: 1.1 }}>
+            Everything you need to<br />
+            <span style={{ background: "linear-gradient(135deg,#60A5FA,#A78BFA)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>bank without limits</span>
+          </h2>
+          <p style={{ fontSize: 17, color: "rgba(255,255,255,0.5)", maxWidth: 500, margin: "0 auto", lineHeight: 1.8 }}>
+            Powerful financial tools built for the modern world. Send, save, and manage money from anywhere.
+          </p>
         </div>
-        <h2 style={{ fontSize: "clamp(26px,3.5vw,40px)", fontWeight: 900, textAlign: "center", color: "#0F172A", letterSpacing: "-0.8px", marginBottom: 12 }}>Our Features</h2>
-        <p style={{ fontSize: 16, color: "#6B7280", textAlign: "center", maxWidth: 500, margin: "0 auto 56px", lineHeight: 1.75 }}>
-          Powerful financial tools to send, save, and manage money from anywhere in the world.
-        </p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 20 }}>
+
+        {/* Cards */}
+        <div className="features-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 20 }}>
           {features.map((f, i) => (
-            <div key={i} style={{ padding: "28px 22px", borderRadius: 14, border: "1.5px solid #F1F5F9", background: "#fff", transition: "all 0.22s", cursor: "default" }}
-              onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "#1A73E8"; el.style.transform = "translateY(-4px)"; el.style.boxShadow = "0 10px 30px rgba(26,115,232,0.1)"; }}
-              onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "#F1F5F9"; el.style.transform = "translateY(0)"; el.style.boxShadow = "none"; }}
+            <div key={i}
+              style={{ padding: "32px 24px", borderRadius: 20, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", backdropFilter: "blur(10px)", transition: "all 0.3s ease", cursor: "default", position: "relative", overflow: "hidden" }}
+              onMouseEnter={e => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.background = f.glow;
+                el.style.borderColor = f.border;
+                el.style.transform = "translateY(-6px)";
+                el.style.boxShadow = `0 20px 50px ${f.glow}`;
+              }}
+              onMouseLeave={e => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.background = "rgba(255,255,255,0.03)";
+                el.style.borderColor = "rgba(255,255,255,0.07)";
+                el.style.transform = "translateY(0)";
+                el.style.boxShadow = "none";
+              }}
             >
-              <div style={{ width: 50, height: 50, borderRadius: 12, background: f.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, marginBottom: 16 }}>{f.icon}</div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", marginBottom: 8 }}>{f.title}</h3>
-              <p style={{ fontSize: 13.5, color: "#6B7280", lineHeight: 1.7 }}>{f.description}</p>
+              <div style={{ width: 54, height: 54, borderRadius: 14, background: `${f.glow}`, border: `1px solid ${f.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, marginBottom: 20 }}>{f.icon}</div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 10, letterSpacing: "-0.2px" }}>{f.title}</h3>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", lineHeight: 1.75 }}>{f.description}</p>
+              {/* Corner accent */}
+              <div style={{ position: "absolute", bottom: 0, right: 0, width: 80, height: 80, background: `radial-gradient(circle at bottom right, ${f.glow}, transparent)`, pointerEvents: "none" }} />
             </div>
           ))}
         </div>
       </div>
-      <style>{`@media(max-width:900px){section>div>div:last-child{grid-template-columns:1fr 1fr!important;}}@media(max-width:560px){section>div>div:last-child{grid-template-columns:1fr!important;}}`}</style>
+
+      <style>{`
+        @media(max-width:900px){ .features-grid { grid-template-columns: 1fr 1fr !important; } }
+        @media(max-width:560px){ .features-grid { grid-template-columns: 1fr !important; } }
+      `}</style>
     </section>
   );
 }
