@@ -7,10 +7,16 @@ const stats = [
   { value: "500K+", label: "Happy Customers" },
 ];
 
+/**
+ * PhoneMockup — the secondary visual accent.
+ * Sized smaller than the dashboard and designed to sit in the foreground
+ * of the composition, overlapping only the dashboard sidebar (never the
+ * main content).  Accepts a scale prop so breakpoints can nudge it.
+ */
 function PhoneMockup() {
   return (
-    <div className="vaulte-phone" style={{ width: 188, height: 380, background: "#0F172A", borderRadius: 34, border: "8px solid #0F172A", boxShadow: "0 30px 60px rgba(0,0,0,0.55)", position: "relative", overflow: "hidden", flexShrink: 0 }}>
-      <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 56, height: 10, background: "#0F172A", borderRadius: "0 0 10px 10px", zIndex: 10 }} />
+    <div className="vaulte-phone" style={{ width: "100%", aspectRatio: "188 / 380", background: "#0F172A", borderRadius: "9%", border: "6px solid #0F172A", boxShadow: "0 30px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(96,165,250,0.25)", position: "relative", overflow: "hidden" }}>
+      <div aria-hidden="true" style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: "28%", height: 9, background: "#0F172A", borderRadius: "0 0 10px 10px", zIndex: 10 }} />
       <div style={{ background: "linear-gradient(160deg,#1A73E8 0%,#0F3D91 100%)", height: "100%", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "18px 13px 9px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
@@ -56,13 +62,19 @@ function PhoneMockup() {
   );
 }
 
-function LaptopMockup() {
+/**
+ * DashboardMockup — the PRIMARY hero visual.
+ * Uses fluid width (100% of its container) + 16:10 aspect ratio so it
+ * scales crisply at every breakpoint without ever clipping.  Rendered at
+ * full fidelity so the customer can read the product before scrolling.
+ */
+function DashboardMockup() {
   return (
-    <div className="vaulte-laptop" style={{ position: "relative", flexShrink: 0, width: 420 }}>
-      <div style={{ background: "#1e293b", borderRadius: "12px 12px 0 0", padding: "6px 6px 0", boxShadow: "0 -8px 32px rgba(0,0,0,0.4)" }}>
+    <div className="vaulte-laptop" style={{ position: "relative", width: "100%" }}>
+      <div style={{ background: "#1e293b", borderRadius: "12px 12px 0 0", padding: "6px 6px 0", boxShadow: "0 -8px 32px rgba(0,0,0,0.4), 0 30px 60px rgba(0,0,0,0.5)" }}>
         <div style={{ width: "100%", aspectRatio: "16 / 10", background: "#EEF4FF", borderRadius: "7px 7px 0 0", overflow: "hidden", position: "relative" }}>
           {/* Top bar */}
-          <div style={{ background: "#fff", height: 30, display: "flex", alignItems: "center", padding: "0 12px", gap: 8, borderBottom: "1px solid #E5E7EB" }}>
+          <div style={{ background: "#fff", height: "10%", display: "flex", alignItems: "center", padding: "0 12px", gap: 8, borderBottom: "1px solid #E5E7EB" }}>
             <div style={{ flex: 1, background: "#F3F4F6", borderRadius: 10, height: 16, display: "flex", alignItems: "center", paddingLeft: 9 }}>
               <span style={{ fontSize: 8, color: "#9CA3AF" }}>🔍 Search Markets...</span>
             </div>
@@ -78,15 +90,15 @@ function LaptopMockup() {
             </div>
           </div>
           {/* Tab bar */}
-          <div style={{ background: "#fff", height: 24, display: "flex", alignItems: "flex-end", padding: "0 12px", gap: 3, borderBottom: "1px solid #E5E7EB" }}>
+          <div style={{ background: "#fff", height: "8%", display: "flex", alignItems: "flex-end", padding: "0 12px", gap: 3, borderBottom: "1px solid #E5E7EB" }}>
             {["Dashboard","Accounts","Transfers","Cards","Help"].map(t => (
               <span key={t} style={{ fontSize: 8, padding: "0 7px 4px", fontWeight: t==="Dashboard"?700:400, color: t==="Dashboard"?"#1A73E8":"#6B7280", borderBottom: t==="Dashboard"?"2px solid #1A73E8":"2px solid transparent" }}>{t}</span>
             ))}
           </div>
           {/* Content */}
-          <div style={{ display: "flex", height: "calc(100% - 54px)" }}>
+          <div style={{ display: "flex", height: "82%" }}>
             {/* Sidebar */}
-            <div style={{ width: 96, background: "#1A73E8", padding: "9px 7px", display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
+            <div style={{ width: "22%", background: "#1A73E8", padding: "9px 7px", display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
               {["Dashboard","Accounts","Transfers","Cards","Settings"].map((item, i) => (
                 <div key={item} style={{ padding: "5px 7px", borderRadius: 4, background: i===0?"rgba(255,255,255,0.2)":"transparent", fontSize: 8, color: "#fff", fontWeight: i===0?700:400 }}>{item}</div>
               ))}
@@ -103,24 +115,24 @@ function LaptopMockup() {
               </div>
             </div>
             {/* Main */}
-            <div style={{ flex: 1, padding: "9px", overflowY: "hidden" }}>
-              <p style={{ fontSize: 10, fontWeight: 700, color: "#0F172A", marginBottom: 6 }}>Welcome back, John Doe 👋</p>
-              <div style={{ background: "#fff", borderRadius: 6, padding: "8px", marginBottom: 6, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+            <div style={{ flex: 1, padding: "10px 12px", overflowY: "hidden" }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "#0F172A", marginBottom: 7 }}>Welcome back, John Doe 👋</p>
+              <div style={{ background: "#fff", borderRadius: 6, padding: "9px", marginBottom: 7, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
                 <p style={{ fontSize: 7, color: "#9CA3AF", marginBottom: 1 }}>Total Balance</p>
-                <p style={{ fontSize: 14, fontWeight: 900, color: "#0F172A", marginBottom: 1 }}>$12,540.75</p>
-                <p style={{ fontSize: 7, color: "#22C55E", fontWeight: 600, marginBottom: 6 }}>▲ +$26.00 Today</p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+                <p style={{ fontSize: 15, fontWeight: 900, color: "#0F172A", marginBottom: 1 }}>$12,540.75</p>
+                <p style={{ fontSize: 7.5, color: "#22C55E", fontWeight: 600, marginBottom: 7 }}>▲ +$26.00 Today</p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 5 }}>
                   {["Send Money","Request Money","Exchange","Add Funds"].map(a => (
-                    <div key={a} style={{ padding: "3px 5px", border: "1px solid #E5E7EB", borderRadius: 4, fontSize: 7, color: "#1A73E8", fontWeight: 600, textAlign: "center" }}>{a}</div>
+                    <div key={a} style={{ padding: "4px 6px", border: "1px solid #E5E7EB", borderRadius: 4, fontSize: 7.5, color: "#1A73E8", fontWeight: 600, textAlign: "center" }}>{a}</div>
                   ))}
                 </div>
               </div>
-              <div style={{ background: "#fff", borderRadius: 6, padding: "8px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-                <p style={{ fontSize: 8, fontWeight: 700, color: "#0F172A", marginBottom: 5 }}>Recent Transactions</p>
+              <div style={{ background: "#fff", borderRadius: 6, padding: "9px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+                <p style={{ fontSize: 8.5, fontWeight: 700, color: "#0F172A", marginBottom: 6 }}>Recent Transactions</p>
                 {[["Bitcoin Purchase","-$500.00","#EF4444"],["ATM Withdrawal","-$200.00","#EF4444"],["Transfer Received","+$1,000.00","#22C55E"]].map(([name,amt,color],i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", borderBottom: i<2?"1px solid #F3F4F6":"none" }}>
-                    <span style={{ fontSize: 7.5, color: "#374151" }}>{name}</span>
-                    <span style={{ fontSize: 7.5, fontWeight: 700, color }}>{amt}</span>
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "3.5px 0", borderBottom: i<2?"1px solid #F3F4F6":"none" }}>
+                    <span style={{ fontSize: 8, color: "#374151" }}>{name}</span>
+                    <span style={{ fontSize: 8, fontWeight: 700, color }}>{amt}</span>
                   </div>
                 ))}
               </div>
@@ -128,8 +140,9 @@ function LaptopMockup() {
           </div>
         </div>
       </div>
-      <div style={{ background: "#94a3b8", height: 14, borderRadius: "0 0 3px 3px", width: "100%" }} />
-      <div style={{ background: "#64748b", height: 6, borderRadius: "0 0 6px 6px", width: "120%", marginLeft: "-10%" }} />
+      {/* Laptop base / hinge */}
+      <div aria-hidden="true" style={{ background: "#94a3b8", height: 14, borderRadius: "0 0 3px 3px", width: "100%" }} />
+      <div aria-hidden="true" style={{ background: "#64748b", height: 6, borderRadius: "0 0 6px 6px", width: "108%", marginLeft: "-4%" }} />
     </div>
   );
 }
@@ -156,7 +169,7 @@ export default function Hero() {
           gap:                 56,
           alignItems:          "center",
         }}>
-          {/* LEFT */}
+          {/* LEFT — text block */}
           <div className="hero-left" style={{ minWidth: 0 }}>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 999, padding: "6px 14px", marginBottom: 20 }}>
               <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22C55E", display: "inline-block" }} />
@@ -193,58 +206,106 @@ export default function Hero() {
             </ul>
           </div>
 
-          {/* RIGHT — mockups */}
-          <div className="hero-right" style={{ minWidth: 0, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 18, position: "relative" }}>
-            <div className="hero-mockups" style={{ display: "flex", alignItems: "flex-end", gap: 18 }}>
-              <div style={{ marginBottom: 28, position: "relative", zIndex: 2 }}><PhoneMockup /></div>
-              <div style={{ position: "relative", zIndex: 1 }}><LaptopMockup /></div>
+          {/* RIGHT — visual composition. Dashboard = primary, phone = accent. */}
+          <div className="hero-visual" style={{ minWidth: 0, position: "relative", width: "100%" }}>
+            {/* Stage sets the overall footprint; dashboard sits inside, phone
+                absolutely overlays it on the bottom-left — covering only the
+                sidebar, never the main dashboard content. */}
+            <div className="hero-stage" style={{ position: "relative", width: "100%", maxWidth: 560, marginLeft: "auto", marginRight: 0, paddingBottom: 52 /* space for phone that drops below */ }}>
+              <div className="hero-dashboard" style={{ position: "relative", width: "100%", zIndex: 1 }}>
+                <DashboardMockup />
+              </div>
+              <div className="hero-phone" aria-hidden="false" style={{
+                position:      "absolute",
+                left:          "-6%",
+                bottom:        0,
+                width:         "28%",
+                maxWidth:      170,
+                zIndex:        2,
+                filter:        "drop-shadow(0 18px 32px rgba(0,0,0,0.45))",
+              }}>
+                <PhoneMockup />
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       <style>{`
-        /* ── Tablet (≤ 1024) — shrink mockups ────────────────────────────── */
+        /* ───────── Desktop (≥ 1025px) — default layout above ─────────
+           hero-grid: 2 columns. hero-stage max-width 560. Phone absolute
+           overlaying the bottom-left sidebar only. */
+
+        /* ───────── Tablet (≤ 1024px) — reduce overlap, still layered ───── */
         @media (max-width: 1024px) {
-          .hero-section .hero-mockups { transform: scale(0.82); transform-origin: center right; }
+          .hero-section .hero-stage { max-width: 480px; padding-bottom: 40px; }
+          .hero-section .hero-phone { width: 26%; max-width: 150px; left: -4%; }
         }
 
-        /* ── ≤ 900 — stack columns, visuals below text ───────────────────── */
+        /* ───────── ≤ 900px — stack text above visual, keep composition ── */
         @media (max-width: 900px) {
-          .hero-section { padding-bottom: 64px !important; }
-          .hero-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
-          .hero-right { justify-content: center !important; }
-          .hero-mockups { transform: scale(0.8) !important; transform-origin: center !important; }
+          .hero-section { padding-bottom: 72px !important; }
+          .hero-grid { grid-template-columns: 1fr !important; gap: 48px !important; }
+          .hero-visual { max-width: 560px; margin: 0 auto; }
+          .hero-stage { margin: 0 auto !important; max-width: 520px !important; padding-bottom: 44px !important; }
+          .hero-phone { width: 24% !important; max-width: 140px !important; left: -3% !important; }
         }
 
-        /* ── ≤ 640 — tighter type + stacked mockups ──────────────────────── */
-        @media (max-width: 640px) {
-          .hero-section { padding-top: calc(88px + env(safe-area-inset-top, 0px)) !important; padding-bottom: 56px !important; }
+        /* ───────── ≤ 768px tablet-portrait — tighter layered composition ─ */
+        @media (max-width: 768px) {
+          .hero-section { padding-top: calc(88px + env(safe-area-inset-top, 0px)) !important; padding-bottom: 64px !important; }
           .hero-container { padding: 0 20px !important; }
+          .hero-stage { max-width: 500px !important; padding-bottom: 38px !important; }
+          .hero-phone { width: 22% !important; max-width: 130px !important; left: -2% !important; }
+        }
+
+        /* ───────── ≤ 640px phone — no overlap. Stack vertically: phone → dashboard ─ */
+        @media (max-width: 640px) {
           .hero-desc { font-size: 15px !important; line-height: 1.6 !important; margin-bottom: 24px !important; }
           .hero-cta { flex-direction: column !important; gap: 10px !important; align-items: stretch !important; margin-bottom: 32px !important; }
           .hero-cta a { width: 100% !important; }
-          .hero-mockups {
-            transform: scale(0.68) !important;
-            transform-origin: top center !important;
-            margin-top: 8px;
-            margin-bottom: -120px; /* reclaim space the scale leaves */
-          }
           .hero-stat { padding-left: 10px !important; }
-        }
 
-        /* ── ≤ 400 — stack mockups vertically ─────────────────────────────── */
-        @media (max-width: 400px) {
-          .hero-mockups {
+          /* Rebuild visual as a simple column — phone first, dashboard second */
+          .hero-stage {
+            max-width: 100% !important;
+            padding-bottom: 0 !important;
+            display: flex !important;
             flex-direction: column !important;
             align-items: center !important;
-            gap: 22px !important;
-            transform: none !important;
-            margin-bottom: 0 !important;
+            gap: 28px !important;
           }
-          .hero-mockups > div { margin-bottom: 0 !important; }
-          .vaulte-laptop { width: 320px !important; }
-          .vaulte-phone { width: 160px !important; height: 325px !important; }
+          .hero-dashboard,
+          .hero-phone {
+            position: static !important;  /* kill absolute positioning */
+            left: auto !important;
+            bottom: auto !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            filter: none !important;
+            z-index: auto !important;
+          }
+          .hero-phone {
+            order: 1;                      /* phone first */
+            max-width: 190px !important;
+            margin: 0 auto;
+          }
+          .hero-dashboard {
+            order: 2;                      /* dashboard second */
+            max-width: 440px !important;   /* full mockup, fits any phone viewport */
+          }
+        }
+
+        /* ───────── ≤ 430px — tighter gap and sizes on small phones ────── */
+        @media (max-width: 430px) {
+          .hero-stage { gap: 22px !important; }
+          .hero-phone { max-width: 180px !important; }
+          .hero-dashboard { max-width: 100% !important; }
+        }
+
+        /* ───────── ≤ 360px — extra-tight, remove horizontal room pressure ─ */
+        @media (max-width: 360px) {
+          .hero-phone { max-width: 160px !important; }
         }
       `}</style>
     </section>
