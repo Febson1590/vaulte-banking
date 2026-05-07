@@ -110,6 +110,16 @@ async function sendViaResend(opts: {
   }
 }
 
+/**
+ * Returns true when Zoho SMTP env vars are configured.  Lets us route
+ * support mail through Zoho only when the operator has wired credentials
+ * in Vercel; otherwise we transparently fall back to Resend so the form
+ * never breaks just because Zoho creds aren't set yet.
+ */
+function zohoConfigured(): boolean {
+  return Boolean(process.env.ZOHO_SMTP_USER && process.env.ZOHO_SMTP_PASS);
+}
+
 // ─── Zoho SMTP send wrapper (support mail) ───────────────────
 async function sendViaZoho(opts: {
   from:     string;
@@ -257,9 +267,15 @@ export async function sendWelcomeEmail(opts: {
 //
 // from:    Vaulte Support <support@vaulteapp.com>   — the From matches the inbox
 //                                                     so Zoho threads with replies
-// to:      support@vaulteapp.com                    — the team inbox
+// to:      support@vaulteapp.com                    — the team inbox (mail
+//                                                     lands in Zoho regardless
+//                                                     of which sender we use,
+//                                                     because Zoho owns the MX)
 // replyTo: customer email                           — clicking Reply in Zoho goes
 //                                                     directly to the customer
+//
+// Routing: Zoho SMTP if creds are configured, otherwise Resend.
+// Either way the email arrives in the Zoho support@ inbox (Zoho owns the MX).
 export async function sendInternalSupportAlert(opts: {
   ticketRef: string;
   firstName: string;
@@ -272,7 +288,8 @@ export async function sendInternalSupportAlert(opts: {
 }): Promise<{ success: boolean; error?: string }> {
   const { html, text } = internalSupportAlertEmail(opts);
   const customerName   = [opts.firstName, opts.lastName].filter(Boolean).join(" ") || opts.email;
-  return sendViaZoho({
+  const send           = zohoConfigured() ? sendViaZoho : sendViaResend;
+  return send({
     from:    SUPPORT,
     to:      "support@vaulteapp.com",
     replyTo: opts.email,
@@ -282,10 +299,12 @@ export async function sendInternalSupportAlert(opts: {
   });
 }
 
-// ─── 7. Support Acknowledgement (Zoho → customer) ────────────
+// ─── 7. Support Acknowledgement (auto-reply → customer) ───────
 //
 // from:    Vaulte Support <support@vaulteapp.com>   — looks trustworthy to the customer
 // replyTo: support@vaulteapp.com                    — customer's reply lands in Zoho
+//
+// Routing: Zoho SMTP if creds are configured, otherwise Resend.
 export async function sendSupportAck(opts: {
   to:        string;
   firstName: string;
@@ -294,7 +313,8 @@ export async function sendSupportAck(opts: {
   message:   string;
 }): Promise<{ success: boolean; error?: string }> {
   const { html, text } = supportAckEmail(opts);
-  return sendViaZoho({
+  const send           = zohoConfigured() ? sendViaZoho : sendViaResend;
+  return send({
     from:    SUPPORT,
     to:      opts.to,
     replyTo: "support@vaulteapp.com",
@@ -304,11 +324,11 @@ export async function sendSupportAck(opts: {
   });
 }
 
-// ─── 8. Branded Support Reply (human agent → customer, via Zoho) ──
+// ─── 8. Branded Support Reply (human agent → customer) ────────
 //
 // Used when an admin replies to a customer through the Vaulte admin
-// console.  Sent through Zoho so the message appears in our Sent
-// folder and Gmail/Outlook authenticate it via DKIM/SPF.
+// console.  Sent through Zoho if creds are configured (puts the message
+// in the Zoho Sent folder), otherwise via Resend.
 export async function sendSupportReply(opts: {
   to:           string;
   customerName: string;
@@ -320,7 +340,8 @@ export async function sendSupportReply(opts: {
     subject:      opts.subject,
     messageText:  opts.messageText,
   });
-  return sendViaZoho({
+  const send = zohoConfigured() ? sendViaZoho : sendViaResend;
+  return send({
     from:    SUPPORT,
     to:      opts.to,
     replyTo: "support@vaulteapp.com",
