@@ -47,14 +47,17 @@ function getResend(): Resend {
 // ─── Lazy Zoho SMTP transporter (support mail) ───────────────
 //
 // Built on first use only.  Reads four env vars:
-//   ZOHO_SMTP_HOST   — smtp.zoho.com / smtp.zoho.eu / smtp.zoho.in
+//   ZOHO_SMTP_HOST   — smtppro.zoho.com (paid plans: Lite/Standard/Premium)
+//                     or smtp.zoho.com  (free Zoho Mail tier)
+//                     EU/IN regions:  smtppro.zoho.eu / smtppro.zoho.in
 //   ZOHO_SMTP_PORT   — 465 (SSL) recommended; 587 (STARTTLS) also works
 //   ZOHO_SMTP_USER   — full mailbox address, e.g. support@vaulteapp.com
 //   ZOHO_SMTP_PASS   — Zoho APP-SPECIFIC password, NOT the login password
 let _zoho: Transporter | null = null;
 function getZoho(): Transporter {
   if (!_zoho) {
-    const host = process.env.ZOHO_SMTP_HOST || "smtp.zoho.com";
+    // Default to the paid-plan host since Vaulte runs on Zoho Mail Lite.
+    const host = process.env.ZOHO_SMTP_HOST || "smtppro.zoho.com";
     const port = Number(process.env.ZOHO_SMTP_PORT || 465);
     const user = process.env.ZOHO_SMTP_USER;
     const pass = process.env.ZOHO_SMTP_PASS;
