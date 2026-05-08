@@ -190,11 +190,11 @@ export default function Hero() {
                 Open Free Account
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </Link>
-              <Link href="#how-it-works" className="hero-btn-secondary"
+              <Link href="/login" className="hero-btn-secondary"
                 style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "14px 24px", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 12, fontWeight: 600, fontSize: 15, textDecoration: "none", background: "rgba(255,255,255,0.05)", transition: "all 0.2s" }}
                 onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
-              >Watch How It Works</Link>
+              >Sign In</Link>
             </div>
             <ul className="hero-stats" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 12, padding: 0, margin: 0, listStyle: "none" }}>
               {stats.map((s, i) => (
