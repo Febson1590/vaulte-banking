@@ -288,20 +288,12 @@ export default function LanguageSwitcher({ variant = "dark" }: LanguageSwitcherP
 
   const currentLang = LANGUAGES.find((l) => l.code === current) || LANGUAGES[0];
 
-  // ── Trigger button styling per variant ────────────────────────────────────
-  const triggerStyle: React.CSSProperties = isDark
-    ? {
-        // Dark navbar (landing, marketing pages)
-        background:    "transparent",
-        border:        "1px solid rgba(255,255,255,0.18)",
-        color:         "rgba(255,255,255,0.9)",
-      }
-    : {
-        // Light navbar (dashboard, admin)
-        background:    "transparent",
-        border:        "1px solid rgba(15,23,42,0.08)",
-        color:         "#0F172A",
-      };
+  // ── Trigger button colour per variant ────────────────────────────────────
+  // Minimal style: no border, no box, no text — just the globe icon.  The
+  // button remains a 38 × 38 tap target so it's comfortable on mobile, and
+  // a subtle hover background lets the user know it's clickable.
+  const iconColor = isDark ? "rgba(255,255,255,0.85)" : "#0F172A";
+  const hoverBg   = isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.05)";
 
   return (
     <div
@@ -310,7 +302,7 @@ export default function LanguageSwitcher({ variant = "dark" }: LanguageSwitcherP
       translate="no"
       style={{ position: "relative", display: "inline-flex" }}
     >
-      {/* ─── Trigger button ─────────────────────────────────────── */}
+      {/* ─── Trigger button — globe icon only ───────────────────── */}
       <button
         type="button"
         aria-haspopup="listbox"
@@ -321,61 +313,40 @@ export default function LanguageSwitcher({ variant = "dark" }: LanguageSwitcherP
         style={{
           display:        "inline-flex",
           alignItems:     "center",
-          gap:            6,
+          justifyContent: "center",
+          width:          38,
           height:         38,
-          padding:        "0 10px",
-          borderRadius:   10,
+          padding:        0,
+          border:         "none",
+          borderRadius:   "50%",
+          background:     "transparent",
+          color:          iconColor,
           fontFamily:     "inherit",
-          fontSize:       13,
-          fontWeight:     600,
           cursor:         "pointer",
-          transition:     "background 0.15s, border-color 0.15s",
-          ...triggerStyle,
+          transition:     "background 0.15s",
         }}
         onMouseEnter={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.background = isDark
-            ? "rgba(255,255,255,0.06)"
-            : "rgba(15,23,42,0.04)";
+          (e.currentTarget as HTMLButtonElement).style.background = hoverBg;
         }}
         onMouseLeave={(e) => {
           (e.currentTarget as HTMLButtonElement).style.background = "transparent";
         }}
       >
-        {/* Globe icon */}
+        {/* Globe icon — single visual, no text, no chevron. */}
         <svg
-          width="16"
-          height="16"
+          width="20"
+          height="20"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
+          strokeWidth="1.75"
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden="true"
-          style={{ opacity: 0.85 }}
         >
           <circle cx="12" cy="12" r="10" />
           <line x1="2" y1="12" x2="22" y2="12" />
           <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-        </svg>
-
-        {/* Current language code (EN, FR, DE…) — clearer than just a flag,
-           which doesn't render on every device. */}
-        <span style={{ letterSpacing: "0.04em" }}>{currentLang.code.slice(0, 2).toUpperCase()}</span>
-
-        <svg
-          width="11"
-          height="11"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-          style={{ transition: "transform 0.18s", transform: open ? "rotate(180deg)" : "none", opacity: 0.7 }}
-        >
-          <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
 
