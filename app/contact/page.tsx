@@ -1,35 +1,19 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
 import AutoLinkEmails from "@/components/AutoLinkEmails";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
+const SUPPORT_EMAIL = "support@vaulteapp.com";
+
 export default function ContactPage() {
-  const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
-  const [sent, setSent] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const update = (f: string, v: string) => { setForm(p => ({ ...p, [f]: v })); setErrors(p => ({ ...p, [f]: "" })); };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const errs: Record<string, string> = {};
-    if (!form.name) errs.name = "Name is required";
-    if (!form.email || !/\S+@\S+\.\S+/.test(form.email)) errs.email = "Valid email required";
-    if (!form.subject) errs.subject = "Subject is required";
-    if (!form.message || form.message.length < 10) errs.message = "Message must be at least 10 characters";
-    if (Object.keys(errs).length) { setErrors(errs); return; }
-    setLoading(true);
-    setTimeout(() => { setLoading(false); setSent(true); }, 1500);
-  };
-
-  const inputStyle = (field: string): React.CSSProperties => ({
-    width: "100%", padding: "12px 14px", borderRadius: 10,
-    border: `1.5px solid ${errors[field] ? "#EF4444" : "#E2E8F0"}`,
-    fontSize: 14, color: "#111827", background: "#F8FAFC",
-    outline: "none", boxSizing: "border-box", fontFamily: "inherit", transition: "border-color 0.2s",
-  });
+  // Pre-filled mailto with a friendly default subject and body
+  const mailtoHref = (() => {
+    const subject = encodeURIComponent("Support Request — Vaulte");
+    const body    = encodeURIComponent(
+      "Hi Vaulte Support team,\n\nPlease describe your issue below:\n\n\n— Sent from vaulteapp.com/contact"
+    );
+    return `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
+  })();
 
   return (
     <div style={{ minHeight: "100vh", background: "#F8FAFC", fontFamily: "'Inter',sans-serif" }}>
@@ -57,76 +41,73 @@ export default function ContactPage() {
 
       <div className="contact-main-grid" style={{ maxWidth: 1000, margin: "40px auto 60px", padding: "0 5%", display: "grid", gridTemplateColumns: "1fr 380px", gap: 28, alignItems: "start" }}>
 
-        {/* Form */}
-        <div style={{ background: "#fff", borderRadius: 16, padding: "36px", boxShadow: "0 4px 20px rgba(0,0,0,0.06)", border: "1px solid #E5E7EB" }}>
-          {sent ? (
-            <div style={{ textAlign: "center", padding: "40px 0" }}>
-              <div style={{ fontSize: 52, marginBottom: 16 }}>✅</div>
-              <h2 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", marginBottom: 8 }}>Message Sent!</h2>
-              <p style={{ fontSize: 15, color: "#6B7280", marginBottom: 28, lineHeight: 1.7 }}>Thanks for reaching out. Our team will get back to you within 24 hours.</p>
-              <button onClick={() => { setSent(false); setForm({ name: "", email: "", subject: "", message: "" }); }}
-                style={{ padding: "12px 24px", background: "#1A73E8", color: "#fff", borderRadius: 10, border: "none", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                Send Another Message
-              </button>
-            </div>
-          ) : (
-            <>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: "#0F172A", marginBottom: 24, letterSpacing: "-0.3px" }}>Send us a message</h2>
-              <form onSubmit={handleSubmit}>
-                <div className="contact-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-                  <div>
-                    <label style={{ fontSize: 13.5, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Full Name</label>
-                    <input value={form.name} onChange={e => update("name", e.target.value)} placeholder="John Doe" style={inputStyle("name")}
-                      onFocus={e => { e.target.style.borderColor = "#1A73E8"; }} onBlur={e => { e.target.style.borderColor = errors.name ? "#EF4444" : "#E2E8F0"; }} />
-                    {errors.name && <p style={{ fontSize: 11.5, color: "#EF4444", marginTop: 4 }}>{errors.name}</p>}
-                  </div>
-                  <div>
-                    <label style={{ fontSize: 13.5, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Email</label>
-                    <input type="email" value={form.email} onChange={e => update("email", e.target.value)} placeholder="you@example.com" style={inputStyle("email")}
-                      onFocus={e => { e.target.style.borderColor = "#1A73E8"; }} onBlur={e => { e.target.style.borderColor = errors.email ? "#EF4444" : "#E2E8F0"; }} />
-                    {errors.email && <p style={{ fontSize: 11.5, color: "#EF4444", marginTop: 4 }}>{errors.email}</p>}
-                  </div>
-                </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ fontSize: 13.5, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Subject</label>
-                  <select value={form.subject} onChange={e => update("subject", e.target.value)} style={{ ...inputStyle("subject"), appearance: "none" }}>
-                    <option value="">Select a topic...</option>
-                    <option>Account & Registration</option>
-                    <option>Transfers & Payments</option>
-                    <option>Cards & Virtual Cards</option>
-                    <option>Security & Fraud</option>
-                    <option>Technical Issue</option>
-                    <option>Other</option>
-                  </select>
-                  {errors.subject && <p style={{ fontSize: 11.5, color: "#EF4444", marginTop: 4 }}>{errors.subject}</p>}
-                </div>
-                <div style={{ marginBottom: 24 }}>
-                  <label style={{ fontSize: 13.5, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Message</label>
-                  <textarea value={form.message} onChange={e => update("message", e.target.value)} placeholder="Describe your issue or question in detail..."
-                    rows={5} style={{ ...inputStyle("message"), resize: "vertical" }}
-                    onFocus={e => { e.target.style.borderColor = "#1A73E8"; }} onBlur={e => { e.target.style.borderColor = errors.message ? "#EF4444" : "#E2E8F0"; }} />
-                  {errors.message && <p style={{ fontSize: 11.5, color: "#EF4444", marginTop: 4 }}>{errors.message}</p>}
-                </div>
-                <button type="submit" disabled={loading} style={{
-                  width: "100%", padding: "13px", borderRadius: 10, border: "none",
-                  background: loading ? "#93C5FD" : "#1A73E8", color: "#fff",
-                  fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
-                  boxShadow: loading ? "none" : "0 4px 14px rgba(26,115,232,0.4)", fontFamily: "inherit",
-                }}>
-                  {loading ? "Sending..." : "Send Message"}
-                </button>
-              </form>
-            </>
-          )}
+        {/* ═══ Support Card (replaces the form) ═══ */}
+        <div style={{ background: "#fff", borderRadius: 16, padding: "44px 36px", boxShadow: "0 4px 20px rgba(0,0,0,0.06)", border: "1px solid #E5E7EB", textAlign: "center" }}>
+
+          {/* Big icon */}
+          <div style={{
+            width: 92, height: 92, borderRadius: "50%",
+            background: "linear-gradient(135deg,#1A73E8,#1557b0)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            margin: "0 auto 22px", fontSize: 40, color: "#fff",
+            boxShadow: "0 12px 36px rgba(26,115,232,0.32)",
+          }}>📩</div>
+
+          <h2 style={{ fontSize: 24, fontWeight: 800, color: "#0F172A", marginBottom: 10, letterSpacing: "-0.4px" }}>
+            Email our Support Team
+          </h2>
+          <p style={{ fontSize: 15, color: "#6B7280", lineHeight: 1.7, marginBottom: 28, maxWidth: 480, margin: "0 auto 28px" }}>
+            For all account, transfer, card or security questions, send us an email and a real person from our support team will reply within 24 hours.
+          </p>
+
+          {/* Email pill */}
+          <a
+            href={`mailto:${SUPPORT_EMAIL}`}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 10,
+              padding: "12px 22px", borderRadius: 999,
+              background: "#EFF6FF", border: "1.5px solid #BFDBFE",
+              textDecoration: "none", marginBottom: 28,
+              transition: "all 0.18s",
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#DBEAFE"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#EFF6FF"; }}
+          >
+            <span style={{ fontSize: 18 }}>✉</span>
+            <span style={{ fontSize: 14.5, fontWeight: 700, color: "#1A73E8", letterSpacing: "-0.1px" }}>{SUPPORT_EMAIL}</span>
+          </a>
+
+          {/* CTA */}
+          <a
+            href={mailtoHref}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+              width: "100%", padding: "15px", borderRadius: 14,
+              background: "linear-gradient(135deg,#1A73E8,#1557b0)",
+              color: "#fff", fontSize: 15, fontWeight: 700,
+              textDecoration: "none", fontFamily: "inherit",
+              boxShadow: "0 6px 20px rgba(26,115,232,0.32)",
+              transition: "all 0.2s", maxWidth: 420, marginLeft: "auto", marginRight: "auto",
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 10px 28px rgba(26,115,232,0.42)"; (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 6px 20px rgba(26,115,232,0.32)"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}
+          >
+            ✉ Contact Support
+          </a>
+
+          <p style={{ fontSize: 12.5, color: "#94A3B8", marginTop: 18, lineHeight: 1.6 }}>
+            Opens your default email app with a pre-filled message.
+            <br />Or copy the address above and email us from any client.
+          </p>
         </div>
 
-        {/* Contact info */}
+        {/* ═══ Contact info ═══ */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {[
-            { icon: "💬", title: "Live Chat", desc: "Chat with our support team in real time.", action: "Start Chat", href: "#" },
-            { icon: "📞", title: "Phone Support", desc: "+1 (800) 123-4567\nMon–Fri, 9am–6pm EST", action: null, href: null },
-            { icon: "✉️", title: "Email", desc: "support@vaulteapp.com\nWe reply within 24 hours.", action: null, href: null },
-            { icon: "🏢", title: "Office", desc: "123 Finance Street\nSan Francisco, CA 94103", action: null, href: null },
+            { icon: "💬", title: "Live Chat",     desc: "Chat with our support team in real time.",                action: "Start Chat", href: "#" },
+            { icon: "📞", title: "Phone Support", desc: "+1 (800) 123-4567\nMon–Fri, 9am–6pm EST",                  action: null,         href: null },
+            { icon: "✉️", title: "Email",         desc: "support@vaulteapp.com\nWe reply within 24 hours.",        action: null,         href: null },
+            { icon: "🏢", title: "Office",        desc: "123 Finance Street\nSan Francisco, CA 94103",              action: null,         href: null },
           ].map(item => (
             <div key={item.title} style={{ background: "#fff", borderRadius: 14, padding: "22px", border: "1px solid #E5E7EB", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
@@ -144,7 +125,7 @@ export default function ContactPage() {
         </div>
       </div>
 
-      <style>{`@media (max-width: 768px) { div[style*="grid-template-columns: 1fr 380px"] { grid-template-columns: 1fr !important; } div[style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; } }`}</style>
+      <style>{`@media (max-width: 768px) { div[style*="grid-template-columns: 1fr 380px"] { grid-template-columns: 1fr !important; } }`}</style>
     </div>
   );
 }
