@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
+import AutoLinkEmails from "@/components/AutoLinkEmails";
 
 export default function ContactPage() {
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
@@ -119,7 +120,7 @@ export default function ContactPage() {
           {[
             { icon: "💬", title: "Live Chat", desc: "Chat with our support team in real time.", action: "Start Chat", href: "#" },
             { icon: "📞", title: "Phone Support", desc: "+1 (800) 123-4567\nMon–Fri, 9am–6pm EST", action: null, href: null },
-            { icon: "✉️", title: "Email", desc: "support@vaulte.com\nWe reply within 24 hours.", action: null, href: null },
+            { icon: "✉️", title: "Email", desc: "support@vaulteapp.com\nWe reply within 24 hours.", action: null, href: null },
             { icon: "🏢", title: "Office", desc: "123 Finance Street\nSan Francisco, CA 94103", action: null, href: null },
           ].map(item => (
             <div key={item.title} style={{ background: "#fff", borderRadius: 14, padding: "22px", border: "1px solid #E5E7EB", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
@@ -127,7 +128,7 @@ export default function ContactPage() {
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: "#EFF6FF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{item.icon}</div>
                 <div style={{ flex: 1 }}>
                   <p style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>{item.title}</p>
-                  <p style={{ fontSize: 13.5, color: "#6B7280", lineHeight: 1.7, whiteSpace: "pre-line" }}>{item.desc}</p>
+                  <AutoLinkEmails text={item.desc} style={{ display: "block", fontSize: 13.5, color: "#6B7280", lineHeight: 1.7 }} />
                   {item.action && (
                     <Link href={item.href!} style={{ display: "inline-block", marginTop: 10, fontSize: 13.5, fontWeight: 700, color: "#1A73E8", textDecoration: "none" }}>{item.action} →</Link>
                   )}

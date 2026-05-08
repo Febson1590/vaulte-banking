@@ -155,7 +155,7 @@ export default function ContactPage() {
 
   // ── Main form ──────────────────────────────────────────────
   return (
-    <DashboardLayout title="Contact Support" subtitle="Get help from our team · support@vaulteapp.com">
+    <DashboardLayout title="Contact Support" subtitle="Get help from our team — we typically reply within a few hours">
       <div className="contact-main-grid" style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 24, alignItems: "start" }}>
 
         {/* ═══ LEFT — Contact Form ═══ */}

@@ -456,7 +456,7 @@ export default function SettingsPage() {
               <div style={{ padding: "20px 22px", background: "#FEF2F2", borderRadius: 16, border: "1px solid #FECACA", marginBottom: 24 }}>
                 <p style={{ fontSize: 14, fontWeight: 700, color: "#DC2626", marginBottom: 6 }}>Danger Zone</p>
                 <p style={{ fontSize: 12.5, color: "#EF4444", marginBottom: 14 }}>These actions are irreversible. Please proceed with caution.</p>
-                <button onClick={() => showToast("For account closure, please contact support at support@vaulte.com")} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #FECACA", background: "transparent", color: "#DC2626", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Close Account</button>
+                <a href="mailto:support@vaulteapp.com?subject=Account%20Closure%20Request" style={{ display: "inline-block", padding: "10px 20px", borderRadius: 10, border: "1px solid #FECACA", background: "transparent", color: "#DC2626", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "none" }}>Close Account</a>
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end" }}>

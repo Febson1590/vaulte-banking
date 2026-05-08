@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import AutoLinkEmails from "@/components/AutoLinkEmails";
 
 const sections = [
   {
@@ -26,7 +27,7 @@ By registering, you confirm that all information you provide is accurate and com
 
 • Maintaining the confidentiality of your account credentials
 • All activity that occurs under your account
-• Notifying us immediately at security@vaulte.com if you suspect unauthorized access
+• Notifying us immediately at support@vaulteapp.com if you suspect unauthorized access
 • Keeping your contact information up to date
 • Complying with all applicable laws and regulations in your jurisdiction
 
@@ -98,7 +99,7 @@ If any provision of these Terms is found to be unenforceable, the remaining prov
     title: "10. Contact",
     content: `For questions about these Terms of Service, please contact us:
 
-Email: legal@vaulte.com
+Email: support@vaulteapp.com
 Address: 123 Finance Street, San Francisco, CA 94103
 Phone: +1 (800) 123-4567`,
   },
@@ -149,7 +150,7 @@ export default function TermsPage() {
           {sections.map(section => (
             <div key={section.title} style={{ background: "#fff", borderRadius: 14, padding: "28px 32px", border: "1px solid #E5E7EB", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
               <h2 style={{ fontSize: 17, fontWeight: 800, color: "#0F172A", marginBottom: 14, letterSpacing: "-0.3px" }}>{section.title}</h2>
-              <p style={{ fontSize: 14.5, color: "#4B5563", lineHeight: 1.9, whiteSpace: "pre-line" }}>{section.content}</p>
+              <AutoLinkEmails text={section.content} style={{ display: "block", fontSize: 14.5, color: "#4B5563", lineHeight: 1.9 }} />
             </div>
           ))}
         </div>

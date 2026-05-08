@@ -39,7 +39,7 @@ export default function PressPage() {
       <InfoCard title="Press contact">
         <p>
           For media enquiries, please reach out to{" "}
-          <a href="mailto:press@vaulteapp.com" style={{ color: "#60A5FA", textDecoration: "none", fontWeight: 600 }}>press@vaulteapp.com</a>.
+          <a href="mailto:support@vaulteapp.com" style={{ color: "#60A5FA", textDecoration: "none", fontWeight: 600 }}>support@vaulteapp.com</a>.
           We aim to respond within one business day.
         </p>
       </InfoCard>

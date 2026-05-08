@@ -100,7 +100,7 @@ export default function SecurityActivityPage() {
             <p style={{ margin: "0 0 6px", fontSize: 14, fontWeight: 700, color: "#fff" }}>Security Tips</p>
             <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.65)", lineHeight: 1.6 }}>
               Review your login activity regularly. If you notice a login you don&apos;t recognize, change your password immediately and contact{" "}
-              <a href="mailto:support@vaulte.com" style={{ color: "#93C5FD", textDecoration: "none", fontWeight: 600 }}>support@vaulte.com</a>.
+              <a href="mailto:support@vaulteapp.com" style={{ color: "#93C5FD", textDecoration: "none", fontWeight: 600 }}>support@vaulteapp.com</a>.
             </p>
           </div>
         </div>
@@ -239,7 +239,7 @@ export default function SecurityActivityPage() {
         {/* Footer note */}
         <p style={{ textAlign: "center", fontSize: 12.5, color: C.muted, marginTop: 20, lineHeight: 1.6 }}>
           Concerned about a login? Contact{" "}
-          <a href="mailto:support@vaulte.com" style={{ color: C.blue, textDecoration: "none", fontWeight: 600 }}>support@vaulte.com</a>
+          <a href="mailto:support@vaulteapp.com" style={{ color: C.blue, textDecoration: "none", fontWeight: 600 }}>support@vaulteapp.com</a>
           {" "}immediately.
         </p>
       </div>

@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import AutoLinkEmails from "@/components/AutoLinkEmails";
 
 const sections = [
   {
@@ -62,7 +63,7 @@ When you close your account, we will delete or anonymize your personal data with
 • Objection: Object to certain types of data processing
 • Withdrawal of consent: Withdraw consent at any time where processing is based on consent
 
-To exercise any of these rights, please contact us at privacy@vaulte.com.`,
+To exercise any of these rights, please contact us at support@vaulteapp.com.`,
   },
   {
     title: "7. Cookies",
@@ -81,7 +82,7 @@ Types of cookies we use:
     title: "9. Contact Us",
     content: `If you have questions or concerns about this Privacy Policy or our data practices, please contact our Data Protection Officer:
 
-Email: privacy@vaulte.com
+Email: support@vaulteapp.com
 Address: 123 Finance Street, San Francisco, CA 94103
 Phone: +1 (800) 123-4567`,
   },
@@ -122,7 +123,7 @@ export default function PrivacyPolicyPage() {
           {sections.map(section => (
             <div key={section.title} style={{ background: "#fff", borderRadius: 14, padding: "28px 32px", border: "1px solid #E5E7EB", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
               <h2 style={{ fontSize: 17, fontWeight: 800, color: "#0F172A", marginBottom: 16, letterSpacing: "-0.3px" }}>{section.title}</h2>
-              <p style={{ fontSize: 14.5, color: "#4B5563", lineHeight: 1.9, whiteSpace: "pre-line" }}>{section.content}</p>
+              <AutoLinkEmails text={section.content} style={{ display: "block", fontSize: 14.5, color: "#4B5563", lineHeight: 1.9 }} />
             </div>
           ))}
         </div>
