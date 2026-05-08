@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const navItems = [
   { icon: '🏠', label: 'Dashboard',    href: '/admin/dashboard' },
@@ -278,6 +279,7 @@ export default function AdminLayout({
             className="admin-header-right"
             style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}
           >
+            <LanguageSwitcher variant="light" />
             <div
               className="admin-alerts"
               style={{

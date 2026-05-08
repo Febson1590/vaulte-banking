@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -68,23 +69,27 @@ export default function Navbar() {
           ))}
         </div>
 
-        {/* Desktop right (Login + CTA) */}
-        <div className="nav-cta-group" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Link href="/login"
-            className="nav-login"
-            style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "8px 14px", borderRadius: 8, transition: "all 0.2s" }}
-            onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
-          >Login</Link>
-          <Link href="/register"
-            className="nav-cta"
-            style={{ fontSize: 14, fontWeight: 700, color: "#fff", textDecoration: "none", padding: "9px 18px", borderRadius: 10, background: "linear-gradient(135deg,#2563EB,#1D4ED8)", boxShadow: "0 2px 16px rgba(37,99,235,0.4)", transition: "all 0.2s", letterSpacing: "0.01em", whiteSpace: "nowrap" }}
-            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 4px 24px rgba(37,99,235,0.55)"; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 2px 16px rgba(37,99,235,0.4)"; }}
-          >Open Account</Link>
-        </div>
+        {/* Right side — language switcher is always visible (mobile + desktop) */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <LanguageSwitcher variant="dark" />
 
-        {/* Mobile hamburger */}
+          {/* Login + Open Account — desktop only; collapse into the mobile drawer otherwise */}
+          <div className="nav-cta-group" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Link href="/login"
+              className="nav-login"
+              style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "8px 14px", borderRadius: 8, transition: "all 0.2s" }}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+            >Login</Link>
+            <Link href="/register"
+              className="nav-cta"
+              style={{ fontSize: 14, fontWeight: 700, color: "#fff", textDecoration: "none", padding: "9px 18px", borderRadius: 10, background: "linear-gradient(135deg,#2563EB,#1D4ED8)", boxShadow: "0 2px 16px rgba(37,99,235,0.4)", transition: "all 0.2s", letterSpacing: "0.01em", whiteSpace: "nowrap" }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 4px 24px rgba(37,99,235,0.55)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 2px 16px rgba(37,99,235,0.4)"; }}
+            >Open Account</Link>
+          </div>
+
+          {/* Mobile hamburger — sits next to the language switcher */}
         <button
           className="nav-hamburger"
           onClick={() => setMenuOpen(!menuOpen)}
@@ -109,6 +114,7 @@ export default function Navbar() {
           <span style={{ width: 20, height: 2, background: "#fff", borderRadius: 2, opacity: menuOpen ? 0 : 1, transition: "opacity 0.15s" }} />
           <span style={{ width: 20, height: 2, background: "#fff", borderRadius: 2, transform: menuOpen ? "translateY(-7px) rotate(-45deg)" : "none", transition: "transform 0.2s" }} />
         </button>
+        </div>
       </div>
 
       {/* Mobile dropdown */}

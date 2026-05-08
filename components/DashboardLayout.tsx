@@ -7,7 +7,7 @@ import {
   VaulteState, DEMO_STATE, getTotalBalanceUSD, fmtAmount, VaulteUser,
 } from "@/lib/vaulteState";
 import { normalizeKyc, KYC_UI } from "@/lib/kycUtils";
-// Language selection is handled by the global floating LanguageSwitcher mounted in app/layout.tsx.
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const C = {
   bg: "#F3F5FA", card: "#ffffff", navy: "#0F172A", blue: "#1A73E8",
@@ -523,7 +523,8 @@ export default function DashboardLayout({ children, title, subtitle, topRight }:
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
             >⚙️</Link>
 
-            {/* Language switching lives in the global floating LanguageSwitcher mounted in app/layout.tsx — keeps the topbar uncluttered and the selector consistent across the whole app. */}
+            {/* Inline language switcher — light variant matches the white topbar */}
+            <LanguageSwitcher variant="light" />
 
             <div style={{ width: 1, height: 28, background: C.border, margin: "0 2px" }} />
 

@@ -1,55 +1,57 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
 
 /**
- * Site-wide language switcher backed by Google Website Translator.
+ * LanguageSwitcher
+ * ────────────────
+ * Inline navbar language picker backed by Google Website Translator.
  *
- * Adapted from the Atlas Trust design to Vaulte's deep-navy / electric-blue
- * palette.  Uses inline styles (matching the rest of this codebase) rather
- * than Tailwind classes.
+ * The component renders a compact icon-button (globe + flag + chevron) that
+ * matches the surrounding navbar.  It's NOT floating — it lives inside the
+ * header markup of every page chrome that calls it (landing Navbar,
+ * DashboardLayout topbar, AdminLayout header, marketing-page mini navs).
  *
- * Flow:
- *   1. The root <head> defines window.googleTranslateElementInit and loads
- *      Google's translate_a/element.js once (see app/layout.tsx).
- *   2. We render our own styled trigger + dropdown in the bottom-left corner.
- *   3. When the user picks a language we set the `googtrans` cookie Google's
- *      engine reads (format: `/<source>/<target>`) and reload.  Google's
- *      element picks up the cookie on next page-load and re-translates.
+ * Pass `variant="dark"` for navbars on the dark fintech background (landing,
+ * marketing pages, login/register cards) and `variant="light"` for the white
+ * dashboard / admin topbars.
+ *
+ * Translation flow (unchanged):
+ *   1. We set the `googtrans` cookie Google Translate's element.js reads.
+ *   2. Reload the page.
+ *   3. Google Translate's loader, mounted in app/layout.tsx, picks up the
+ *      cookie and re-translates the page on the way back in.
  *
  * Why cookie + reload instead of programmatic .goog-te-combo selection?
  * React re-renders disturb Google's DOM patching and produce flicker +
- * partially-untranslated content.  Cookie + reload is the official,
- * reliable path.
- *
- * Positioned bottom-left so it never collides with Tawk chat (bottom-right).
+ * partially-untranslated content.  Cookie+reload is the official, reliable
+ * path Google's own widget uses.
  */
 
 type Language = {
-  code: string;
-  label: string;      // endonym — "Español", "中文 (简体)"
-  english: string;    // exonym  — "Spanish", "Chinese (Simplified)"
-  flag: string;
-  starred?: boolean;  // floats to top of the list when no search query
+  code:    string;
+  label:   string;     // endonym — "Español", "中文 (简体)"
+  english: string;     // exonym  — "Spanish", "Chinese (Simplified)"
+  flag:    string;
+  starred?: boolean;   // bubbles to top of list when no search query
 };
 
 const LANGUAGES: Language[] = [
-  { code: "en",    flag: "🇺🇸", label: "English",          english: "English",           starred: true },
-  { code: "es",    flag: "🇪🇸", label: "Español",          english: "Spanish",           starred: true },
-  { code: "fr",    flag: "🇫🇷", label: "Français",         english: "French",            starred: true },
-  { code: "de",    flag: "🇩🇪", label: "Deutsch",          english: "German",            starred: true },
-  { code: "pt",    flag: "🇵🇹", label: "Português",        english: "Portuguese",        starred: true },
-  { code: "it",    flag: "🇮🇹", label: "Italiano",         english: "Italian",           starred: true },
-  { code: "nl",    flag: "🇳🇱", label: "Nederlands",       english: "Dutch",             starred: true },
-  { code: "ru",    flag: "🇷🇺", label: "Русский",          english: "Russian",           starred: true },
-  { code: "zh-CN", flag: "🇨🇳", label: "中文 (简体)",       english: "Chinese (Simplified)", starred: true },
+  { code: "en",    flag: "🇺🇸", label: "English",          english: "English",                    starred: true },
+  { code: "es",    flag: "🇪🇸", label: "Español",          english: "Spanish",                    starred: true },
+  { code: "fr",    flag: "🇫🇷", label: "Français",         english: "French",                     starred: true },
+  { code: "de",    flag: "🇩🇪", label: "Deutsch",          english: "German",                     starred: true },
+  { code: "pt",    flag: "🇵🇹", label: "Português",        english: "Portuguese",                 starred: true },
+  { code: "it",    flag: "🇮🇹", label: "Italiano",         english: "Italian",                    starred: true },
+  { code: "nl",    flag: "🇳🇱", label: "Nederlands",       english: "Dutch",                      starred: true },
+  { code: "ru",    flag: "🇷🇺", label: "Русский",          english: "Russian",                    starred: true },
+  { code: "zh-CN", flag: "🇨🇳", label: "中文 (简体)",       english: "Chinese (Simplified)",       starred: true },
   { code: "zh-TW", flag: "🇹🇼", label: "中文 (繁體)",       english: "Chinese (Traditional)" },
-  { code: "ja",    flag: "🇯🇵", label: "日本語",            english: "Japanese",          starred: true },
-  { code: "ko",    flag: "🇰🇷", label: "한국어",            english: "Korean",            starred: true },
-  { code: "ar",    flag: "🇸🇦", label: "العربية",          english: "Arabic",            starred: true },
-  { code: "hi",    flag: "🇮🇳", label: "हिन्दी",             english: "Hindi",             starred: true },
-  { code: "bn",    flag: "🇧🇩", label: "বাংলা",             english: "Bengali",           starred: true },
+  { code: "ja",    flag: "🇯🇵", label: "日本語",            english: "Japanese",                   starred: true },
+  { code: "ko",    flag: "🇰🇷", label: "한국어",            english: "Korean",                     starred: true },
+  { code: "ar",    flag: "🇸🇦", label: "العربية",          english: "Arabic",                     starred: true },
+  { code: "hi",    flag: "🇮🇳", label: "हिन्दी",             english: "Hindi",                      starred: true },
+  { code: "bn",    flag: "🇧🇩", label: "বাংলা",             english: "Bengali",                    starred: true },
   { code: "tr",    flag: "🇹🇷", label: "Türkçe",           english: "Turkish" },
   { code: "pl",    flag: "🇵🇱", label: "Polski",           english: "Polish" },
   { code: "vi",    flag: "🇻🇳", label: "Tiếng Việt",       english: "Vietnamese" },
@@ -146,11 +148,11 @@ declare global {
         TranslateElement: {
           new (
             config: {
-              pageLanguage: string;
-              includedLanguages?: string;
-              layout?: number;
-              autoDisplay?: boolean;
-              multilanguagePage?: boolean;
+              pageLanguage:        string;
+              includedLanguages?:  string;
+              layout?:             number;
+              autoDisplay?:        boolean;
+              multilanguagePage?:  boolean;
             },
             containerId: string
           ): unknown;
@@ -169,18 +171,17 @@ function readGoogTransCookie(): string {
     .map((c) => c.trim())
     .find((c) => c.startsWith("googtrans="));
   if (!match) return "en";
-  const raw = decodeURIComponent(match.split("=")[1] || "");
+  const raw   = decodeURIComponent(match.split("=")[1] || "");
   const parts = raw.split("/").filter(Boolean);
   return parts[1] || "en";
 }
 
 function setGoogTransCookie(target: string) {
-  // Clearing (going back to English) — delete every scope Google may have set.
   if (target === "en") {
-    const host = typeof window === "undefined" ? "" : window.location.hostname;
+    const host  = typeof window === "undefined" ? "" : window.location.hostname;
     const parts = host.split(".");
-    const apex = parts.length > 2 ? parts.slice(-2).join(".") : host;
-    const exp = "expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    const apex  = parts.length > 2 ? parts.slice(-2).join(".") : host;
+    const exp   = "expires=Thu, 01 Jan 1970 00:00:00 GMT";
     document.cookie = `googtrans=; path=/; ${exp}`;
     document.cookie = `googtrans=; path=/; ${exp}; domain=${host}`;
     document.cookie = `googtrans=; path=/; ${exp}; domain=.${host}`;
@@ -193,26 +194,32 @@ function setGoogTransCookie(target: string) {
   }
   const value = `/en/${target}`;
   document.cookie = `googtrans=${value}; path=/`;
-  const host = window.location.hostname;
+  const host  = window.location.hostname;
   const parts = host.split(".");
-  const apex = parts.length > 2 ? parts.slice(-2).join(".") : host;
+  const apex  = parts.length > 2 ? parts.slice(-2).join(".") : host;
   if (apex && apex.includes(".")) {
     document.cookie = `googtrans=${value}; domain=.${apex}; path=/`;
   }
   try { localStorage.setItem("vaulte_lang", target); } catch { /* ignore */ }
 }
 
-export default function LanguageSwitcher() {
-  const pathname = usePathname();
-  const [open, setOpen] = useState(false);
-  const [current, setCurrent] = useState<string>("en");
-  const [query, setQuery] = useState("");
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  const searchRef = useRef<HTMLInputElement | null>(null);
+interface LanguageSwitcherProps {
+  /**
+   * Visual variant.
+   *  - "dark"  → for dark navbars (landing page, marketing nav, login pages)
+   *  - "light" → for white topbars (user dashboard, admin)
+   */
+  variant?: "dark" | "light";
+}
 
-  // Only skip on the admin login page — everywhere else (marketing, auth,
-  // user dashboard and admin dashboard) the floating switcher appears.
-  const skip = pathname === "/admin/login";
+export default function LanguageSwitcher({ variant = "dark" }: LanguageSwitcherProps) {
+  const isDark = variant === "dark";
+
+  const [open, setOpen]       = useState(false);
+  const [current, setCurrent] = useState<string>("en");
+  const [query, setQuery]     = useState("");
+  const rootRef   = useRef<HTMLDivElement | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
 
   // Filtered list — starred languages bubble to the top when no query.
   const visibleLanguages = useMemo(() => {
@@ -244,15 +251,22 @@ export default function LanguageSwitcher() {
     }
   }, []);
 
-  // Close dropdown on outside click
+  // Close dropdown on outside click + Escape key
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
       if (!rootRef.current) return;
       if (!rootRef.current.contains(e.target as Node)) setOpen(false);
     };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
     document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
+    document.addEventListener("keydown",   onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown",   onKey);
+    };
   }, [open]);
 
   // Focus the search input when the dropdown opens, reset on close
@@ -274,48 +288,126 @@ export default function LanguageSwitcher() {
 
   const currentLang = LANGUAGES.find((l) => l.code === current) || LANGUAGES[0];
 
-  if (skip) return null;
+  // ── Trigger button styling per variant ────────────────────────────────────
+  const triggerStyle: React.CSSProperties = isDark
+    ? {
+        // Dark navbar (landing, marketing pages)
+        background:    "transparent",
+        border:        "1px solid rgba(255,255,255,0.18)",
+        color:         "rgba(255,255,255,0.9)",
+      }
+    : {
+        // Light navbar (dashboard, admin)
+        background:    "transparent",
+        border:        "1px solid rgba(15,23,42,0.08)",
+        color:         "#0F172A",
+      };
 
   return (
     <div
       ref={rootRef}
-      // `notranslate` keeps our own UI labels untouched — we don't want Google
-      // translating "Español" into whatever the current target language is.
       className="notranslate vaulte-lang-switcher"
       translate="no"
-      style={{
-        position: "fixed",
-        bottom: 24,
-        left: 24,
-        zIndex: 60,
-      }}
+      style={{ position: "relative", display: "inline-flex" }}
     >
-      {/* Dropdown panel */}
+      {/* ─── Trigger button ─────────────────────────────────────── */}
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label="Change language"
+        title={`Language: ${currentLang.label}`}
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          display:        "inline-flex",
+          alignItems:     "center",
+          gap:            6,
+          height:         38,
+          padding:        "0 10px",
+          borderRadius:   10,
+          fontFamily:     "inherit",
+          fontSize:       13,
+          fontWeight:     600,
+          cursor:         "pointer",
+          transition:     "background 0.15s, border-color 0.15s",
+          ...triggerStyle,
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.background = isDark
+            ? "rgba(255,255,255,0.06)"
+            : "rgba(15,23,42,0.04)";
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+        }}
+      >
+        {/* Globe icon */}
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          style={{ opacity: 0.85 }}
+        >
+          <circle cx="12" cy="12" r="10" />
+          <line x1="2" y1="12" x2="22" y2="12" />
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+        </svg>
+
+        {/* Current language code (EN, FR, DE…) — clearer than just a flag,
+           which doesn't render on every device. */}
+        <span style={{ letterSpacing: "0.04em" }}>{currentLang.code.slice(0, 2).toUpperCase()}</span>
+
+        <svg
+          width="11"
+          height="11"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          style={{ transition: "transform 0.18s", transform: open ? "rotate(180deg)" : "none", opacity: 0.7 }}
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {/* ─── Dropdown panel ─────────────────────────────────────── */}
       {open && (
         <div
           role="listbox"
           style={{
-            position: "absolute",
-            bottom: "calc(100% + 8px)",
-            left: 0,
-            display: "flex",
-            width: 288,
-            maxWidth: "calc(100vw - 48px)",
-            maxHeight: "min(70vh, 520px)",
-            flexDirection: "column",
-            overflow: "hidden",
+            position:     "absolute",
+            top:          "calc(100% + 8px)",
+            right:        0,
+            width:        280,
+            maxWidth:     "calc(100vw - 32px)",
+            maxHeight:    "min(70vh, 480px)",
+            display:      "flex",
+            flexDirection:"column",
+            overflow:     "hidden",
             borderRadius: 14,
-            border: "1px solid rgba(96,165,250,0.25)",
-            background: "rgba(6,9,26,0.95)",
-            boxShadow: "0 20px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04)",
-            backdropFilter: "blur(14px)",
-            WebkitBackdropFilter: "blur(14px)",
+            border:       isDark ? "1px solid rgba(96,165,250,0.25)" : "1px solid rgba(15,23,42,0.08)",
+            background:   isDark ? "rgba(6,9,26,0.97)"               : "#fff",
+            boxShadow:    isDark
+                            ? "0 20px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04)"
+                            : "0 18px 50px rgba(15,23,42,0.18), 0 4px 12px rgba(15,23,42,0.06)",
+            backdropFilter:        isDark ? "blur(14px)" : undefined,
+            WebkitBackdropFilter:  isDark ? "blur(14px)" : undefined,
+            zIndex:       100,
           }}
         >
-          {/* Header: search only (no title bar) */}
-          <div style={{ borderBottom: "1px solid rgba(96,165,250,0.1)", padding: "12px 16px" }}>
+          {/* Search box */}
+          <div style={{ borderBottom: isDark ? "1px solid rgba(96,165,250,0.1)" : "1px solid #E5E7EB", padding: "10px 12px" }}>
             <div style={{ position: "relative" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={isDark ? "rgba(255,255,255,0.4)" : "#94A3B8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
                 <circle cx="11" cy="11" r="8" />
                 <path d="M21 21l-4.35-4.35" />
               </svg>
@@ -327,19 +419,17 @@ export default function LanguageSwitcher() {
                 placeholder="Search language…"
                 aria-label="Search languages"
                 style={{
-                  width: "100%",
-                  padding: "8px 30px 8px 32px",
+                  width:        "100%",
+                  padding:      "8px 30px 8px 32px",
                   borderRadius: 8,
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  background: "rgba(255,255,255,0.04)",
-                  color: "#fff",
-                  fontSize: 13,
-                  outline: "none",
-                  fontFamily: "inherit",
-                  boxSizing: "border-box",
+                  border:       isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid #E5E7EB",
+                  background:   isDark ? "rgba(255,255,255,0.04)"          : "#F8FAFC",
+                  color:        isDark ? "#fff"                            : "#0F172A",
+                  fontSize:     13,
+                  outline:      "none",
+                  fontFamily:   "inherit",
+                  boxSizing:    "border-box",
                 }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(96,165,250,0.5)"; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}
               />
               {query && (
                 <button
@@ -347,17 +437,17 @@ export default function LanguageSwitcher() {
                   onClick={() => setQuery("")}
                   aria-label="Clear search"
                   style={{
-                    position: "absolute",
-                    right: 6,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    padding: 4,
+                    position:   "absolute",
+                    right:      6,
+                    top:        "50%",
+                    transform:  "translateY(-50%)",
+                    padding:    4,
                     borderRadius: "50%",
-                    border: "none",
+                    border:     "none",
                     background: "transparent",
-                    cursor: "pointer",
-                    color: "rgba(255,255,255,0.4)",
-                    display: "flex",
+                    cursor:     "pointer",
+                    color:      isDark ? "rgba(255,255,255,0.4)" : "#9CA3AF",
+                    display:    "flex",
                     alignItems: "center",
                     justifyContent: "center",
                   }}
@@ -371,10 +461,10 @@ export default function LanguageSwitcher() {
             </div>
           </div>
 
-          {/* Scrollable list */}
+          {/* Scrollable language list */}
           <div style={{ flex: 1, overflowY: "auto", padding: "4px 0" }}>
             {visibleLanguages.length === 0 ? (
-              <p style={{ padding: "22px 16px", textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.45)" }}>
+              <p style={{ padding: "22px 16px", textAlign: "center", fontSize: 12, color: isDark ? "rgba(255,255,255,0.45)" : "#9CA3AF" }}>
                 No languages match &ldquo;{query}&rdquo;
               </p>
             ) : (
@@ -387,30 +477,34 @@ export default function LanguageSwitcher() {
                     aria-selected={active}
                     onClick={() => handleSelect(lang.code)}
                     style={{
-                      display: "flex",
-                      width: "100%",
+                      display:    "flex",
+                      width:      "100%",
                       alignItems: "center",
-                      gap: 12,
-                      padding: "9px 16px",
-                      background: active ? "rgba(96,165,250,0.12)" : "transparent",
-                      border: "none",
-                      textAlign: "left",
-                      fontSize: 13.5,
-                      color: active ? "#60A5FA" : "rgba(255,255,255,0.75)",
-                      cursor: "pointer",
+                      gap:        12,
+                      padding:    "9px 14px",
+                      background: active
+                                    ? (isDark ? "rgba(96,165,250,0.12)" : "rgba(26,115,232,0.08)")
+                                    : "transparent",
+                      border:     "none",
+                      textAlign:  "left",
+                      fontSize:   13,
+                      color:      active
+                                    ? (isDark ? "#60A5FA" : "#1A73E8")
+                                    : (isDark ? "rgba(255,255,255,0.78)" : "#0F172A"),
+                      cursor:     "pointer",
                       fontFamily: "inherit",
                       transition: "background 0.12s, color 0.12s",
                     }}
                     onMouseEnter={(e) => {
                       if (!active) {
-                        (e.currentTarget as HTMLButtonElement).style.background = "rgba(96,165,250,0.06)";
-                        (e.currentTarget as HTMLButtonElement).style.color = "#fff";
+                        (e.currentTarget as HTMLButtonElement).style.background = isDark
+                          ? "rgba(96,165,250,0.06)"
+                          : "#F8FAFC";
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!active) {
                         (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                        (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.75)";
                       }
                     }}
                   >
@@ -418,7 +512,7 @@ export default function LanguageSwitcher() {
                     <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
                       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: active ? 600 : 500 }}>{lang.label}</span>
                       {lang.label !== lang.english && (
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{lang.english}</span>
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 11, color: isDark ? "rgba(255,255,255,0.4)" : "#94A3B8" }}>{lang.english}</span>
                       )}
                     </span>
                     {active && (
@@ -433,61 +527,6 @@ export default function LanguageSwitcher() {
           </div>
         </div>
       )}
-
-      {/* Trigger button */}
-      <button
-        type="button"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-label="Change language"
-        onClick={() => setOpen((v) => !v)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "9px 14px 9px 12px",
-          borderRadius: 999,
-          border: "1px solid rgba(96,165,250,0.35)",
-          background: "rgba(6,9,26,0.9)",
-          color: "#60A5FA",
-          fontSize: 13,
-          fontWeight: 600,
-          fontFamily: "inherit",
-          cursor: "pointer",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.03)",
-          backdropFilter: "blur(10px)",
-          WebkitBackdropFilter: "blur(10px)",
-          transition: "all 0.2s",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = "rgba(96,165,250,0.6)";
-          e.currentTarget.style.background = "rgba(11,24,54,0.95)";
-          e.currentTarget.style.color = "#93C5FD";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = "rgba(96,165,250,0.35)";
-          e.currentTarget.style.background = "rgba(6,9,26,0.9)";
-          e.currentTarget.style.color = "#60A5FA";
-        }}
-      >
-        <span style={{ fontSize: 16, lineHeight: 1 }} aria-hidden="true">{currentLang.flag}</span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ opacity: 0.65 }}>
-          <circle cx="12" cy="12" r="10" />
-          <line x1="2" y1="12" x2="22" y2="12" />
-          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-        </svg>
-        <span className="vaulte-lang-label">{currentLang.label}</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: "transform 0.2s", transform: open ? "rotate(180deg)" : "none" }}>
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </button>
-
-      <style>{`
-        @media (max-width: 480px) {
-          .vaulte-lang-switcher { bottom: 16px !important; left: 16px !important; }
-          .vaulte-lang-label { display: none; }
-        }
-      `}</style>
     </div>
   );
 }

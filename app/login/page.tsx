@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { loginUser, saveCurrentUser } from "@/lib/vaulteState";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 function LoginPageInner() {
   const router       = useRouter();
@@ -108,6 +109,12 @@ function LoginPageInner() {
       <div style={{ position: "absolute", bottom: "10%", right: "20%", fontSize: 28, filter: "drop-shadow(0 8px 16px rgba(52,211,153,0.4))", transform: "rotate(-14deg)", pointerEvents: "none", userSelect: "none", opacity: 0.5 }}>💳</div>
       <div style={{ position: "absolute", top: "20%", left: "8%", fontSize: 30, filter: "drop-shadow(0 8px 16px rgba(96,165,250,0.4))", transform: "rotate(4deg)", pointerEvents: "none", userSelect: "none", opacity: 0.6 }}>🛡️</div>
 
+      {/* Top-right inline language switcher — sits above the card so users on
+          a translated language can flip back to English mid-flow. */}
+      <div style={{ position: "absolute", top: 20, right: 20, zIndex: 5 }}>
+        <LanguageSwitcher variant="dark" />
+      </div>
+
       <div style={{ width: "100%", maxWidth: 460, position: "relative", zIndex: 1 }}>
         {/* Glass card */}
         <div style={{
@@ -130,7 +137,9 @@ function LoginPageInner() {
             <div style={{ position: "absolute", top: 0, left: "10%", right: "10%", height: 1, background: "linear-gradient(90deg, transparent, rgba(96,165,250,0.5), rgba(167,139,250,0.5), transparent)" }} />
             <div style={{ position: "absolute", top: -30, right: -30, width: 120, height: 120, background: "rgba(96,165,250,0.08)", borderRadius: "50%", filter: "blur(20px)" }} />
             <div style={{ position: "absolute", bottom: -20, left: -20, width: 100, height: 100, background: "rgba(167,139,250,0.06)", borderRadius: "50%", filter: "blur(20px)" }} />
-            <img className="auth-logo" src="/assets/logo-vaulte.png" alt="Vaulte" style={{ height: 200, objectFit: "contain", mixBlendMode: "screen", display: "block", margin: "0 auto", position: "relative" }} />
+            <Link href="/" aria-label="Back to Vaulte homepage" style={{ display: "block", margin: "0 auto", position: "relative", textDecoration: "none" }}>
+              <img className="auth-logo" src="/assets/logo-vaulte.png" alt="Vaulte" style={{ height: 200, objectFit: "contain", mixBlendMode: "screen", display: "block", margin: "0 auto" }} />
+            </Link>
           </div>
 
           <div style={{ padding: "32px 32px 28px" }}>

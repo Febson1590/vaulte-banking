@@ -3,7 +3,9 @@ import { Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import TawkToChat from "@/components/TawkToChat";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
+// Language selection is now an inline navbar control (rendered inside each
+// page chrome — landing Navbar, DashboardLayout topbar, AdminLayout header,
+// marketing-page mini navs).  No global floating mount any more.
 
 const inter = Inter({
   subsets: ["latin"],
@@ -134,7 +136,6 @@ export default function RootLayout({
         />
 
         {children}
-        <LanguageSwitcher />
         <TawkToChat />
 
         {/* Load Google Translate after the page is interactive */}
