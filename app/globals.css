@@ -315,15 +315,20 @@ font                                   { display: inline !important; }
  *  third-party script or stale state would otherwise leave the body in a
  *  scroll-locked state.
  *
- *  - Any element with [hidden] or aria-hidden="true" must NOT capture
- *    pointer events.  Stale modal backdrops are the #1 cause of the
- *    "page won't scroll" bug on mobile.
- *  - The Tawk widget renders into iframes and a wrapper div.  We can't
- *    affect the iframe's internal styles, but we can ensure the wrapper
- *    NEVER blocks page scroll on mobile.
+ *  - [hidden] elements must NOT capture pointer events.  Stale modal
+ *    backdrops (with display:none ignored) are a top cause of the "page
+ *    won't scroll" / "button won't click" bug on mobile.
+ *
+ *  WHY WE DON'T BLANKET-DISABLE [aria-hidden="true"]:
+ *    Third-party widgets (Tawk.to, Google Translate, Tawk's parent frame)
+ *    set aria-hidden on their launcher iframes for screen-reader hygiene
+ *    while remaining fully interactive for sighted users.  A blanket
+ *    pointer-events:none rule on aria-hidden was found to break Tawk's
+ *    launcher click — first tap did nothing, second tap worked, etc.
+ *    We rely on display:none (which already blocks pointer events) for
+ *    those cases instead.
  * ───────────────────────────────────────────────────────────────────────── */
-[hidden],
-[aria-hidden="true"]:not(svg):not(use) {
+[hidden] {
   pointer-events: none;
 }
 
@@ -361,9 +366,13 @@ font                                   { display: inline !important; }
 
   /* Drop ALL backdrop-filter on small screens — it's the most expensive
      compositor operation on mobile.  Most uses are decorative; the
-     underlying solid colour is enough on a 6-inch screen. */
-  [style*="backdropFilter"],
-  [style*="backdrop-filter"]      { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+     underlying solid colour is enough on a 6-inch screen.
+     :not(iframe) so we don't mess with third-party widgets (Tawk, GT). */
+  [style*="backdropFilter"]:not(iframe),
+  [style*="backdrop-filter"]:not(iframe) {
+    backdrop-filter:         none !important;
+    -webkit-backdrop-filter: none !important;
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────

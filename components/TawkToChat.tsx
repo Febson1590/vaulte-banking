@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { getCurrentUser } from "@/lib/vaulteState";
 
@@ -8,36 +8,38 @@ import { getCurrentUser } from "@/lib/vaulteState";
  * ──────────
  * Headless Tawk.to integration.  We render NO custom UI — Tawk's own widget
  * (configured in the Tawk dashboard: colour, avatar, welcome message,
- * pre-chat form, suggested replies) is what visitors see.  This component
- * just:
+ * pre-chat form, suggested replies) is what visitors see.  This component:
  *
- *   1. Loads the Tawk script with the right property/widget IDs.
+ *   1. Loads the Tawk script ONCE (idempotent — protected against React
+ *      strict-mode double-effects, hot-reload, and accidental remounts).
  *   2. Pre-fills the visitor's name + email when the user is logged in,
  *      before the script initialises (Tawk reads window.Tawk_API.visitor
  *      exactly once on init).
- *   3. Tags the chat with customer / prospect / KYC status after init so
- *      the agent can triage at a glance in the Tawk inbox.
- *   4. Hides the launcher on auth / KYC capture paths where it would cover
- *      important UI — done via api.hideWidget() so the script stays alive
- *      and an in-flight conversation isn't reset on every navigation.
+ *   3. Tags the chat with customer / prospect / KYC status via the
+ *      Tawk_API.onLoad callback so we know the API is fully live.
+ *   4. Hides the launcher on auth / KYC capture paths via api.hideWidget()
+ *      so the script stays alive and an in-flight conversation isn't
+ *      reset on every navigation.
  *
- * Why no custom launcher anymore?
- *   The previous version painted a green circle on top of Tawk's own
- *   widget.  Once the operator configured the Tawk widget colour + Vaulte
- *   logo through the Tawk dashboard wizard, the custom overlay became
- *   redundant — and it covered the real, branded Tawk launcher.  Removing
- *   it means the colour you pick in the Tawk admin is what visitors see,
- *   instantly, without code changes.
+ * Why no custom launcher?
+ *   The Tawk dashboard already controls the launcher's colour, avatar,
+ *   welcome message, and behaviour.  Painting a custom button on top
+ *   creates two competing click targets and (as we found) blocks Tawk's
+ *   real launcher entirely.
  */
 
 // Public Tawk.to identifiers — safe to ship in the bundle, they identify
 // the widget the same way a CSS class does.  NEXT_PUBLIC_* env vars
-// override these so we can switch staging / production accounts without a
-// code change.
+// override these so we can switch staging / production accounts without
+// a code change.
 const TAWK_PROPERTY_ID =
   process.env.NEXT_PUBLIC_TAWK_PROPERTY_ID || "69fd676da11ae21c341a171b";
 const TAWK_WIDGET_ID =
   process.env.NEXT_PUBLIC_TAWK_WIDGET_ID || "1jo2to0tt";
+
+// DOM IDs we own — used to guarantee idempotent injection.
+const SCRIPT_ID = "vaulte-tawk-script";
+const STYLE_ID  = "vaulte-tawk-size-boost";
 
 // Pages where the chat launcher gets in the way more than it helps.  Tawk's
 // hideWidget() is called on entry to these paths and showWidget() when the
@@ -65,20 +67,37 @@ interface TawkAPI {
   addTags?:              (tags: string[], cb: (err?: unknown) => void) => void;
   setAttributes?:        (attrs: Record<string, string>, cb: (err?: unknown) => void) => void;
   visitor?:              { name?: string; email?: string };
+  onLoad?:               () => void;
+  onChatMaximized?:      () => void;
+  onChatMinimized?:      () => void;
 }
 
-type WindowWithTawk = Window & { Tawk_API?: TawkAPI };
+type WindowWithTawk = Window & { Tawk_API?: TawkAPI; Tawk_LoadStart?: Date };
 
 export default function TawkToChat() {
   const pathname = usePathname();
+  // Stash tags in a ref so the onLoad callback can read them without
+  // creating a closure over a stale render.
+  const pendingTagsRef = useRef<string[]>([]);
 
-  // ── Load the Tawk script + wire up identity + tags (runs once) ───────────
+  // ── Load the Tawk script + wire up identity (runs once globally) ─────────
   useEffect(() => {
-    // Build the Tawk_API object BEFORE the script loads.  Tawk reads
-    // .visitor exactly once on init — setting it later does nothing.
-    const tawkApi: TawkAPI = (window as WindowWithTawk).Tawk_API ?? {};
-    const tags: string[] = [];
+    // ── Idempotent guard ─────────────────────────────────────────────────
+    // If our script tag already exists in the document, don't re-inject.
+    // This protects against React strict-mode double effects and
+    // accidental remounts.
+    if (document.getElementById(SCRIPT_ID)) return;
 
+    // ── Build window.Tawk_API BEFORE the script loads ────────────────────
+    // Tawk reads .visitor exactly once during init, and binds .onLoad to
+    // the post-init callback.  Setting either after the script loads is
+    // a no-op.
+    const w = window as WindowWithTawk;
+    const tawkApi: TawkAPI = w.Tawk_API ?? {};
+    w.Tawk_LoadStart = new Date();
+
+    // Visitor identity (name + email) for logged-in customers.
+    const tags: string[] = [];
     try {
       const user = getCurrentUser();
       if (user) {
@@ -101,87 +120,114 @@ export default function TawkToChat() {
       // localStorage / SSR edge cases — never block the widget over identity.
       tags.push("prospect");
     }
+    pendingTagsRef.current = tags;
 
-    (window as WindowWithTawk).Tawk_API = tawkApi;
-
-    // ── Mobile visibility boost ────────────────────────────────────────────
-    //
-    // Tawk's default mobile launcher is ~48 px and can blend into the page
-    // on busy backgrounds.  This stylesheet:
-    //   • Forces a minimum tap target of 64 × 64 px on phones (Apple's
-    //     accessibility minimum is 44 px; we go larger for confidence).
-    //   • Lifts the launcher above iOS Safari's bottom toolbar so it
-    //     doesn't get hidden when the toolbar slides into view.
-    //   • Adds a subtle drop shadow so the bubble pops on white pages.
-    //
-    // Tawk renders into iframes whose titles include "chat widget" — those
-    // are stable across Tawk releases and what their docs recommend
-    // targeting from outside.
-    const sizeBoost = document.createElement("style");
-    sizeBoost.id = "vaulte-tawk-size-boost";
-    sizeBoost.textContent = `
-      /* Selector matches Tawk's launcher iframe (the small bubble) but NOT
-         the chat-window iframe (which is much wider).  Tawk's own scripts
-         set inline styles, so we rely on !important. */
-      iframe[title*="chat widget"] {
-        min-width:  64px !important;
-        min-height: 64px !important;
-        filter: drop-shadow(0 6px 18px rgba(15,23,42,0.22)) !important;
+    // Apply tags + diagnostic ping the moment the widget is fully live.
+    // Tawk_API.onLoad is the canonical "ready" hook from their docs.
+    tawkApi.onLoad = () => {
+      const live = (window as WindowWithTawk).Tawk_API;
+      if (!live) return;
+      // eslint-disable-next-line no-console
+      console.log("[Tawk] widget ready");
+      if (pendingTagsRef.current.length && typeof live.addTags === "function") {
+        live.addTags(pendingTagsRef.current, () => { /* swallow */ });
       }
+    };
 
-      @media (max-width: 768px) {
+    w.Tawk_API = tawkApi;
+
+    // ── Mobile visibility / shadow polish ────────────────────────────────
+    // Boost the launcher to a confident 64 × 64 tap target on mobile and
+    // lift it above the iOS home indicator.  Style tag has its own ID so
+    // we can detect duplicates.
+    if (!document.getElementById(STYLE_ID)) {
+      const sizeBoost = document.createElement("style");
+      sizeBoost.id = STYLE_ID;
+      sizeBoost.textContent = `
+        /* Selector matches Tawk's launcher iframe (the small bubble) but NOT
+           the chat-window iframe (which is much wider).  Tawk's own scripts
+           set inline styles, so we rely on !important. */
         iframe[title*="chat widget"] {
-          /* Lift above iOS Safari's home indicator + bottom toolbar */
-          bottom: max(16px, env(safe-area-inset-bottom)) !important;
+          min-width:  64px !important;
+          min-height: 64px !important;
+          filter:     drop-shadow(0 6px 18px rgba(15,23,42,0.22)) !important;
+          /* Tawk's launcher must always sit above any other floating UI.
+             2147483600 is comfortably above the 2147483000 default while
+             still inside the 32-bit signed integer range. */
+          z-index:    2147483600 !important;
+          /* Belt-and-suspenders: explicitly enable pointer events in case
+             a global rule (aria-hidden, etc.) ever tries to disable them. */
+          pointer-events: auto !important;
         }
-      }
-    `;
-    document.head.appendChild(sizeBoost);
+        iframe[title*="chat window"] {
+          z-index: 2147483600 !important;
+        }
+        @media (max-width: 768px) {
+          iframe[title*="chat widget"] {
+            bottom: max(16px, env(safe-area-inset-bottom)) !important;
+          }
+        }
+      `;
+      document.head.appendChild(sizeBoost);
+    }
 
-    // Inject the script
+    // ── Inject the actual Tawk script ────────────────────────────────────
+    // Use the Tawk-recommended insertBefore-the-first-script pattern so
+    // the loader is queued before any other async script that might race.
     const s1 = document.createElement("script");
+    s1.id      = SCRIPT_ID;
     s1.async   = true;
     s1.src     = `https://embed.tawk.to/${TAWK_PROPERTY_ID}/${TAWK_WIDGET_ID}`;
     s1.charset = "UTF-8";
     s1.setAttribute("crossorigin", "*");
-    document.head.appendChild(s1);
 
-    // Apply tags once the API is live.  Tawk doesn't fire a single onLoad
-    // event we can hook reliably — polling is the standard idiom in their
-    // docs and finishes within ~300 ms in practice.
+    s1.onerror = () => {
+      // eslint-disable-next-line no-console
+      console.warn("[Tawk] script failed to load — chat will be unavailable.");
+    };
+
+    const firstScript = document.getElementsByTagName("script")[0];
+    if (firstScript && firstScript.parentNode) {
+      firstScript.parentNode.insertBefore(s1, firstScript);
+    } else {
+      document.head.appendChild(s1);
+    }
+
+    // ── Fallback poll for tags ────────────────────────────────────────────
+    // If onLoad never fires (e.g. Tawk's own callback wiring fails on
+    // certain network conditions), this poll is a safety net that still
+    // applies the tags within ~3 s of the API becoming queryable.
     const pollInterval = setInterval(() => {
-      const api = (window as WindowWithTawk).Tawk_API;
-      if (api && typeof api.addTags === "function") {
+      const live = (window as WindowWithTawk).Tawk_API;
+      if (live && typeof live.addTags === "function" && pendingTagsRef.current.length) {
         clearInterval(pollInterval);
-        if (tags.length > 0) {
-          api.addTags(tags, () => { /* swallow errors silently */ });
-        }
+        live.addTags(pendingTagsRef.current, () => { /* swallow */ });
+        pendingTagsRef.current = [];
       }
-    }, 300);
-
-    // Stop polling after 15 s if Tawk never loads (network failure, blocker
-    // extension, etc.) so we don't leak the interval forever.
+    }, 500);
+    // Stop after 15 s.  After this point the API is either live (tags
+    // already applied) or the script truly failed and there's nothing to do.
     const stopPolling = window.setTimeout(() => clearInterval(pollInterval), 15_000);
 
+    // ── Cleanup ──────────────────────────────────────────────────────────
+    // We deliberately DON'T remove the Tawk script tag in cleanup.  This
+    // component is mounted in the root layout, so it shouldn't unmount
+    // during normal navigation.  If it does (e.g. React DevTools, a hot
+    // reload), tearing down the script would also lose any in-flight
+    // chat — much worse than leaving the script attached.
     return () => {
       clearInterval(pollInterval);
       window.clearTimeout(stopPolling);
-      try { document.head.removeChild(s1); } catch { /* ignore */ }
-      const sb = document.getElementById("vaulte-tawk-size-boost");
-      if (sb) try { document.head.removeChild(sb); } catch { /* ignore */ }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Show / hide the widget based on the current path ─────────────────────
   useEffect(() => {
-    const api = (window as WindowWithTawk).Tawk_API;
-    if (!api) return;
-
     const hide = shouldHide(pathname);
 
-    // Tawk loads asynchronously, so api.hideWidget may not be a function yet
-    // on the very first render after a fresh visit.  Retry briefly.
+    // Tawk loads asynchronously, so api.hideWidget may not be a function
+    // yet on the very first render after a fresh visit.  Retry briefly.
     const attempt = (tries: number): void => {
       const live = (window as WindowWithTawk).Tawk_API;
       const fn   = hide ? live?.hideWidget : live?.showWidget;
