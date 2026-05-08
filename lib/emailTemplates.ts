@@ -348,6 +348,74 @@ If this was not you, contact ${SUPPORT_EMAIL} immediately.
   };
 }
 
+// ─── 2b. Transfer Step-up OTP Email ──────────────────────────
+//
+// Sent before any high-value transfer is committed.  Shows the destination
+// + amount the user is about to authorise so they can spot a session-hijack
+// or social-engineering attempt before approving the OTP.
+export function transferOtpEmail(opts: {
+  firstName:  string;
+  code:       string;
+  expiryMin:  number;
+  amount:     string;     // pre-formatted "$1,234.56"
+  recipient:  string;     // human-readable name
+  bank?:      string;     // optional bank name / "Vaulte"
+  ip:         string;
+  device:     string;
+  time:       string;
+}): { html: string; text: string } {
+  const body = `
+    ${greeting(opts.firstName)}
+    ${paragraph("You're about to authorise a transfer from your Vaulte account. To complete it securely, enter the verification code below.")}
+
+    ${codeBox(opts.code)}
+
+    ${metaTable([
+      ["Amount",     opts.amount],
+      ["Recipient",  opts.recipient],
+      ...(opts.bank ? [["Bank", opts.bank] as [string, string]] : []),
+      ["Time",       opts.time],
+      ["IP Address", opts.ip],
+      ["Device",     opts.device],
+      ["Expires in", `${opts.expiryMin} minutes`],
+    ])}
+
+    ${paragraph("If you did not initiate this transfer, do NOT share this code.  Decline it in the app and contact support immediately — your funds may be at risk.", { color: "#DC2626", bold: true })}
+
+    ${securityBadge(`Vaulte will never ask for your transfer code over phone, chat, or email. If anything looks wrong, contact <a href="mailto:${SUPPORT_EMAIL}" style="color:#DC2626;">${SUPPORT_EMAIL}</a> right away.`)}
+  `;
+
+  const text = `Hello ${opts.firstName},
+
+You are about to authorise a transfer from your Vaulte account.
+Verification code: ${opts.code}
+
+Transfer details:
+- Amount:    ${opts.amount}
+- Recipient: ${opts.recipient}${opts.bank ? `\n- Bank:      ${opts.bank}` : ""}
+- Time:      ${opts.time}
+- IP:        ${opts.ip}
+- Device:    ${opts.device}
+
+This code expires in ${opts.expiryMin} minutes.
+
+If you did NOT initiate this transfer, do not share this code and contact ${SUPPORT_EMAIL} immediately.
+
+— Vaulte Security Team`;
+
+  return {
+    html: baseLayout({
+      preheader:   `Authorise transfer of ${opts.amount} to ${opts.recipient} — code ${opts.code}`,
+      headerTitle: "Authorise Transfer",
+      headerSub:   "Confirm your payment with the code below",
+      body,
+      footerNote:  `This code was generated because a transfer was initiated from your Vaulte account.`,
+      footerFrom:  "no-reply",
+    }),
+    text,
+  };
+}
+
 // ─── 3. Password Reset Email ─────────────────────────────────
 export function passwordResetEmail(opts: {
   firstName:  string;

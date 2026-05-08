@@ -41,7 +41,7 @@ function getInitials(name: string): string {
 }
 
 // ─── Step Types ──────────────────────────────────────────────
-type Step = 1 | 2 | 3 | 4 | "processing" | "success" | "dormant_error";
+type Step = 1 | 2 | 3 | 4 | "otp_verify" | "processing" | "success" | "dormant_error";
 
 // ─── Internal Transfer Form ──────────────────────────────────
 interface InternalForm {
@@ -120,6 +120,20 @@ export default function TransferPage() {
   const [saved, setSavedDone]                 = useState(false);
   // Dormant message — computed dynamically from the user's last transaction date
   const [dormantMessage, setDormantMessage]   = useState("");
+
+  // ── Step OTP: 6-digit code, request state, errors, cooldown ─
+  // The OTP is a step-up gate between Review (step 4) and Processing.
+  // The transfer is NEVER committed until the server returns success
+  // from /api/transfer/verify-otp, so even a state-tampered client
+  // can't move money without a valid code from the user's email.
+  const [otpDigits, setOtpDigits]             = useState<string[]>(["", "", "", "", "", ""]);
+  const [otpError,  setOtpError]              = useState("");
+  const [otpInfo,   setOtpInfo]               = useState("");
+  const [otpSending,   setOtpSending]         = useState(false);
+  const [otpVerifying, setOtpVerifying]       = useState(false);
+  const [otpCooldown,  setOtpCooldown]        = useState(0);   // seconds remaining before resend
+  const [otpAttemptsLeft, setOtpAttemptsLeft] = useState(5);
+  const otpInputRefs                          = useRef<(HTMLInputElement | null)[]>([]);
 
   // ── Init ──────────────────────────────────────────────────
   useEffect(() => {
@@ -351,8 +365,145 @@ export default function TransferPage() {
     setAmountErr("");
   };
 
-  // Confirm & process transfer
-  const handleConfirm = () => {
+  // ── OTP cooldown ticker ───────────────────────────────────
+  // Decrements once per second whenever otpCooldown > 0.  Independent
+  // of the step state so a user navigating back to step 4 can't game
+  // a faster Resend than the server allows.
+  useEffect(() => {
+    if (otpCooldown <= 0) return;
+    const id = setInterval(() => {
+      setOtpCooldown(c => (c <= 1 ? 0 : c - 1));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [otpCooldown]);
+
+  // ── Step 4 → OTP step: request a code, then transition ────
+  // Called by the "Confirm & Send" button on the Review step.  The
+  // transfer is NOT committed here — only an email with a 6-digit code
+  // is sent.  processTransfer() runs after the user enters that code
+  // and the server verifies it.
+  const requestTransferOtp = async () => {
+    if (!fromAccount) return;
+    setOtpSending(true);
+    setOtpError("");
+    setOtpInfo("");
+    try {
+      const amountFmt = `${fromAccount.symbol}${numAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const res = await fetch("/api/transfer/send-otp", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ amount: amountFmt, recipient: recipientName, bank: recipientBankName }),
+      });
+      const data = await res.json() as { success?: boolean; error?: string; cooldownMs?: number; waitSecs?: number };
+
+      if (!res.ok || !data.success) {
+        setOtpError(data.error || "Failed to send verification code. Please try again.");
+        setOtpSending(false);
+        return;
+      }
+
+      // Reset OTP UI for a fresh entry, prime the cooldown, then move
+      // the user to the verification step.
+      setOtpDigits(["", "", "", "", "", ""]);
+      setOtpAttemptsLeft(5);
+      setOtpCooldown(Math.ceil((data.cooldownMs ?? 30_000) / 1000));
+      setOtpInfo(`Verification code sent to your email. It expires in 5 minutes.`);
+      setStep("otp_verify");
+      setOtpSending(false);
+      // Focus the first OTP box so the user can type immediately
+      setTimeout(() => otpInputRefs.current[0]?.focus(), 60);
+    } catch {
+      setOtpError("Network error. Please check your connection and try again.");
+      setOtpSending(false);
+    }
+  };
+
+  // Resend handler — same endpoint, same cooldown semantics enforced
+  // by the server (the client cooldown is purely UI; the server is the
+  // authority).
+  const resendTransferOtp = async () => {
+    if (otpCooldown > 0 || otpSending) return;
+    await requestTransferOtp();
+  };
+
+  // OTP digit input handler
+  const handleOtpDigit = (index: number, value: string) => {
+    const v = value.replace(/[^0-9]/g, "").slice(0, 1);
+    setOtpDigits(prev => {
+      const next = [...prev];
+      next[index] = v;
+      return next;
+    });
+    setOtpError("");
+    if (v && index < 5) otpInputRefs.current[index + 1]?.focus();
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !otpDigits[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/[^0-9]/g, "").slice(0, 6);
+    if (!pasted) return;
+    const next = ["", "", "", "", "", ""];
+    for (let i = 0; i < pasted.length; i++) next[i] = pasted[i];
+    setOtpDigits(next);
+    otpInputRefs.current[Math.min(pasted.length, 5)]?.focus();
+  };
+
+  // Verify OTP, then commit the transfer.  This is the single gate
+  // that protects every transfer — without a 200 from this call, the
+  // money never moves.
+  const verifyOtpAndProcess = async () => {
+    const code = otpDigits.join("");
+    if (code.length < 6) {
+      setOtpError("Enter the full 6-digit code.");
+      return;
+    }
+    setOtpVerifying(true);
+    setOtpError("");
+    try {
+      const res = await fetch("/api/transfer/verify-otp", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ code }),
+      });
+      const data = await res.json() as {
+        success?:         boolean;
+        error?:           string;
+        attemptsLeft?:    number;
+        expired?:         boolean;
+        tooManyAttempts?: boolean;
+      };
+
+      if (!res.ok || !data.success) {
+        setOtpError(data.error || "Verification failed. Please try again.");
+        if (typeof data.attemptsLeft === "number") setOtpAttemptsLeft(data.attemptsLeft);
+        // On expiry / lockout, clear digits so user starts a fresh try
+        if (data.expired || data.tooManyAttempts) {
+          setOtpDigits(["", "", "", "", "", ""]);
+          setOtpAttemptsLeft(5);
+        }
+        setOtpVerifying(false);
+        return;
+      }
+
+      // ✅ Code verified — commit the transfer.
+      setOtpVerifying(false);
+      processTransfer();
+    } catch {
+      setOtpError("Network error. Please try again.");
+      setOtpVerifying(false);
+    }
+  };
+
+  // The actual transfer commit.  Only callable from verifyOtpAndProcess
+  // (or the legacy code path during refactor — but the only invocation
+  // in the JSX goes through the OTP gate).
+  const processTransfer = () => {
     setStep("processing");
     void (async () => {
       // ── 2-second processing animation ────────────────────────
@@ -509,6 +660,11 @@ export default function TransferPage() {
     setVerification(null); setVerifying(false);
     setAmount(""); setAmountErr("");
     setTxRef(""); setSaveAfter(false); setSavedDone(false);
+    // Wipe any in-flight OTP state so a new transfer starts clean.
+    setOtpDigits(["", "", "", "", "", ""]);
+    setOtpError(""); setOtpInfo("");
+    setOtpSending(false); setOtpVerifying(false);
+    setOtpCooldown(0); setOtpAttemptsLeft(5);
     const s = getState();
     const first = s.accounts.find(a => !a.frozen && a.type !== "crypto");
     setFromAccountId(first?.id ?? "");
@@ -563,6 +719,10 @@ export default function TransferPage() {
 
   // ─── Stepper Component ───────────────────────────────────
   const StepIndicator = () => {
+    // Treat the OTP step as a continuation of step 4 in the visual
+    // stepper — it's a sub-step of "Review & Confirm", not a brand-new
+    // pillar.  Keeps the four labels clean and avoids redesigning the
+    // stepper just for the auth gate.
     const currentStep = typeof step === "number" ? step : 5;
     return (
       <div className="transfer-stepper" style={{ padding: "22px 28px 18px", borderBottom: `1px solid ${C.border}` }}>
@@ -1045,12 +1205,108 @@ export default function TransferPage() {
                 )}
 
                 <div style={{ display: "flex", gap: 12 }}>
-                  <button onClick={() => setStep(3)} style={{ padding: "13px 20px", borderRadius: 14, border: `1px solid ${C.border}`, background: "transparent", color: C.sub, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>← Back</button>
-                  <button onClick={handleConfirm}
-                    style={{ flex: 1, padding: "13px", borderRadius: 14, border: "none", background: "linear-gradient(135deg,#1A73E8,#1558b0)", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(26,115,232,0.28)", transition: "all 0.2s" }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 24px rgba(26,115,232,0.38)"; (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px rgba(26,115,232,0.28)"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}>
-                    ✓ Confirm & Send
+                  <button onClick={() => setStep(3)} disabled={otpSending} style={{ padding: "13px 20px", borderRadius: 14, border: `1px solid ${C.border}`, background: "transparent", color: C.sub, fontSize: 14, fontWeight: 600, cursor: otpSending ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: otpSending ? 0.6 : 1 }}>← Back</button>
+                  <button onClick={requestTransferOtp} disabled={otpSending}
+                    style={{ flex: 1, padding: "13px", borderRadius: 14, border: "none", background: otpSending ? "#94A3B8" : "linear-gradient(135deg,#1A73E8,#1558b0)", color: "#fff", fontSize: 14, fontWeight: 700, cursor: otpSending ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: otpSending ? "none" : "0 4px 16px rgba(26,115,232,0.28)", transition: "all 0.2s" }}
+                    onMouseEnter={e => { if (otpSending) return; (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 24px rgba(26,115,232,0.38)"; (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; }}
+                    onMouseLeave={e => { if (otpSending) return; (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px rgba(26,115,232,0.28)"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}>
+                    {otpSending ? "Sending code…" : "✓ Confirm & Send"}
+                  </button>
+                  {otpError && <p style={{ fontSize: 12, color: "#DC2626", marginTop: 8, width: "100%", textAlign: "center" }}>{otpError}</p>}
+                </div>
+              </div>
+            )}
+
+            {/* ══════ OTP VERIFICATION ══════
+                Step-up gate between Review and Processing.  Shown after the
+                user clicks "Confirm & Send".  The transfer is NEVER committed
+                until /api/transfer/verify-otp returns success — see
+                verifyOtpAndProcess() above. */}
+            {step === "otp_verify" && (
+              <div>
+                <div style={{ textAlign: "center", marginBottom: 24 }}>
+                  <div style={{ width: 64, height: 64, borderRadius: "50%", background: "linear-gradient(135deg,#EFF6FF,#DBEAFE)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: 28 }}>🔐</div>
+                  <p style={{ fontSize: 19, fontWeight: 800, color: C.text, marginBottom: 6, letterSpacing: "-0.3px" }}>Authorise this transfer</p>
+                  <p style={{ fontSize: 13, color: C.muted, maxWidth: 360, margin: "0 auto", lineHeight: 1.6 }}>
+                    We sent a 6-digit verification code to your email. Enter it below to complete the transfer of{" "}
+                    <strong style={{ color: C.text }}>{fromAccount?.symbol ?? "$"}{numAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>{" "}
+                    to <strong style={{ color: C.text }}>{recipientName}</strong>.
+                  </p>
+                </div>
+
+                {/* 6-digit OTP boxes */}
+                <div className="otp-row" style={{ display: "flex", gap: 10, justifyContent: "center", marginBottom: 18 }} onPaste={handleOtpPaste}>
+                  {otpDigits.map((d, i) => (
+                    <input
+                      key={i}
+                      ref={el => { otpInputRefs.current[i] = el; }}
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={1}
+                      value={d}
+                      disabled={otpVerifying}
+                      onChange={e => handleOtpDigit(i, e.target.value)}
+                      onKeyDown={e => handleOtpKeyDown(i, e)}
+                      style={{
+                        width: 52, height: 60, textAlign: "center",
+                        fontSize: 24, fontWeight: 800, color: C.text,
+                        border: `2px solid ${otpError ? "#EF4444" : d ? C.blue : C.border}`,
+                        borderRadius: 12, outline: "none",
+                        background: d ? "#EFF6FF" : "#F8FAFC",
+                        transition: "all 0.18s", fontFamily: "'Courier New', monospace",
+                        boxShadow: d ? "0 0 0 3px rgba(26,115,232,0.12)" : "none",
+                        caretColor: C.blue,
+                      }}
+                      onFocus={e => { (e.currentTarget as HTMLInputElement).style.borderColor = C.blue; (e.currentTarget as HTMLInputElement).style.boxShadow = "0 0 0 3px rgba(26,115,232,0.1)"; }}
+                      onBlur={e => { if (!d) { (e.currentTarget as HTMLInputElement).style.borderColor = otpError ? "#EF4444" : C.border; (e.currentTarget as HTMLInputElement).style.boxShadow = "none"; } }}
+                    />
+                  ))}
+                </div>
+
+                {/* Error / info messages */}
+                {otpError && (
+                  <div style={{ padding: "10px 14px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, marginBottom: 14, fontSize: 12.5, color: "#DC2626", textAlign: "center" }}>
+                    ⚠️ {otpError}
+                  </div>
+                )}
+                {!otpError && otpInfo && (
+                  <p style={{ textAlign: "center", fontSize: 12.5, color: C.muted, marginBottom: 14 }}>{otpInfo}</p>
+                )}
+                {!otpError && otpAttemptsLeft < 5 && otpAttemptsLeft > 0 && (
+                  <p style={{ textAlign: "center", fontSize: 12, color: "#D97706", marginBottom: 14 }}>
+                    ⚠ {otpAttemptsLeft} attempt{otpAttemptsLeft === 1 ? "" : "s"} remaining
+                  </p>
+                )}
+
+                {/* Verify + back buttons */}
+                <div style={{ display: "flex", gap: 12, marginBottom: 18 }}>
+                  <button onClick={() => { setStep(4); setOtpError(""); setOtpInfo(""); }} disabled={otpVerifying}
+                    style={{ padding: "13px 20px", borderRadius: 14, border: `1px solid ${C.border}`, background: "transparent", color: C.sub, fontSize: 14, fontWeight: 600, cursor: otpVerifying ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: otpVerifying ? 0.6 : 1 }}>← Back</button>
+                  <button onClick={verifyOtpAndProcess} disabled={otpVerifying || otpDigits.join("").length < 6}
+                    style={{ flex: 1, padding: "13px", borderRadius: 14, border: "none",
+                      background: (otpVerifying || otpDigits.join("").length < 6) ? "#94A3B8" : "linear-gradient(135deg,#1A73E8,#1558b0)",
+                      color: "#fff", fontSize: 14, fontWeight: 700,
+                      cursor: (otpVerifying || otpDigits.join("").length < 6) ? "not-allowed" : "pointer",
+                      fontFamily: "inherit",
+                      boxShadow: (otpVerifying || otpDigits.join("").length < 6) ? "none" : "0 4px 16px rgba(26,115,232,0.28)",
+                      transition: "all 0.2s",
+                    }}>
+                    {otpVerifying ? "Verifying…" : "Verify & Send"}
+                  </button>
+                </div>
+
+                {/* Resend with 30s cooldown */}
+                <div style={{ textAlign: "center", fontSize: 13, color: C.sub }}>
+                  Didn&apos;t get the code?{" "}
+                  <button type="button" onClick={resendTransferOtp} disabled={otpCooldown > 0 || otpSending || otpVerifying}
+                    style={{
+                      background: "none", border: "none", padding: 0,
+                      color: (otpCooldown > 0 || otpSending) ? C.muted : C.blue,
+                      fontWeight: 700, cursor: (otpCooldown > 0 || otpSending || otpVerifying) ? "not-allowed" : "pointer",
+                      fontSize: 13, fontFamily: "inherit",
+                    }}>
+                    {otpSending ? "Sending…" : otpCooldown > 0 ? `Resend in ${otpCooldown}s` : "Resend code"}
                   </button>
                 </div>
               </div>

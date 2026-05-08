@@ -38,6 +38,12 @@ export const RK = {
   authUser:       (email: string) => `auth:user:${email.toLowerCase()}`,
   verifyOtp:      (email: string) => `otp:verify:${email.toLowerCase()}`,
   loginOtp:       (email: string) => `otp:login:${email.toLowerCase()}`,
+  /**
+   * Step-up OTP for high-value actions (currently bank transfers).
+   * Stored under the user's email so even concurrent transfer attempts
+   * from the same account share one in-flight code.
+   */
+  transferOtp:    (email: string) => `otp:transfer:${email.toLowerCase()}`,
   resetToken:     (token: string) => `reset:token:${token}`,
   rateLoginEmail: (email: string) => `rate:login:email:${email.toLowerCase()}`,
   rateLoginIp:    (ip: string)    => `rate:login:ip:${ip}`,

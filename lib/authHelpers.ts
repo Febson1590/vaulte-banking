@@ -157,8 +157,12 @@ export const OTP_ATTEMPT_CONFIG: RateLimitConfig = {
   lockoutMs:   15 * 60 * 1000,   // 15 min lockout
 };
 
-// Resend OTP cooldown
+// Resend OTP cooldown (login)
 export const RESEND_COOLDOWN_MS = 60 * 1000;  // 60 seconds
+
+// Resend OTP cooldown (transfer step-up) — shorter so users approving
+// a real-time payment aren't kept waiting if the first email is slow.
+export const TRANSFER_RESEND_COOLDOWN_MS = 30 * 1000;  // 30 seconds
 
 // Forgot password: max 3 per hour per email/IP
 export const FORGOT_RATE_CONFIG: RateLimitConfig = {
@@ -169,9 +173,10 @@ export const FORGOT_RATE_CONFIG: RateLimitConfig = {
 
 // ─── Expiry Helpers ──────────────────────────────────────────
 
-export const VERIFY_OTP_TTL_MS  = 10 * 60 * 1000;  // 10 minutes
-export const LOGIN_OTP_TTL_MS   =  5 * 60 * 1000;  //  5 minutes
-export const RESET_TOKEN_TTL_MS = 15 * 60 * 1000;  // 15 minutes
+export const VERIFY_OTP_TTL_MS    = 10 * 60 * 1000;  // 10 minutes
+export const LOGIN_OTP_TTL_MS     =  5 * 60 * 1000;  //  5 minutes
+export const TRANSFER_OTP_TTL_MS  =  5 * 60 * 1000;  //  5 minutes — step-up for transfers
+export const RESET_TOKEN_TTL_MS   = 15 * 60 * 1000;  // 15 minutes
 
 /** Convert ms TTL to seconds for Redis EXPIRE. */
 export function msToSeconds(ms: number): number {

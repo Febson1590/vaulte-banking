@@ -21,6 +21,7 @@ import nodemailer, { Transporter } from "nodemailer";
 import {
   verificationCodeEmail,
   loginOtpEmail,
+  transferOtpEmail,
   passwordResetEmail,
   newLoginAlertEmail,
   welcomeEmail,
@@ -193,6 +194,38 @@ export async function sendLoginOtp(opts: {
     from:    NOREPLY,
     to:      opts.to,
     subject: "Vaulte Secure Login Code",
+    html,
+    text,
+  });
+}
+
+// ─── 2b. Send Transfer Step-up OTP ────────────────────────────
+export async function sendTransferOtp(opts: {
+  to:         string;
+  firstName:  string;
+  code:       string;
+  amount:     string;
+  recipient:  string;
+  bank?:      string;
+  ip:         string;
+  device:     string;
+  time:       string;
+}): Promise<{ success: boolean; error?: string }> {
+  const { html, text } = transferOtpEmail({
+    firstName: opts.firstName,
+    code:      opts.code,
+    expiryMin: 5,
+    amount:    opts.amount,
+    recipient: opts.recipient,
+    bank:      opts.bank,
+    ip:        opts.ip,
+    device:    opts.device,
+    time:      opts.time,
+  });
+  return sendViaResend({
+    from:    NOREPLY,
+    to:      opts.to,
+    subject: `Authorise transfer of ${opts.amount} — Vaulte verification`,
     html,
     text,
   });
