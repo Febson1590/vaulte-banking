@@ -68,7 +68,7 @@ export default function Navbar() {
           <img className="nav-logo" src="/assets/logo-vaulte.png" alt="Vaulte"
                width={400} height={266}
                loading="eager" fetchPriority="high" decoding="async"
-               style={{ height: 110, width: "auto", objectFit: "contain", mixBlendMode: "screen", display: "block" }} />
+               style={{ height: 134, width: "auto", objectFit: "contain", mixBlendMode: "screen", display: "block" }} />
         </Link>
 
         {/* Desktop nav links */}
@@ -167,7 +167,7 @@ export default function Navbar() {
         }
         @media (max-width: 880px) {
           .vaulte-nav .nav-links    { gap: 18px !important; }
-          .vaulte-nav .nav-logo     { height: 96px !important; }
+          .vaulte-nav .nav-logo     { height: 116px !important; }
         }
 
         /* Mobile: hide desktop nav + CTA group, show hamburger.
@@ -178,15 +178,15 @@ export default function Navbar() {
           .vaulte-nav .nav-cta-group { display: none !important; }
           .vaulte-nav .nav-hamburger { display: flex !important; }
           .vaulte-nav .nav-inner     { padding: 0 16px !important; height: 64px !important; }
-          .vaulte-nav .nav-logo      { height: 92px !important; }
+          .vaulte-nav .nav-logo      { height: 110px !important; }
         }
         @media (max-width: 480px) {
           .vaulte-nav .nav-inner     { padding: 0 14px !important; }
-          .vaulte-nav .nav-logo      { height: 84px !important; }
+          .vaulte-nav .nav-logo      { height: 100px !important; }
         }
         @media (max-width: 360px) {
           .vaulte-nav .nav-inner     { padding: 0 10px !important; }
-          .vaulte-nav .nav-logo      { height: 76px !important; }
+          .vaulte-nav .nav-logo      { height: 92px !important; }
         }
       `}</style>
     </nav>

@@ -40,7 +40,7 @@ export default function ContactPage() {
           <img src="/assets/logo-vaulte.png" alt="Vaulte"
                width={400} height={266}
                loading="eager" decoding="async"
-               style={{ height: 120, objectFit: "contain", mixBlendMode: "screen" }} />
+               style={{ height: 150, objectFit: "contain", mixBlendMode: "screen" }} />
         </Link>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <LanguageSwitcher variant="dark" />

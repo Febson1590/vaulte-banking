@@ -56,7 +56,7 @@ export default function ForgotPasswordPage() {
           <img src="/assets/logo-vaulte.png" alt="Vaulte"
                width={400} height={266}
                loading="eager" fetchPriority="high" decoding="async"
-               style={{ height: 200, objectFit: "contain", mixBlendMode: "screen", display: "block", margin: "0 auto" }} />
+               style={{ height: 240, objectFit: "contain", mixBlendMode: "screen", display: "block", margin: "0 auto" }} />
         </div>
 
         <div style={{ padding: "32px 32px 28px" }}>

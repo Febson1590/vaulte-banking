@@ -141,7 +141,7 @@ function LoginPageInner() {
               <img className="auth-logo" src="/assets/logo-vaulte.png" alt="Vaulte"
                    width={400} height={266}
                    loading="eager" fetchPriority="high" decoding="async"
-                   style={{ height: 200, objectFit: "contain", mixBlendMode: "screen", display: "block", margin: "0 auto" }} />
+                   style={{ height: 240, objectFit: "contain", mixBlendMode: "screen", display: "block", margin: "0 auto" }} />
             </Link>
           </div>
 
@@ -240,10 +240,10 @@ function LoginPageInner() {
 
       <style>{`
         @media (max-width: 480px) {
-          .auth-logo { height: 140px !important; }
+          .auth-logo { height: 170px !important; }
         }
         @media (max-width: 360px) {
-          .auth-logo { height: 120px !important; }
+          .auth-logo { height: 145px !important; }
         }
         input::placeholder { color: rgba(255,255,255,0.25) !important; }
       `}</style>

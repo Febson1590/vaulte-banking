@@ -139,7 +139,7 @@ export default function RegisterPage() {
               <img className="auth-logo" src="/assets/logo-vaulte.png" alt="Vaulte"
                    width={400} height={266}
                    loading="eager" fetchPriority="high" decoding="async"
-                   style={{ height: 190, objectFit: "contain", mixBlendMode: "screen", display: "block", margin: "0 auto" }} />
+                   style={{ height: 230, objectFit: "contain", mixBlendMode: "screen", display: "block", margin: "0 auto" }} />
             </Link>
           </div>
 
@@ -275,10 +275,10 @@ export default function RegisterPage() {
       <style>{`
         @media(max-width:480px){
           .register-name-grid { grid-template-columns: 1fr !important; }
-          .auth-logo { height: 140px !important; }
+          .auth-logo { height: 170px !important; }
         }
         @media(max-width:360px){
-          .auth-logo { height: 120px !important; }
+          .auth-logo { height: 145px !important; }
         }
         input::placeholder { color: rgba(255,255,255,0.25) !important; }
       `}</style>
