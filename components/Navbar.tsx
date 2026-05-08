@@ -51,11 +51,19 @@ export default function Navbar() {
         alignItems:     "center",
         justifyContent: "space-between",
         gap:            16,
+        // Allow the logo to extend visually beyond the navbar's 72 px height
+        // — its transparent canvas + mixBlendMode hides everything outside
+        // the V-shield + "VAULTE" mark, so only the brand mark sticks out.
+        overflow:       "visible",
       }}>
 
-        {/* Logo */}
+        {/* Logo — image height is intentionally larger than the navbar.
+            The PNG has a transparent background and uses mixBlendMode:screen,
+            so the surrounding canvas is invisible — visually only the V
+            shield + "VAULTE" wordmark show, sized to feel premium without
+            inflating the navbar layout. */}
         <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", flexShrink: 0 }}>
-          <img className="nav-logo" src="/assets/logo-vaulte.png" alt="Vaulte" style={{ height: 86, width: "auto", objectFit: "contain", mixBlendMode: "screen", display: "block" }} />
+          <img className="nav-logo" src="/assets/logo-vaulte.png" alt="Vaulte" style={{ height: 110, width: "auto", objectFit: "contain", mixBlendMode: "screen", display: "block" }} />
         </Link>
 
         {/* Desktop nav links */}
@@ -147,22 +155,33 @@ export default function Navbar() {
       )}
 
       <style>{`
-        /* Tablet: tighten spacing */
-        @media (max-width: 960px) {
-          .vaulte-nav .nav-links { gap: 22px !important; }
-          .vaulte-nav .nav-login { padding: 8px 10px !important; }
+        /* Tablet: tighten link spacing so the larger logo + CTA fits */
+        @media (max-width: 1024px) {
+          .vaulte-nav .nav-links    { gap: 24px !important; }
+          .vaulte-nav .nav-login    { padding: 8px 12px !important; }
         }
-        /* Mobile: hide desktop nav + CTA group, show hamburger */
+        @media (max-width: 880px) {
+          .vaulte-nav .nav-links    { gap: 18px !important; }
+          .vaulte-nav .nav-logo     { height: 96px !important; }
+        }
+
+        /* Mobile: hide desktop nav + CTA group, show hamburger.
+           Navbar height stays at 64 — the logo's transparent canvas
+           lets it visually overflow without inflating the chrome. */
         @media (max-width: 768px) {
           .vaulte-nav .nav-links,
           .vaulte-nav .nav-cta-group { display: none !important; }
           .vaulte-nav .nav-hamburger { display: flex !important; }
-          .vaulte-nav .nav-inner { padding: 0 16px !important; height: 64px !important; }
-          .vaulte-nav .nav-logo { height: 74px !important; }
+          .vaulte-nav .nav-inner     { padding: 0 16px !important; height: 64px !important; }
+          .vaulte-nav .nav-logo      { height: 92px !important; }
+        }
+        @media (max-width: 480px) {
+          .vaulte-nav .nav-inner     { padding: 0 14px !important; }
+          .vaulte-nav .nav-logo      { height: 84px !important; }
         }
         @media (max-width: 360px) {
-          .vaulte-nav .nav-inner { padding: 0 12px !important; }
-          .vaulte-nav .nav-logo { height: 66px !important; }
+          .vaulte-nav .nav-inner     { padding: 0 10px !important; }
+          .vaulte-nav .nav-logo      { height: 76px !important; }
         }
       `}</style>
     </nav>
