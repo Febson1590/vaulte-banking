@@ -104,6 +104,40 @@ export default function TawkToChat() {
 
     (window as WindowWithTawk).Tawk_API = tawkApi;
 
+    // ── Mobile visibility boost ────────────────────────────────────────────
+    //
+    // Tawk's default mobile launcher is ~48 px and can blend into the page
+    // on busy backgrounds.  This stylesheet:
+    //   • Forces a minimum tap target of 64 × 64 px on phones (Apple's
+    //     accessibility minimum is 44 px; we go larger for confidence).
+    //   • Lifts the launcher above iOS Safari's bottom toolbar so it
+    //     doesn't get hidden when the toolbar slides into view.
+    //   • Adds a subtle drop shadow so the bubble pops on white pages.
+    //
+    // Tawk renders into iframes whose titles include "chat widget" — those
+    // are stable across Tawk releases and what their docs recommend
+    // targeting from outside.
+    const sizeBoost = document.createElement("style");
+    sizeBoost.id = "vaulte-tawk-size-boost";
+    sizeBoost.textContent = `
+      /* Selector matches Tawk's launcher iframe (the small bubble) but NOT
+         the chat-window iframe (which is much wider).  Tawk's own scripts
+         set inline styles, so we rely on !important. */
+      iframe[title*="chat widget"] {
+        min-width:  64px !important;
+        min-height: 64px !important;
+        filter: drop-shadow(0 6px 18px rgba(15,23,42,0.22)) !important;
+      }
+
+      @media (max-width: 768px) {
+        iframe[title*="chat widget"] {
+          /* Lift above iOS Safari's home indicator + bottom toolbar */
+          bottom: max(16px, env(safe-area-inset-bottom)) !important;
+        }
+      }
+    `;
+    document.head.appendChild(sizeBoost);
+
     // Inject the script
     const s1 = document.createElement("script");
     s1.async   = true;
@@ -133,6 +167,8 @@ export default function TawkToChat() {
       clearInterval(pollInterval);
       window.clearTimeout(stopPolling);
       try { document.head.removeChild(s1); } catch { /* ignore */ }
+      const sb = document.getElementById("vaulte-tawk-size-boost");
+      if (sb) try { document.head.removeChild(sb); } catch { /* ignore */ }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
