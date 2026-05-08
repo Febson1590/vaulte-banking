@@ -76,9 +76,12 @@ type WindowWithTawk = Window & { Tawk_API?: TawkAPI; Tawk_LoadStart?: Date };
 
 export default function TawkToChat() {
   const pathname = usePathname();
-  // Stash tags in a ref so the onLoad callback can read them without
-  // creating a closure over a stale render.
+  // Stash tags + the latest pathname in refs so onLoad (which captures
+  // the closure of the FIRST render) always sees current values.  This
+  // is the canonical "ref to latest" pattern for async callbacks.
   const pendingTagsRef = useRef<string[]>([]);
+  const pathnameRef    = useRef<string | null>(pathname);
+  pathnameRef.current  = pathname;
 
   // ── Load the Tawk script + wire up identity (runs once globally) ─────────
   useEffect(() => {
@@ -122,15 +125,38 @@ export default function TawkToChat() {
     }
     pendingTagsRef.current = tags;
 
-    // Apply tags + diagnostic ping the moment the widget is fully live.
+    // Apply tags + sync visibility the moment the widget is fully live.
     // Tawk_API.onLoad is the canonical "ready" hook from their docs.
+    //
+    // CRITICAL: this is also where we re-assert the show/hide state.
+    // The path-change useEffect below polls for the API but gives up
+    // after ~9 s — on slow mobile networks Tawk sometimes loads later
+    // than that, leading to "the chat icon doesn't appear after a
+    // refresh" reports.  Reading pathnameRef inside onLoad guarantees
+    // the visibility is correct as soon as the API is callable, no
+    // matter how long the script took to download.
     tawkApi.onLoad = () => {
       const live = (window as WindowWithTawk).Tawk_API;
       if (!live) return;
       // eslint-disable-next-line no-console
       console.log("[Tawk] widget ready");
+
+      // Tags
       if (pendingTagsRef.current.length && typeof live.addTags === "function") {
         live.addTags(pendingTagsRef.current, () => { /* swallow */ });
+        pendingTagsRef.current = [];
+      }
+
+      // Visibility — Tawk shows the launcher by default, so this is
+      // only meaningful for the HIDE_ON_PATHS case, but we call it
+      // unconditionally so any state Tawk might have cached
+      // server-side / in localStorage is overridden by what the
+      // current path expects.
+      const hideNow = shouldHide(pathnameRef.current);
+      if (hideNow && typeof live.hideWidget === "function") {
+        live.hideWidget();
+      } else if (!hideNow && typeof live.showWidget === "function") {
+        live.showWidget();
       }
     };
 
@@ -223,18 +249,29 @@ export default function TawkToChat() {
   }, []);
 
   // ── Show / hide the widget based on the current path ─────────────────────
+  // This effect handles client-side route changes after Tawk is already
+  // live.  The first-paint case (Tawk not loaded yet) is handled inside
+  // the onLoad hook above — it reads the current pathname from the ref
+  // and applies the right visibility regardless of how slowly the
+  // script downloaded.
   useEffect(() => {
     const hide = shouldHide(pathname);
 
-    // Tawk loads asynchronously, so api.hideWidget may not be a function
-    // yet on the very first render after a fresh visit.  Retry briefly.
+    // Tawk loads asynchronously.  Poll briefly for cases where the
+    // client-side navigation arrives before the script.  We give up
+    // after ~30 s (100 × 300 ms) — that's enough for any reasonable
+    // mobile network; if the script truly failed to load, onerror has
+    // already logged it and there's nothing to call anyway.
+    let cancelled = false;
     const attempt = (tries: number): void => {
+      if (cancelled) return;
       const live = (window as WindowWithTawk).Tawk_API;
       const fn   = hide ? live?.hideWidget : live?.showWidget;
       if (typeof fn === "function") { fn(); return; }
-      if (tries < 30) setTimeout(() => attempt(tries + 1), 300);
+      if (tries < 100) setTimeout(() => attempt(tries + 1), 300);
     };
     attempt(0);
+    return () => { cancelled = true; };
   }, [pathname]);
 
   // No JSX — Tawk renders its own widget directly into <body>.
