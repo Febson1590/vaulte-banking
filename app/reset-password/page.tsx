@@ -123,7 +123,10 @@ function ResetPasswordInner() {
         {/* Blue header */}
         <div style={{ background: "linear-gradient(135deg,#1A73E8 0%,#1d4ed8 100%)", height: 160, textAlign: "center", position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ position: "absolute", top: -20, right: -20, width: 90, height: 90, background: "rgba(255,255,255,0.07)", borderRadius: "50%" }} />
-          <img src="/assets/logo-vaulte.png" alt="Vaulte" style={{ height: 200, objectFit: "contain", mixBlendMode: "screen", display: "block", margin: "0 auto" }} />
+          <img src="/assets/logo-vaulte.png" alt="Vaulte"
+               width={400} height={266}
+               loading="eager" fetchPriority="high" decoding="async"
+               style={{ height: 200, objectFit: "contain", mixBlendMode: "screen", display: "block", margin: "0 auto" }} />
         </div>
 
         <div style={{ padding: "32px 32px 28px" }}>

@@ -37,7 +37,7 @@ const features = [
 
 export default function Features() {
   return (
-    <section id="features" className="features" style={{ padding: "100px 5%", background: "#06091A", position: "relative", overflow: "hidden" }}>
+    <section id="features" className="features cv-auto" style={{ padding: "100px 5%", background: "#06091A", position: "relative", overflow: "hidden" }}>
       {/* Background glow */}
       <div aria-hidden="true" style={{ position: "absolute", top: "30%", left: "50%", transform: "translateX(-50%)", width: 600, height: 400, background: "rgba(37,99,235,0.06)", borderRadius: "50%", filter: "blur(100px)", pointerEvents: "none" }} />
 

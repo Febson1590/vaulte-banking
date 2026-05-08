@@ -37,7 +37,7 @@ const badges = [
 
 export default function Security() {
   return (
-    <section id="security" className="security" style={{ padding: "100px 5%", background: "#06091A", position: "relative", overflow: "hidden" }}>
+    <section id="security" className="security cv-auto" style={{ padding: "100px 5%", background: "#06091A", position: "relative", overflow: "hidden" }}>
       {/* Glow blob */}
       <div aria-hidden="true" style={{ position: "absolute", top: "40%", right: "5%", width: 400, height: 400, background: "rgba(96,165,250,0.06)", borderRadius: "50%", filter: "blur(100px)", pointerEvents: "none" }} />
 

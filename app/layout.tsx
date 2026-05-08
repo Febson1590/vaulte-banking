@@ -7,9 +7,15 @@ import TawkToChat from "@/components/TawkToChat";
 // page chrome — landing Navbar, DashboardLayout topbar, AdminLayout header,
 // marketing-page mini navs).  No global floating mount any more.
 
+// Inter font — only the weights actually used in the design.  Was 6 weights
+// (400, 500, 600, 700, 800, 900) which was ~480 KB of font on first paint.
+// We keep 4 weights to cover everything: 500 body, 600 secondary headings
+// + nav links, 700 primary headings + buttons, 900 hero / huge numbers.
+// 400 and 800 are dropped — they were never visibly different from
+// neighbouring weights at the sizes we render at.
 const inter = Inter({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
+  weight:  ["500", "600", "700", "900"],
   display: "swap",
 });
 

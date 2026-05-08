@@ -136,7 +136,10 @@ export default function RegisterPage() {
             <div style={{ position: "absolute", top: -30, right: -30, width: 120, height: 120, background: "rgba(96,165,250,0.08)", borderRadius: "50%", filter: "blur(20px)" }} />
             <div style={{ position: "absolute", bottom: -20, left: -20, width: 100, height: 100, background: "rgba(167,139,250,0.06)", borderRadius: "50%", filter: "blur(20px)" }} />
             <Link href="/" aria-label="Back to Vaulte homepage" style={{ display: "block", margin: "0 auto", position: "relative", textDecoration: "none" }}>
-              <img className="auth-logo" src="/assets/logo-vaulte.png" alt="Vaulte" style={{ height: 190, objectFit: "contain", mixBlendMode: "screen", display: "block", margin: "0 auto" }} />
+              <img className="auth-logo" src="/assets/logo-vaulte.png" alt="Vaulte"
+                   width={400} height={266}
+                   loading="eager" fetchPriority="high" decoding="async"
+                   style={{ height: 190, objectFit: "contain", mixBlendMode: "screen", display: "block", margin: "0 auto" }} />
             </Link>
           </div>
 

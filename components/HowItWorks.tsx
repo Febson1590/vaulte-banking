@@ -30,7 +30,7 @@ const steps = [
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="how-it-works" style={{ padding: "100px 5%", background: "#080D20", position: "relative", overflow: "hidden" }}>
+    <section id="how-it-works" className="how-it-works cv-auto" style={{ padding: "100px 5%", background: "#080D20", position: "relative", overflow: "hidden" }}>
       {/* Decorative glows */}
       <div aria-hidden="true" style={{ position: "absolute", top: 0, left: "20%", width: 500, height: 300, background: "rgba(96,165,250,0.05)", borderRadius: "50%", filter: "blur(80px)", pointerEvents: "none" }} />
       <div aria-hidden="true" style={{ position: "absolute", bottom: 0, right: "10%", width: 400, height: 300, background: "rgba(167,139,250,0.05)", borderRadius: "50%", filter: "blur(80px)", pointerEvents: "none" }} />

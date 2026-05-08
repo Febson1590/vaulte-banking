@@ -59,7 +59,10 @@ export default function HelpPage() {
       {/* Navbar */}
       <nav style={{ background: "#0F172A", padding: "0 5%", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Link href="/" style={{ textDecoration: "none" }}>
-          <img src="/assets/logo-vaulte.png" alt="Vaulte" style={{ height: 120, objectFit: "contain", mixBlendMode: "screen" }} />
+          <img src="/assets/logo-vaulte.png" alt="Vaulte"
+               width={400} height={266}
+               loading="eager" decoding="async"
+               style={{ height: 120, objectFit: "contain", mixBlendMode: "screen" }} />
         </Link>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <LanguageSwitcher variant="dark" />

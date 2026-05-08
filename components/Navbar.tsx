@@ -63,7 +63,12 @@ export default function Navbar() {
             shield + "VAULTE" wordmark show, sized to feel premium without
             inflating the navbar layout. */}
         <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", flexShrink: 0 }}>
-          <img className="nav-logo" src="/assets/logo-vaulte.png" alt="Vaulte" style={{ height: 110, width: "auto", objectFit: "contain", mixBlendMode: "screen", display: "block" }} />
+          {/* Above-the-fold brand mark — load eagerly + high priority so the
+              browser pulls it before any below-the-fold image. */}
+          <img className="nav-logo" src="/assets/logo-vaulte.png" alt="Vaulte"
+               width={400} height={266}
+               loading="eager" fetchPriority="high" decoding="async"
+               style={{ height: 110, width: "auto", objectFit: "contain", mixBlendMode: "screen", display: "block" }} />
         </Link>
 
         {/* Desktop nav links */}

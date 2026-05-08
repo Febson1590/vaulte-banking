@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export default function CTA() {
   return (
-    <section className="cta-section" style={{ padding: "80px 5%", background: "#080D20" }}>
+    <section className="cta-section cv-auto" style={{ padding: "80px 5%", background: "#080D20" }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         <div className="cta-card" style={{
           background:   "linear-gradient(135deg, #0B1527 0%, #0F1E3D 50%, #0B1527 100%)",

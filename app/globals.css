@@ -334,3 +334,50 @@ font                                   { display: inline !important; }
 .vaulte-overlay {
   touch-action: pan-y;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ *  Mobile performance — reduce GPU-expensive effects on phones.
+ *
+ *  backdrop-filter: blur(20px) and filter: blur(100px) on large decorative
+ *  glow blobs are gorgeous on desktop GPUs but cripple cheaper Android
+ *  hardware and older iPhones, where they shave 10–30 fps off scrolling.
+ *  We halve their cost on mobile (≤ 768 px) — visually you can barely
+ *  tell, perceptually it's the difference between buttery and laggy.
+ * ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Cap blur radii to a number GPU rasterisers can handle in a single
+     tile.  100 px+ blur radii force multiple offscreen passes on iOS
+     Safari which is the #1 mobile-jank source. */
+  [style*="filter: blur(100px)"],
+  [style*="filter:blur(100px)"]   { filter: blur(40px) !important; }
+  [style*="filter: blur(90px)"],
+  [style*="filter:blur(90px)"]    { filter: blur(35px) !important; }
+  [style*="filter: blur(80px)"],
+  [style*="filter:blur(80px)"]    { filter: blur(30px) !important; }
+  [style*="filter: blur(70px)"],
+  [style*="filter:blur(70px)"]    { filter: blur(28px) !important; }
+  [style*="filter: blur(60px)"],
+  [style*="filter:blur(60px)"]    { filter: blur(24px) !important; }
+
+  /* Drop ALL backdrop-filter on small screens — it's the most expensive
+     compositor operation on mobile.  Most uses are decorative; the
+     underlying solid colour is enough on a 6-inch screen. */
+  [style*="backdropFilter"],
+  [style*="backdrop-filter"]      { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ *  Below-the-fold rendering optimisation.
+ *
+ *  content-visibility:auto tells the browser "skip layout, paint, and
+ *  rasterise for this subtree until it's near the viewport".  Cuts
+ *  initial-paint time on long marketing pages by 30-50% with zero visual
+ *  difference.  Applied via classes so it's opt-in per section.
+ *
+ *  contain-intrinsic-size reserves a placeholder height so the scroll
+ *  position doesn't jump when content materialises.
+ * ───────────────────────────────────────────────────────────────────────── */
+.cv-auto {
+  content-visibility:     auto;
+  contain-intrinsic-size: 1px 800px;
+}

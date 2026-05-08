@@ -84,7 +84,10 @@ export default function Footer() {
           <div className="footer-brand" style={{ minWidth: 0 }}>
             <div style={{ marginBottom: 16 }}>
               <Link href="/" style={{ display: "inline-block" }}>
-                <img src="/assets/logo-vaulte.png" alt="Vaulte" style={{ height: 100, width: "auto", objectFit: "contain", mixBlendMode: "screen" }} />
+                <img src="/assets/logo-vaulte.png" alt="Vaulte"
+                     width={400} height={266}
+                     loading="lazy" decoding="async"
+                     style={{ height: 100, width: "auto", objectFit: "contain", mixBlendMode: "screen" }} />
               </Link>
             </div>
             <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", lineHeight: 1.75, maxWidth: 260, marginBottom: 24 }}>
