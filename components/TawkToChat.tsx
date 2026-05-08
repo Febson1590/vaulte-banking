@@ -1,10 +1,36 @@
 "use client";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { getCurrentUser } from "@/lib/vaulteState";
 
-const TAWK_PROPERTY_ID = "69af8003ddd7fc1c348540ae";
-const TAWK_WIDGET_ID   = "1jjaoo3d8";
+// Public Tawk.to identifiers — safe to ship in the bundle, they identify the
+// widget the same way a CSS class does.  NEXT_PUBLIC_* env vars override
+// these at build time so we can switch staging / production accounts without
+// a code change.
+const TAWK_PROPERTY_ID =
+  process.env.NEXT_PUBLIC_TAWK_PROPERTY_ID || "69fd676da11ae21c341a171b";
+const TAWK_WIDGET_ID =
+  process.env.NEXT_PUBLIC_TAWK_WIDGET_ID || "1jo2to0tt";
+
+// Pages where the chat launcher is more distraction than help.  The widget
+// stays mounted but is visually hidden so SDK state isn't reset on navigation.
+const HIDE_ON_PATHS = [
+  "/admin/login",
+  "/verify-email",
+  "/login-verify",
+  "/forgot-password",
+  "/reset-password",
+  "/dashboard/kyc",
+];
+
+function shouldHide(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return HIDE_ON_PATHS.some(p => pathname === p || pathname.startsWith(p + "/"));
+}
 
 export default function TawkToChat() {
+  const pathname = usePathname();
+
   // ── Tawk.to state ──────────────────────────────────────────────────────────
   const [chatOpen,  setChatOpen]  = useState(false);
   const [tawkReady, setTawkReady] = useState(false);
@@ -39,6 +65,43 @@ export default function TawkToChat() {
     `;
     document.head.appendChild(styleTag);
 
+    // ── Pre-fill visitor identity BEFORE the Tawk script loads ──────────────
+    //
+    // Tawk reads window.Tawk_API.visitor exactly once on init and uses it to
+    // pre-populate the pre-chat form (name + email).  Setting it after the
+    // widget has loaded is a no-op, so this MUST happen before s1 is appended.
+    //
+    // We also stash a list of tags that we'll apply once the API is ready —
+    // tags can't be added before init, so they're handled in the poll loop
+    // below.
+    const tawkApi = (window as Window & { Tawk_API?: TawkAPI }).Tawk_API ?? {};
+    const tags: string[] = [];
+
+    try {
+      const user = getCurrentUser();
+      if (user) {
+        // Logged-in customer — pre-fill name + email so the agent sees who's
+        // chatting in the Tawk inbox instead of "Visitor 12345".
+        const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
+        (tawkApi as { visitor?: { name?: string; email?: string } }).visitor = {
+          name:  fullName || user.email,
+          email: user.email,
+        };
+        tags.push("customer");
+        if (user.kycStatus === "verified")  tags.push("kyc-verified");
+        if (user.kycStatus === "pending")   tags.push("kyc-pending");
+        if (user.kycStatus === "unverified") tags.push("kyc-unverified");
+      } else {
+        // Anonymous visitor on the marketing pages.
+        tags.push("prospect");
+      }
+    } catch {
+      // localStorage / SSR edge cases — don't block widget load over identity.
+      tags.push("prospect");
+    }
+
+    (window as Window & { Tawk_API?: TawkAPI }).Tawk_API = tawkApi as TawkAPI;
+
     // Inject Tawk.to script
     const s1 = document.createElement("script");
     s1.async = true;
@@ -57,6 +120,14 @@ export default function TawkToChat() {
         api.onChatMaximized      = () => setChatOpen(true);
         api.onChatMinimized      = () => setChatOpen(false);
         api.onUnreadCountChanged = (count: number) => setUnread(count);
+
+        // Apply the tags we collected before the script loaded.  Tags show up
+        // in the Tawk inbox so the agent can triage at a glance: customers
+        // with "kyc-verified" can be answered immediately, "prospect" tags
+        // signal a sales-style conversation, etc.
+        if (tags.length > 0 && typeof api.addTags === "function") {
+          api.addTags(tags, () => { /* swallow errors silently */ });
+        }
 
         // JS-level touch isolation — belt-and-suspenders alongside the CSS rules.
         //
@@ -130,6 +201,7 @@ export default function TawkToChat() {
 
   const showPulse   = !chatOpen && unread > 0;
   const showTooltip = hovered && !chatOpen;
+  const hidden      = shouldHide(pathname);
 
   return (
     <>
@@ -155,6 +227,11 @@ export default function TawkToChat() {
           cursor:     "pointer",
           userSelect: "none",
           overflow:   "visible",   // allow tooltip and pulse ring to extend outside bounds
+          // On routes where we don't want the chat showing (auth flows, KYC
+          // capture, admin login), hide the launcher with display:none rather
+          // than unmounting the component — that keeps the Tawk script alive
+          // so an open conversation isn't reset on every navigation.
+          display:    hidden ? "none" : undefined,
         }}
       >
         {/* Outer pulse ring — shown when there are unread messages */}
@@ -326,4 +403,6 @@ interface TawkAPI {
   onChatMaximized:      () => void;
   onChatMinimized:      () => void;
   onUnreadCountChanged: (count: number) => void;
+  addTags?:             (tags: string[], cb: (err?: unknown) => void) => void;
+  setAttributes?:       (attrs: Record<string, string>, cb: (err?: unknown) => void) => void;
 }
