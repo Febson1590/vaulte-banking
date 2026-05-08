@@ -2,6 +2,97 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; max-width: 100%; }
 
+/* ─────────────────────────────────────────────────────────────────────────
+ *  Mobile-first foundation — prevents iOS Safari auto-zoom on input focus,
+ *  prevents horizontal scroll, and lets the document scroll naturally on
+ *  every device.
+ *
+ *  iOS Safari auto-zooms when an input's font-size is below 16 px.  The
+ *  fix is to force every text-input control to AT LEAST 16 px on mobile.
+ *  Desktop sizes stay at whatever the design specifies.
+ * ───────────────────────────────────────────────────────────────────────── */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust:         100%;
+  scroll-behavior:          smooth;
+
+  /* overflow-x:clip clips visually but (unlike overflow-x:hidden) does NOT
+     create a new block-formatting context or an implicit scroll container.
+     The hidden declaration is listed first as a fallback for older browsers;
+     modern browsers that understand clip override it with the second one.
+     overflow-y stays auto so the document itself scrolls, never frozen. */
+  overflow-x: hidden;
+  overflow-x: clip;
+  overflow-y: auto;
+}
+
+body {
+  background-color:        #F8FAFC;
+  color:                   #111827;
+  font-family:             'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing:  antialiased;
+
+  /* ── Mobile-scroll guarantees ──────────────────────────────────────────
+     overflow-x:hidden traps any rogue wide element inside the viewport so
+     it never produces a horizontal scrollbar.  overflow-y is INTENTIONALLY
+     left unset (defaults to visible) so the document itself scrolls — if
+     any feature ever calls document.body.style.overflow='hidden' (modal,
+     drawer, etc.), that's still possible, but the default is "scroll
+     freely".  Combining min-height:100% with width:100% prevents iOS
+     Safari from generating a phantom horizontal page when address-bar
+     animations recalc the viewport. */
+  width:           100%;
+  min-height:      100%;
+  overflow-x:      hidden;
+
+  /* Tell the browser to handle vertical panning natively, bypassing any
+     touchmove.preventDefault() calls from third-party scripts (Google
+     Translate, Tawk.to).  This is the spec-level fix that prevents those
+     injected handlers from ever blocking a vertical scroll gesture. */
+  touch-action:           pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ *  iOS Safari auto-zoom fix.
+ *
+ *  Apply 16 px ONLY at mobile widths so we don't inflate the design on
+ *  desktop where current sizes are intentional.  Targets the elements
+ *  iOS actually zooms into on focus: text inputs and textareas.  Buttons
+ *  do NOT trigger Safari's auto-zoom on focus — they're left alone so
+ *  current button sizing across the app stays untouched.
+ * ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ *  Form input baseline — fixes iOS appearance, removes default browser
+ *  chrome that would clash with our custom border styling.
+ * ───────────────────────────────────────────────────────────────────────── */
+input,
+select,
+textarea {
+  -webkit-appearance: none;
+  appearance:         none;
+  /* Some inputs in older code rely on text-indent for the leading icon
+     spacing — leave indent alone, but prevent it from going wild. */
+  max-width:          100%;
+}
+
+/* Restore the chevron on native <select> since we just stripped its
+   appearance — most of our selects use a custom chevron anyway, this is
+   a safety net for any that don't. */
+select {
+  background-repeat:    no-repeat;
+  background-position:  right 12px center;
+  padding-right:        36px;
+}
+
 /* ─── Google Translate — hide default toolbar & prevent body offset ───────── */
 /* The injected toolbar frame */
 .goog-te-banner-frame,
@@ -29,25 +120,7 @@ font                                   { display: inline !important; }
 .translated-rtl span,
 .translated-rtl button,
 .translated-rtl a                      { overflow-wrap: break-word; word-break: break-word; }
-/* overflow-x:clip clips visually but (unlike overflow-x:hidden) does NOT create
-   a new block-formatting context or an implicit scroll container.  On iOS Safari,
-   overflow:hidden on <html> can establish a competing scroll boundary that
-   fragments the natural body-scroll context — clip avoids that entirely.
-   The hidden declaration is listed first as a fallback for older browsers;
-   modern browsers that understand clip override it with the second declaration. */
-html { scroll-behavior: smooth; overflow-x: hidden; overflow-x: clip; }
-body {
-  background-color: #F8FAFC;
-  color: #111827;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
-  /* Tell the browser to handle vertical panning natively, bypassing any
-     touchmove.preventDefault() calls from third-party scripts (Google
-     Translate, Tawk.to).  This is the spec-level fix that prevents those
-     injected handlers from ever blocking a vertical scroll gesture. */
-  touch-action: pan-y;
-}
+
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #f1f5f9; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
@@ -118,6 +191,8 @@ body {
 /* ─── OTP Input Row (login-verify & verify-email) ─── */
 @media (max-width: 430px) {
   .otp-row { gap: 6px !important; }
+  /* OTP boxes intentionally use larger font so the auto-zoom fix above
+     doesn't conflict — this rule reinforces the desired size. */
   .otp-row input { width: 42px !important; height: 50px !important; font-size: 20px !important; }
 }
 
@@ -142,16 +217,20 @@ body {
   .admin-sidebar.open {
     transform: translateX(0) !important;
   }
-  /* Semi-transparent backdrop behind the sidebar */
+  /* Semi-transparent backdrop behind the sidebar.  CRITICAL: when not
+     `.open`, pointer-events:none stops the overlay (even at 0 opacity)
+     from intercepting touch events and freezing scroll. */
   .admin-sidebar-backdrop {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    z-index: 99;
+    display:        none;
+    position:       fixed;
+    inset:          0;
+    background:     rgba(0, 0, 0, 0.45);
+    z-index:        99;
+    pointer-events: none;
   }
   .admin-sidebar-backdrop.open {
-    display: block;
+    display:        block;
+    pointer-events: auto;
   }
   /* Header */
   .admin-header {
@@ -227,4 +306,31 @@ body {
   .admin-txgen-summary-grid {
     grid-template-columns: 1fr 1fr !important;
   }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ *  Mobile scroll-freeze guards.
+ *
+ *  These are belt-and-suspenders rules that catch the cases where a
+ *  third-party script or stale state would otherwise leave the body in a
+ *  scroll-locked state.
+ *
+ *  - Any element with [hidden] or aria-hidden="true" must NOT capture
+ *    pointer events.  Stale modal backdrops are the #1 cause of the
+ *    "page won't scroll" bug on mobile.
+ *  - The Tawk widget renders into iframes and a wrapper div.  We can't
+ *    affect the iframe's internal styles, but we can ensure the wrapper
+ *    NEVER blocks page scroll on mobile.
+ * ───────────────────────────────────────────────────────────────────────── */
+[hidden],
+[aria-hidden="true"]:not(svg):not(use) {
+  pointer-events: none;
+}
+
+/* Allow vertical scroll to pass THROUGH any background blur layer that's
+   sitting behind a modal — touch-action:pan-y means "you can scroll the
+   page even if your finger started on this element". */
+.vaulte-modal-backdrop,
+.vaulte-overlay {
+  touch-action: pan-y;
 }

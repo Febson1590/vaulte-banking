@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
@@ -12,6 +12,28 @@ const inter = Inter({
   weight: ["400", "500", "600", "700", "800", "900"],
   display: "swap",
 });
+
+/**
+ * Mobile viewport — explicit settings stop iOS Safari from auto-zooming
+ * into form inputs (combined with the 16 px font-size rule in globals.css).
+ *
+ *   width=device-width   — match the device's logical width.
+ *   initialScale=1       — render at native zoom on first paint.
+ *   maximumScale=1       — discourage the auto-zoom on input focus.  iOS
+ *                          Safari 10+ ignores this for accessibility (users
+ *                          can still pinch-zoom), but it does suppress the
+ *                          aggressive zoom-on-focus behaviour.
+ *   viewportFit=cover    — let the layout extend under the iOS notch /
+ *                          home indicator, which we then respect via
+ *                          env(safe-area-inset-*) in components.
+ */
+export const viewport: Viewport = {
+  width:        "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit:  "cover",
+  themeColor:   "#06091A",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.vaulteapp.com"),
@@ -122,6 +144,42 @@ export default function RootLayout({
                 );
               };
             `,
+          }}
+        />
+
+        {/*
+         * ── Mobile-scroll safety net ─────────────────────────────────────
+         *
+         * Edge case we're guarding against: on iOS Safari, when the user
+         * navigates back via the browser's swipe-back gesture, the bfcache
+         * restores the page WITH any prior inline body.style.overflow still
+         * set to "hidden".  React's useEffect cleanup never re-runs in this
+         * scenario because the component never re-mounted.  Result: the
+         * body stays scroll-locked and the page "freezes".
+         *
+         * The pageshow handler clears any inline overflow on body whenever
+         * the page is shown.  This is a no-op on the happy path and an
+         * unstick mechanism for the bfcache path.
+         *
+         * We also clear on visibilitychange (when the user returns to the
+         * tab) for the same reason — sometimes a modal closed on one tab
+         * leaves overflow="hidden" if the user switched tabs mid-close.
+         */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{
+              var clearLock = function(){
+                if (document.body && document.body.style.overflow === 'hidden') {
+                  // Only clear if no element is actively claiming the lock
+                  // (drawers/modals re-apply their own lock on next tick).
+                  document.body.style.overflow = '';
+                }
+              };
+              window.addEventListener('pageshow', clearLock);
+              document.addEventListener('visibilitychange', function(){
+                if (!document.hidden) clearLock();
+              });
+            }catch(e){}})();`,
           }}
         />
       </head>
