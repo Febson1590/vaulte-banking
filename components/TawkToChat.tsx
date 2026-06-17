@@ -141,6 +141,9 @@ export default function TawkToChat() {
       // eslint-disable-next-line no-console
       console.log("[Tawk] widget ready");
 
+      // Always start minimized — only open when the user clicks the launcher.
+      if (typeof live.minimize === "function") live.minimize();
+
       // Tags
       if (pendingTagsRef.current.length && typeof live.addTags === "function") {
         live.addTags(pendingTagsRef.current, () => { /* swallow */ });
