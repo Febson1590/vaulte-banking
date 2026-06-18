@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
-import TawkToChat from "@/components/TawkToChat";
 // Language selection is now an inline navbar control (rendered inside each
 // page chrome — landing Navbar, DashboardLayout topbar, AdminLayout header,
 // marketing-page mini navs).  No global floating mount any more.
@@ -200,7 +199,6 @@ export default function RootLayout({
         />
 
         {children}
-        <TawkToChat />
 
         {/* Load Google Translate after the page is interactive */}
         <Script
